@@ -1,0 +1,503 @@
+/*
+=================================
+REFERENCE LAYOUT IMPLEMENTATION
+=================================
+The styles in this file implement the layout and design as shown in:
+1. src/pages/LandingPage.jsx
+2. src/pages/TeamStatsPage.jsx
+
+Key Layout Features:
+- Header centered with logo and title stacked vertically
+- Navigation buttons positioned absolutely on the right
+- Black logout button
+- Dark green color scheme (#545e46, #7c866b, etc.)
+- Consistent gradients in header and footer
+
+Color Palette:
+- Background: #7c866b
+- Card/Button Background: #545e46
+- Header/Footer Gradient: #111613 → #2e3726 → #111613
+- Text: #c0fad0, #E7F8E8
+=================================
+*/
+
+/*
+=================================
+SCORESHEET LAYOUT REFERENCE - v1.0
+=================================
+Key Components:
+1. Split Screen Layout
+   - Two equal columns (1fr 1fr)
+   - Max width: 1800px
+   - Gap: 2rem
+   - Centered headings
+
+2. Inning Cell Layout
+   - Diamond on left (1.5rem × 1.5rem)
+   - Input fields on right (3.5rem width)
+   - Gap between diamond and fields: 0.75rem
+   - Cell padding: 0.5rem
+   - Total cell width: 9rem
+
+3. Column Headers
+   - Ordinal numbers (1st, 2nd, 3rd, etc.)
+   - Centered text
+   - Font weight: semibold
+
+4. Color Scheme
+   - Background: #7c866b
+   - Card/Button Background: #545e46
+   - Text: #c0fad0, #E7F8E8
+
+Reference Implementation:
+- src/pages/ScoreSheetsPage.jsx
+- src/components/scoresheet/DigitalScoreSheet.jsx
+=================================
+*/
+
+/* Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset and Base Styles */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #7c866b;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* Layout */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+.content-wrap {
+  flex: 1 0 auto;
+}
+/* Layout */
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+/* Header */
+.header-wrapper {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(to right, #111613, #2e3726, #111613);
+}
+
+.header {
+  position: relative;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 1rem !important;
+}
+
+.site-title {
+  background-color: #545e46;
+  color: #EFF7EC;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem !important;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.nav-buttons-container {
+  position: absolute;
+  right: -3.5rem; /* Backed off from -4rem to create some space */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.nav-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.nav-button, .logout-button {
+  background-color: #545e46;
+  color: #EFF7EC;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem !important;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  width: 140px;
+  height: 40px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transform: scale(1);
+}
+
+/* Email auth button specific styles */
+.nav-button.email-auth {
+  background-color: #2e3726;  /* Dark green */
+}
+
+.nav-button.email-auth:hover:not(:disabled) {
+  background-color: #3a4531;  /* Slightly lighter dark green on hover */
+}
+
+/* Logout button specific styles */
+.logout-button {
+  background-color: black;
+}
+
+.logout-button:hover:not(:disabled) {
+  background-color: #333;
+}
+
+/* Click effect */
+.nav-button:active, .logout-button:active {
+  transform: scale(0.95);
+}
+
+/* Disabled state */
+.nav-button:disabled, .logout-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #666;
+}
+
+/* Regular nav button hover */
+.nav-button:hover:not(:disabled) {
+  background-color: #6b7660;
+}
+
+/* Main Content */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;  /* Only horizontal padding */
+}
+
+/* Welcome Section */
+.welcome-section {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.8rem 2rem 1.8rem 2rem;  /* Same 1.8rem top and bottom padding */
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;  /* Same 1.8rem gap between cards */
+  overflow-x: hidden;
+}
+
+.welcome-card {
+  background-color: #545e46;
+  padding: 2rem;
+  border-radius: 1rem !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 1.5rem;  /* Consistent gap between all elements */
+}
+
+.welcome-card.full-width {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.welcome-card h2 {
+  color: #EFF7EC;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.welcome-card p {
+  color: #EFF7EC;
+}
+
+.login-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Remove any specific margins from Google button */
+.google-sign-in-button {
+  margin: 0 !important;
+}
+
+/* Ensure Google button has same width as other buttons */
+.welcome-card button {
+  width: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .login-cards {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-cards {
+    grid-template-columns: 1fr;
+    padding: 0 1rem;
+  }
+  
+  .welcome-section {
+    padding: 1.8rem 0.9rem;  /* Keep vertical padding consistent */
+  }
+}
+
+/* Grid Layout */
+.grid {
+  display: grid;
+  gap: 2rem;  /* Increased from 1rem */
+  width: 100%;
+  overflow: visible;
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));  /* Added minmax */
+}
+
+.col-span-2 {
+  grid-column: span 2 / span 2;
+}
+
+.gap-4 {
+  gap: 2rem;  /* Increased from 1rem */
+}
+
+.mb-4 {
+  margin-bottom: 2rem;  /* Increased from 1rem */
+}
+
+/* Card Enhancements */
+.card {
+  background-color: #545e46;
+  padding: 2rem;  /* Increased from 1.5rem */
+  border-radius: 1rem !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+  min-width: 0;  /* Prevent overflow */
+  overflow: hidden;  /* Contain content */
+  width: 100%;
+}
+
+.card h2 {
+  color: #EFF7EC;
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;  /* Increased from 1rem */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Content Scrolling */
+.card-content {
+  overflow-y: auto;
+  max-height: calc(100vh - 300px);  /* Adjust based on your needs */
+  padding-right: 0.5rem;  /* Space for scrollbar */
+}
+
+/* Scrollbar Styling */
+.card-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.card-content::-webkit-scrollbar-track {
+  background: #2e3726;
+  border-radius: 4px;
+}
+
+.card-content::-webkit-scrollbar-thumb {
+  background: #7c866b;
+  border-radius: 4px;
+}
+
+.card-content::-webkit-scrollbar-thumb:hover {
+  background: #6b7660;
+}
+
+/* Tab Styling */
+.chakra-tabs__tab {
+  color: #c0fad0 !important;
+  background-color: #2e3726 !important;
+  margin: 0 0.5rem;  /* Added spacing between tabs */
+  border-radius: 0.5rem !important;  /* Consistent radius */
+}
+
+.chakra-tabs__tab[aria-selected="true"] {
+  background-color: #7c866b !important;
+}
+
+.chakra-tabs__tab-panel {
+  background-color: transparent !important;
+  padding: 1.5rem 0;  /* Added vertical padding */
+}
+
+.chakra-tabs__tablist {
+  border-bottom: none !important;  /* Remove default border */
+  gap: 0.5rem;  /* Space between tabs */
+}
+
+/* Form Elements */
+.input-field {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid #ddd;
+}
+
+.login-button {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #7c866b;
+  color: #c0fad0;
+  border: none;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.login-button:hover {
+  background-color: #6b7660;
+}
+
+/* Footer */
+.footer {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(to right, #111613, #2e3726, #111613);
+  color: #EFF7EC;
+  text-align: center;
+}
+
+/* AG-Grid Theme Customization */
+.ag-theme-alpine-dark {
+  --ag-background-color: #545e46;
+  --ag-header-background-color: #2e3726;
+  --ag-odd-row-background-color: #4b543e;
+  --ag-header-foreground-color: #E7F8E8;
+  --ag-foreground-color: #E7F8E8;
+  --ag-row-hover-color: #6b7660;
+  --ag-alpine-active-color: #7c866b;
+  --ag-border-color: transparent;
+  --ag-row-border-color: #7c866b;
+  --ag-cell-horizontal-border: #7c866b;
+  --ag-header-column-separator-color: #7c866b;
+  --ag-font-size: 12px;
+  --ag-header-font-size: 12px;
+  --ag-grid-size: 4px;
+  --ag-list-item-height: 30px;
+}
+
+.ag-theme-alpine-dark .ag-header-cell {
+  padding: 0 10px;
+}
+
+.ag-theme-alpine-dark .ag-cell {
+  padding: 0 10px;
+  line-height: 30px;
+}
+
+.ag-theme-alpine-dark .ag-header {
+  border-bottom: 1px solid #7c866b;
+}
+
+.ag-theme-alpine-dark .ag-root-wrapper {
+  border: none;
+  border-radius: 0.625rem; /* From 0.5rem to 0.625rem */
+  overflow: hidden;
+}
+
+.ag-theme-alpine-dark *:focus {
+  outline: none !important;
+}
+
+.ag-theme-alpine-dark .ag-cell-wrapper {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.ag-theme-alpine-dark .ag-header-row:last-child .ag-header-cell::after {
+  display: none;
+}
+
+.ag-theme-alpine-dark .ag-header-cell-comp-wrapper {
+  width: 100%;
+}
+
+.ag-theme-alpine-dark .ag-header-cell-label {
+  width: 100%;
+  text-align: center;
+}
+
+.ag-theme-alpine-dark .ag-root {
+  width: 100% !important;
+}
+
+.ag-theme-alpine-dark .ag-center-cols-container {
+  width: 100% !important;
+}

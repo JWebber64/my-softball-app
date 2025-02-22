@@ -1,0 +1,20 @@
+# dependencies
+/node_modules
+
+# environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# build output
+/dist
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# Important: Do NOT ignore reference files
+!src/reference/
