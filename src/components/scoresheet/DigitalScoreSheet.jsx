@@ -135,6 +135,9 @@ const InningCell = ({ data, onDataChange, editable }) => {
     scored: false
   });
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [showErrorDropdown, setShowErrorDropdown] = useState(false);
+  const [showRBIDropdown, setShowRBIDropdown] = useState(false);
+  const [rbiCount, setRbiCount] = useState(0);
 
   useEffect(() => {
     if (data) {
@@ -148,22 +151,31 @@ const InningCell = ({ data, onDataChange, editable }) => {
         homePlate: false,
         scored: false
       });
+      // Extract RBI count from events if it exists
+      const rbiEvent = data.events?.find(e => e.startsWith('RBI'));
+      setRbiCount(rbiEvent ? parseInt(rbiEvent.replace('RBI', '')) : 0);
     }
   }, [data]);
 
   const handleEventSelect = (event) => {
     if (!editable) return;
     
-    // Clean and format the event
     const cleanEvent = event.trim().toUpperCase();
-    const newEvents = [cleanEvent];
+    let newEvents = [...selectedEvents];
+    
+    if (cleanEvent.startsWith('RBI')) {
+      // Update RBI count
+      setRbiCount(parseInt(cleanEvent.replace('RBI', '')));
+    } else {
+      // Replace the main event (first element)
+      newEvents[0] = cleanEvent;
+    }
+    
     setSelectedEvents(newEvents);
-
-    // Calculate new base configurations based on the event
+    
     const { baseConfig: newBaseConfig } = EventMapper.calculateBasePaths([cleanEvent]);
     setBaseConfig(newBaseConfig);
-
-    // Notify parent of changes
+    
     onDataChange?.({
       events: newEvents,
       outDetails,
@@ -172,44 +184,61 @@ const InningCell = ({ data, onDataChange, editable }) => {
     });
 
     setIsEventModalOpen(false);
+    setShowErrorDropdown(false);
+    setShowRBIDropdown(false);
   };
 
   return (
-    <div className="flex w-full h-full items-center" style={{ gap: "0.75rem" }}>
-      {/* Diamond */}
-      <div
-        className="relative self-center ml-1"
-        style={{ 
-          width: "1.5rem",
-          height: "1.5rem",
-          transform: "rotate(45deg)",
-          border: "1px solid black"
-        }}
-      >
+    <div className="flex w-full h-full items-start" style={{ gap: "0.75rem" }}>
+      {/* Left side - Diamond and RBI text */}
+      <div className="flex flex-col items-center" style={{ height: "5.5rem" }}>
+        {/* RBI text above diamond */}
+        {rbiCount > 0 && (
+          <span className="text-[0.7rem] font-semibold text-gray-700 whitespace-nowrap">
+            {rbiCount} RBI
+          </span>
+        )}
+        
+        {/* Spacer to push diamond to center */}
+        <div className="flex-1" />
+        
+        {/* Diamond */}
         <div
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundColor: baseConfig.scored ? 'rgba(0, 255, 0, 0.7)' : 'transparent',
+          className="relative"
+          style={{ 
+            width: "1.5rem",
+            height: "1.5rem",
+            transform: "rotate(45deg)",
+            border: "1px solid black"
           }}
-        />
+        >
+          <div
+            className="absolute inset-0 z-0"
+            style={{
+              backgroundColor: baseConfig.scored ? 'rgba(0, 255, 0, 0.7)' : 'transparent',
+            }}
+          />
+        </div>
+
+        {/* Equal spacer below diamond */}
+        <div className="flex-1" />
       </div>
 
-      <div className="flex flex-col space-y-2" style={{ width: "3.5rem" }}>
+      {/* Right side - All input boxes in single column */}
+      <div className="flex flex-col space-y-2">
         {/* Event button */}
         <button
-          className={`border text-[0.75rem] text-center p-0.5 ${editable ? 'hover:bg-gray-100' : ''}`}
-          style={{ width: "3.5rem" }}
-          onClick={() => editable && setIsEventModalOpen(true)}
+          className="border text-[0.75rem] text-center p-0.5 w-14"
+          onClick={() => editable && setIsEventModalOpen(!isEventModalOpen)}
           disabled={!editable}
         >
           {selectedEvents[0] || 'Event'}
         </button>
-        
+
         {/* Out input */}
         <input
           type="text"
-          className="border text-[0.75rem] text-center p-0.5"
-          style={{ width: "3.5rem" }}
+          className="border text-[0.75rem] text-center p-0.5 w-14"
           placeholder="Out"
           value={outDetails}
           onChange={(e) => {
@@ -225,11 +254,10 @@ const InningCell = ({ data, onDataChange, editable }) => {
           disabled={!editable}
         />
 
-        {/* Custom/Note input */}
+        {/* Note input */}
         <input
           type="text"
-          className="border text-[0.75rem] text-center p-0.5"
-          style={{ width: "3.5rem" }}
+          className="border text-[0.75rem] text-center p-0.5 w-14"
           placeholder="Note"
           value={custom}
           onChange={(e) => {
@@ -245,27 +273,140 @@ const InningCell = ({ data, onDataChange, editable }) => {
           disabled={!editable}
         />
       </div>
-
-      {/* Event Selection Modal */}
+      
+      {/* Event dropdown menu */}
       {isEventModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg shadow-lg">
-            <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => handleEventSelect('1B')} className="p-2 border rounded hover:bg-gray-100">1B</button>
-              <button onClick={() => handleEventSelect('2B')} className="p-2 border rounded hover:bg-gray-100">2B</button>
-              <button onClick={() => handleEventSelect('3B')} className="p-2 border rounded hover:bg-gray-100">3B</button>
-              <button onClick={() => handleEventSelect('HR')} className="p-2 border rounded hover:bg-gray-100">HR</button>
-              <button onClick={() => handleEventSelect('BB')} className="p-2 border rounded hover:bg-gray-100">BB</button>
-              <button onClick={() => handleEventSelect('K')} className="p-2 border rounded hover:bg-gray-100">K</button>
-              <button onClick={() => handleEventSelect('HBP')} className="p-2 border rounded hover:bg-gray-100">HBP</button>
-              <button onClick={() => handleEventSelect('SAC')} className="p-2 border rounded hover:bg-gray-100">SAC</button>
-              <button onClick={() => handleEventSelect('SF')} className="p-2 border rounded hover:bg-gray-100">SF</button>
+        <div className="absolute left-0 top-full mt-1 w-24 bg-white border rounded shadow-lg z-50">
+          <div className="flex flex-col">
+            {/* RBI button with dropdown */}
+            <div className="relative">
+              <button 
+                className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full flex justify-between items-center"
+                onClick={() => setShowRBIDropdown(!showRBIDropdown)}
+              >
+                RBI <span>▸</span>
+              </button>
+              {showRBIDropdown && (
+                <div className="absolute left-full top-0 w-24 bg-white border rounded shadow-lg">
+                  <button 
+                    className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
+                    onClick={() => handleEventSelect('RBI1')}
+                  >
+                    1 RBI
+                  </button>
+                  <button 
+                    className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
+                    onClick={() => handleEventSelect('RBI2')}
+                  >
+                    2 RBI
+                  </button>
+                  <button 
+                    className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
+                    onClick={() => handleEventSelect('RBI3')}
+                  >
+                    3 RBI
+                  </button>
+                  <button 
+                    className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
+                    onClick={() => handleEventSelect('RBI4')}
+                  >
+                    4 RBI
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Hits */}
+            <div className="border-t border-gray-200 mt-1"></div>
             <button 
-              onClick={() => setIsEventModalOpen(false)}
-              className="mt-4 w-full p-2 bg-gray-200 rounded hover:bg-gray-300"
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('1B')}
             >
-              Cancel
+              1B
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('2B')}
+            >
+              2B
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('3B')}
+            >
+              3B
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('HR')}
+            >
+              HR
+            </button>
+
+            {/* Outs */}
+            <div className="border-t border-gray-200 mt-1"></div>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('K')}
+            >
+              K
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('F')}
+            >
+              F
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('G')}
+            >
+              G
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('L')}
+            >
+              L
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('DP')}
+            >
+              DP
+            </button>
+
+            {/* Other */}
+            <div className="border-t border-gray-200 mt-1"></div>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('BB')}
+            >
+              BB
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('HBP')}
+            >
+              HBP
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('FC')}
+            >
+              FC
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('E')}
+            >
+              E
+            </button>
+            <button 
+              className="text-left px-2 py-1 text-sm hover:bg-gray-100"
+              onClick={() => handleEventSelect('SAC')}
+            >
+              SAC
             </button>
           </div>
         </div>

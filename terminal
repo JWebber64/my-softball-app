@@ -1,2 +1,19 @@
 git config --global user.name "JWebber64"
 git config --global user.email "jeremiahwebber64@gmail.com"
+
+git add src/components/scoresheet/DigitalScoreSheet.jsx
+git commit -m "feat(scoresheet): implement standardized inning cell layout
+
+- Left column (5.5rem height):
+  - RBI text at top
+  - Centered diamond (1.5rem)
+  - Equal spacing above/below
+- Right column:
+  - 3 vertical inputs (w-14)
+  - Event/Out/Note fields
+- 0.75rem column gap"
+
+git tag -a v1.0-scoresheet-layout -m "Standard scoresheet inning cell layout with centered diamond"
+
+git push origin main
+git push origin v1.0-scoresheet-layout
