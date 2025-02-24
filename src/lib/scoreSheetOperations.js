@@ -334,40 +334,22 @@ export const scoreSheetOperations = {
         throw new Error('User must be authenticated to perform this action');
       }
 
-      // Debug logging
-      console.log('Upload attempt details:', {
-        fileType: file.type,
-        fileSize: file.size,
-        fileName: file.name,
-        gameNumber
-      });
-
-      // Validate file before upload
+      // Quick validation
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        throw new Error(`Invalid file type: ${file.type}. Only JPEG, PNG and WebP are allowed.`);
+        throw new Error('Invalid file type. Only JPEG, PNG and WebP are allowed.');
       }
 
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (file.size > maxSize) {
-        throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum size is 5MB.`);
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File too large. Maximum size is 5MB.');
       }
 
-      // Initialize storage
-      await initializeStorage().catch(error => {
-        console.error('Storage initialization failed:', error);
-        throw new Error('Storage system not available');
-      });
-
-      // Create a safe file path
+      // Create file path
       const safeGameNumber = String(gameNumber).replace(/[^0-9]/g, '');
-      const timestamp = new Date().getTime();
       const fileExtension = file.name.split('.').pop().toLowerCase();
-      const safeFileName = `game_${safeGameNumber}_${timestamp}.${fileExtension}`;
+      const safeFileName = `game_${safeGameNumber}.${fileExtension}`;
       const filePath = `game_images/${safeFileName}`;
 
-      console.log('Attempting upload with path:', filePath);
-
-      // Upload the file
+      // Upload file
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('scoresheets')
         .upload(filePath, file, {
@@ -376,22 +358,16 @@ export const scoreSheetOperations = {
           contentType: file.type
         });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('scoresheets')
         .getPublicUrl(filePath);
 
-      console.log('Upload successful, public URL:', publicUrl);
-
       return { filePath, publicUrl };
     } catch (error) {
-      console.error('Upload process error:', error);
-      throw new Error(`Upload failed: ${error.message}`);
+      console.error('Upload error:', error);
+      throw error;
     }
   },
 

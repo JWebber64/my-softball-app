@@ -16,6 +16,8 @@ import { FaCamera, FaUpload, FaMicrophone, FaKeyboard } from 'react-icons/fa';
 import { supabase } from '../lib/supabaseClient';
 import ScoreSheetScanner from '../components/scoresheet/ScoreSheetScanner';
 import DigitalScoreSheet from '../components/scoresheet/DigitalScoreSheet';
+import ManualEntryModal from '../components/scoresheet/ManualEntryModal';
+import ManualInputModal from '../components/scoresheet/ManualInputModal';
 import { scoreSheetOperations } from '../lib/scoreSheetOperations';
 import { OCRService } from '../services/ocrService';
 import { EventMapper } from "../utils/eventMapper";
@@ -78,6 +80,9 @@ const ScoreSheetsPage = () => {
   const fileInputRef = useRef(null);
   const ocrService = useRef(new OCRService());
   const toast = useToast();
+  const { isOpen: isManualEntryOpen, onOpen: onManualEntryOpen, onClose: onManualEntryClose } = useDisclosure();
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const { isOpen: isManualInputOpen, onOpen: onManualInputOpen, onClose: onManualInputClose } = useDisclosure();
 
   useEffect(() => {
     checkAuthStatus();
@@ -177,10 +182,7 @@ const ScoreSheetsPage = () => {
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file) {
-      console.log('No file selected');
-      return;
-    }
+    if (!file) return;
 
     if (!isAuthenticated) {
       toast({
@@ -192,63 +194,32 @@ const ScoreSheetsPage = () => {
       return;
     }
 
-    console.log('File selected:', file);
-
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload an image file',
-        status: 'error',
-        duration: 3000,
-      });
-      return;
-    }
-
     try {
       setIsProcessing(true);
-      setProgress(0);
-
-      // Create a temporary URL for the image
+      
+      // Create a temporary URL for the image immediately
       const imageUrl = URL.createObjectURL(file);
       setScoreSheetImage(imageUrl);
-      console.log('Image URL created:', imageUrl);
 
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 10, 90));
-      }, 200);
+      // Generate game number
+      const gameNumber = Date.now();
 
-      // Generate a temporary game number if needed
-      const gameNumber = Date.now(); // You might want to replace this with your actual game number logic
-
-      // Try uploading the image first
-      try {
-        await scoreSheetOperations.uploadImage(gameNumber, file);
-      } catch (uploadError) {
-        console.warn('Image upload failed, but continuing with score sheet creation:', uploadError);
-      }
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
+      // Set initial data and open modal immediately
       const initialScoreSheetData = {
         gameInfo: {
           gameNumber,
           date: new Date().toISOString().split('T')[0],
         },
-        // Add other initial data as needed
       };
-
-      console.log('Setting scoresheet data:', initialScoreSheetData);
       setScoreSheetData(initialScoreSheetData);
+      onManualEntryOpen();
 
-      toast({
-        title: 'Upload successful',
-        description: 'Score sheet has been uploaded',
-        status: 'success',
-        duration: 3000,
-      });
+      // Handle upload in the background
+      scoreSheetOperations.uploadImage(gameNumber, file)
+        .catch(uploadError => {
+          console.warn('Image upload failed:', uploadError);
+          // Don't block the UI for upload errors
+        });
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -270,10 +241,12 @@ const ScoreSheetsPage = () => {
     setProgress(100);
   };
 
-  const handleDataChange = useCallback((newData) => {
-    console.log('Data changed:', newData);
-    setScoreSheetData(newData);
-  }, []);
+  const handleDataChange = (newData) => {
+    setScoreSheetData(prevData => ({
+      ...prevData,
+      ...newData
+    }));
+  };
 
   // Add debug logging for render conditions
   console.log('Render state:', {
@@ -287,57 +260,77 @@ const ScoreSheetsPage = () => {
     console.log('ScoreSheet Data Updated:', scoreSheetData);
   }, [scoreSheetData]);
 
+  // Add this useEffect to log state changes
+  useEffect(() => {
+    console.log('showManualEntry changed:', showManualEntry);
+  }, [showManualEntry]);
+
+  const handleManualEntryClick = () => {
+    // Clear any existing image
+    setScoreSheetImage(null);
+    // Initialize empty scoresheet data
+    setScoreSheetData({
+      players: Array(11).fill().map(() => ({
+        name: '',
+        number: '',
+        position: '',
+        sub: { name: '', inning: '' },
+        innings: Array(7).fill().map(() => ({
+          event: '',
+          outDetails: '',
+          custom: ''
+        }))
+      })),
+      gameInfo: {
+        gameNumber: '',
+        date: new Date().toISOString().split('T')[0],
+        time: '',
+        field: ''
+      },
+      teams: {
+        home: '',
+        away: ''
+      }
+    });
+  };
+
   return (
-    <Box p={4} maxW="1800px" mx="auto">
-      {!isAuthenticated && (
-        <Box mb={4} p={4} bg="red.100" borderRadius="md">
-          <Text color="red.600">
-            Please sign in to upload and manage score sheets
-          </Text>
-        </Box>
-      )}
-
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileUpload}
-        accept="image/*"
-        style={{ display: 'none' }}
-      />
-
+    <Box p={4}>
+      {/* Input method buttons */}
       <Grid templateColumns="repeat(4, 1fr)" gap={4} mb={6}>
         <Button
           leftIcon={<FaCamera />}
-          bg="#2e3726"
+          bg="#545e46"
           color="#EFF7EC"
           _hover={{ bg: "#3a4531" }}
           height="100px"
           onClick={() => setIsScannerOpen(true)}
+          borderRadius="1rem"
         >
           <VStack>
-            <Text>Camera Input</Text>
-            <Text fontSize="sm">Take photo of score sheet</Text>
+            <Text>Scan Score Sheet</Text>
+            <Text fontSize="sm">Use camera to capture</Text>
           </VStack>
         </Button>
 
         <Button
           leftIcon={<FaUpload />}
-          bg="#2e3726"
+          bg="#545e46"
           color="#EFF7EC"
           _hover={{ bg: "#3a4531" }}
           height="100px"
           onClick={() => fileInputRef.current?.click()}
-          isLoading={isProcessing}
+          borderRadius="1rem"
         >
           <VStack>
-            <Text>Upload Image</Text>
-            <Text fontSize="sm">Upload score sheet photo</Text>
+            <Text>Upload Score Sheet</Text>
+            <Text fontSize="sm">Select image file</Text>
           </VStack>
         </Button>
 
         <Button
           leftIcon={<FaMicrophone />}
-          bg="#2e3726"
+          bg="#545e46"
           color="#EFF7EC"
           _hover={{ bg: "#3a4531" }}
           height="100px"
@@ -348,6 +341,7 @@ const ScoreSheetsPage = () => {
               duration: 3000,
             });
           }}
+          borderRadius="1rem"
         >
           <VStack>
             <Text>Voice Input</Text>
@@ -357,76 +351,48 @@ const ScoreSheetsPage = () => {
 
         <Button
           leftIcon={<FaKeyboard />}
-          bg="#2e3726"
+          bg="#545e46"
           color="#EFF7EC"
           _hover={{ bg: "#3a4531" }}
           height="100px"
-          onClick={() => {
-            toast({
-              title: 'Manual entry coming soon',
-              status: 'info',
-              duration: 3000,
-            });
-          }}
+          onClick={onManualInputOpen}
+          borderRadius="1rem"
         >
           <VStack>
             <Text>Manual Input</Text>
-            <Text fontSize="sm">Type in game stats</Text>
+            <Text fontSize="sm">Enter game stats manually</Text>
           </VStack>
         </Button>
       </Grid>
 
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleFileUpload}
+        accept="image/*"
+      />
+
+      {/* Progress indicator */}
       {isProcessing && (
         <Progress value={progress} size="sm" colorScheme="green" mb={4} />
       )}
 
-      {scoreSheetImage && (
-        <>
-          <Box mb={4} textAlign="center">
-            <Button
-              onClick={processImageWithOCR}
-              isLoading={isProcessing}
-              loadingText="Processing..."
-              bg="#2e3726"
-              color="#EFF7EC"
-              _hover={{ bg: "#3a4531" }}
-              size="lg"
-              px={8}
-            >
-              Start OCR Processing
-            </Button>
-          </Box>
-
-          <Box sx={sheetContainerStyles}>
-            {/* Left side - Original Image */}
-            <Box sx={sheetStyles}>
-              <Heading size="md" mb={4} textAlign="center">Uploaded Score Sheet</Heading>
-              <Image
-                src={scoreSheetImage}
-                alt="Uploaded score sheet"
-                sx={imageStyles}
-              />
-            </Box>
-
-            {/* Right side - Digital Score Sheet */}
-            <Box sx={sheetStyles}>
-              <Heading size="md" mb={4} textAlign="center">Digital Score Sheet</Heading>
-              {scoreSheetData ? (
-                <DigitalScoreSheet 
-                  data={scoreSheetData}
-                  onDataChange={handleDataChange}
-                  editable={true}
-                />
-              ) : null}
-            </Box>
-          </Box>
-        </>
-      )}
-
+      {/* Modals */}
       <ScoreSheetScanner
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScanComplete={handleScanComplete}
+      />
+      <ManualEntryModal 
+        isOpen={isManualEntryOpen}
+        onClose={onManualEntryClose}
+        originalImage={scoreSheetImage}
+      />
+      <ManualInputModal 
+        isOpen={isManualInputOpen}
+        onClose={onManualInputClose}
       />
     </Box>
   );

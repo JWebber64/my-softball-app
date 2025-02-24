@@ -9,6 +9,7 @@ import {
   ModalFooter,
   Button,
   useToast,
+  Box,
 } from '@chakra-ui/react';
 import DigitalScoreSheet from './DigitalScoreSheet';
 import ComparisonView from './ComparisonView';
@@ -69,34 +70,65 @@ const ManualEntryModal = ({ isOpen, onClose, originalImage }) => {
     <Modal 
       isOpen={isOpen} 
       onClose={onClose} 
-      size="2xl"
+      size="full"
       isCentered
+      closeOnOverlayClick={false}
+      closeOnEsc={false}
     >
       <ModalOverlay />
-      <ModalContent maxH="70vh">
-        <ModalHeader>Manual Score Entry</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody p={2} overflow="hidden">
+      <ModalContent 
+        maxH="90vh"
+        bg="#7C866B"
+        my="5vh"
+      >
+        <ModalHeader 
+          color="black"
+          textAlign="center"
+        >
+          Manual Score Entry
+        </ModalHeader>
+        <ModalBody 
+          p={6} 
+          overflow="auto"
+        >
           <ComparisonView 
             originalImage={originalImage}
             digitalScoreSheet={
-              <DigitalScoreSheet 
-                data={scoreSheetData}
-                onDataChange={handleDataChange}
-              />
+              <Box
+                bg="white"
+                p={6}
+                borderRadius="lg"
+                boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
+              >
+                <DigitalScoreSheet 
+                  data={scoreSheetData}
+                  onDataChange={handleDataChange}
+                  editable={true}
+                />
+              </Box>
             }
           />
         </ModalBody>
-        <ModalFooter>
-          <Button 
-            colorScheme="blue" 
-            mr={3} 
+        <ModalFooter
+          display="flex"
+          justifyContent="center"
+          gap={3}
+        >
+          <Button
+            bg="#545e46"
+            color="#EFF7EC"
+            _hover={{ bg: "#3a4531" }}
             onClick={handleSave}
             isLoading={isSubmitting}
           >
             Save
           </Button>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button 
+            variant="ghost" 
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
