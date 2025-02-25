@@ -8,6 +8,7 @@ import {
   ModalFooter,
   Button,
   Box,
+  Text,
 } from '@chakra-ui/react';
 import DigitalScoreSheet from './DigitalScoreSheet';
 
@@ -28,6 +29,9 @@ const ManualInputModal = ({ isOpen, onClose }) => {
         my="5vh"
         position="relative"
       >
+        <Text fontSize="3xl" color="blue.600" bg="green.200" p={2} textAlign="center">
+          THIS IS MANUAL INPUT MODAL (NO COMPARISON VIEW)
+        </Text>
         <ModalHeader 
           color="black"
           textAlign="center"
@@ -48,7 +52,7 @@ const ManualInputModal = ({ isOpen, onClose }) => {
             borderRadius="lg"
             boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
           >
-            <DigitalScoreSheet />
+            <DigitalScoreSheet hideActionCards={true} />
           </Box>
         </ModalBody>
         <ModalFooter

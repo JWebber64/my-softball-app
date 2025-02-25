@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   Modal,
   ModalOverlay,
@@ -10,49 +11,55 @@ import {
   Button,
   useToast,
   Box,
+  Text,
+  Flex,
+  Image,
+  Heading,
 } from '@chakra-ui/react';
 import DigitalScoreSheet from './DigitalScoreSheet';
-import ComparisonView from './ComparisonView';
-import { scoreSheetOperations } from '../../lib/scoreSheetOperations';
 
-const ManualEntryModal = ({ isOpen, onClose, originalImage }) => {
-  const [scoreSheetData, setScoreSheetData] = useState({});
+// COMPLETELY REWRITTEN VERSION - 2023-06-15-12-34-56
+
+const ManualEntryModal = ({ 
+  isOpen, 
+  onClose, 
+  originalImage = null, 
+  onSave = null 
+}) => {
+  const [scoreSheetData, setScoreSheetData] = useState({
+    gameNumber: '',
+    gameDate: '',
+    gameTime: '',
+    field: '',
+    opponent: '',
+    isHomeTeam: false,
+    innings: [],
+    lineup: [],
+    final_score: { home: 0, away: 0 }
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
 
   const handleDataChange = (newData) => {
-    setScoreSheetData(newData);
+    setScoreSheetData(prevData => ({
+      ...prevData,
+      ...newData
+    }));
   };
 
   const handleSave = async () => {
     setIsSubmitting(true);
     try {
-      const gameNumber = scoreSheetData.gameInfo?.gameNumber;
-      if (!gameNumber) {
-        throw new Error('Game number is required');
+      if (onSave) {
+        await onSave(scoreSheetData);
       }
-
-      await scoreSheetOperations.createScoreSheet({
-        gameNumber,
-        gameDate: scoreSheetData.gameInfo?.date,
-        gameTime: scoreSheetData.gameInfo?.time,
-        field: scoreSheetData.gameInfo?.field,
-        opponent: scoreSheetData.teams?.away,
-        isHomeTeam: true,
-        lineup: scoreSheetData.lineup,
-        final_score: {
-          us: scoreSheetData.score?.home,
-          them: scoreSheetData.score?.away
-        }
-      });
-      
+      onClose();
       toast({
         title: 'Success',
         description: 'Score sheet saved successfully',
         status: 'success',
         duration: 3000,
       });
-      onClose();
     } catch (error) {
       console.error('Error saving scoresheet:', error);
       toast({
@@ -64,6 +71,67 @@ const ManualEntryModal = ({ isOpen, onClose, originalImage }) => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Inline comparison view instead of using a separate component
+  const renderComparisonView = () => {
+    return (
+      <Flex 
+        direction={{ base: 'column', lg: 'row' }}
+        gap={4}
+        w="100%"
+        justify="center"
+        align="stretch"
+      >
+        {/* Original Image Side */}
+        <Box 
+          flex="1"
+          bg="white"
+          p={4}
+          borderRadius="md"
+          boxShadow="md"
+          maxH={{ lg: '80vh' }}
+          overflow="auto"
+        >
+          <Heading size="md" mb={4} textAlign="center">Original Scoresheet</Heading>
+          {originalImage ? (
+            <Image 
+              src={originalImage} 
+              alt="Original scoresheet" 
+              maxW="100%" 
+              mx="auto"
+              border="1px solid"
+              borderColor="gray.200"
+            />
+          ) : (
+            <Text textAlign="center" color="gray.500" py={10}>
+              No original image available
+            </Text>
+          )}
+        </Box>
+
+        {/* Digital Scoresheet Side */}
+        <Box 
+          flex="1"
+          maxH={{ lg: '80vh' }}
+          overflow="auto"
+        >
+          <Heading size="md" mb={4} textAlign="center">Digital Entry</Heading>
+          <Box
+            bg="white"
+            p={6}
+            borderRadius="lg"
+            boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
+          >
+            <DigitalScoreSheet 
+              data={scoreSheetData}
+              onDataChange={handleDataChange}
+              editable={true}
+            />
+          </Box>
+        </Box>
+      </Flex>
+    );
   };
 
   return (
@@ -81,33 +149,21 @@ const ManualEntryModal = ({ isOpen, onClose, originalImage }) => {
         bg="#7C866B"
         my="5vh"
       >
+        <Text fontSize="3xl" color="purple.600" bg="green.200" p={2} textAlign="center">
+          COMPLETELY REWRITTEN MANUAL ENTRY MODAL
+        </Text>
         <ModalHeader 
           color="black"
           textAlign="center"
         >
-          Manual Score Entry
+          Manual Score Entry - {new Date().toLocaleTimeString()}
         </ModalHeader>
+        <ModalCloseButton />
         <ModalBody 
           p={6} 
           overflow="auto"
         >
-          <ComparisonView 
-            originalImage={originalImage}
-            digitalScoreSheet={
-              <Box
-                bg="white"
-                p={6}
-                borderRadius="lg"
-                boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
-              >
-                <DigitalScoreSheet 
-                  data={scoreSheetData}
-                  onDataChange={handleDataChange}
-                  editable={true}
-                />
-              </Box>
-            }
-          />
+          {renderComparisonView()}
         </ModalBody>
         <ModalFooter
           display="flex"
@@ -133,6 +189,13 @@ const ManualEntryModal = ({ isOpen, onClose, originalImage }) => {
       </ModalContent>
     </Modal>
   );
+};
+
+ManualEntryModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  originalImage: PropTypes.string,
+  onSave: PropTypes.func
 };
 
 export default ManualEntryModal;

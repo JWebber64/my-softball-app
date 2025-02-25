@@ -76,6 +76,7 @@ CREATE TABLE public.team_record (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wins INTEGER DEFAULT 0,
     losses INTEGER DEFAULT 0,
+    ties INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );

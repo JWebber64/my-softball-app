@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const Header = () => {
               <button className="nav-button" onClick={() => navigate('/league-admin')}>
                 League Admin
               </button>
-              <button className="nav-button" onClick={() => navigate('/score-sheets')}>
+              <button className="nav-button" onClick={() => navigate('/scoresheets')}>
                 Score Sheets
               </button>
             </div>

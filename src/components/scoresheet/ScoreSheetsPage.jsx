@@ -1,4 +1,8 @@
-const ScoreSheetsPage = () => {
+import React, { useState } from 'react';
+import DigitalScoreSheet from './DigitalScoreSheet';
+
+// Rename this component to avoid conflict with the page component
+const ScoreSheetViewer = () => {
   const [scoreSheetData, setScoreSheetData] = useState({});
 
   return (
@@ -10,3 +14,5 @@ const ScoreSheetsPage = () => {
     </div>
   );
 };
+
+export default ScoreSheetViewer;

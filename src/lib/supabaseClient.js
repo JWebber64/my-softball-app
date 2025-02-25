@@ -5,13 +5,90 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
   },
-  storage: {
-    retryAttempts: 3,
-    retryInterval: 1000
-  }
+  realtime: {
+    params: {
+      eventsPerSecond: 2
+    }
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: { 'x-application-name': 'team-stats' }
+  },
+  retryAttempts: 3,
+  retryInterval: 1000
 })
+
+// Function to check if a user has admin role
+export const checkUserIsAdmin = async (userId) => {
+  if (!userId) return false;
+  
+  try {
+    // First check if there's a user_roles table
+    const { data: userRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+      
+    if (userRoles && !rolesError) {
+      console.log('User role from user_roles table:', userRoles);
+      return userRoles.role === 'admin' || userRoles.role === 'team-admin';
+    }
+    
+    // If no user_roles table or no entry, check profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+      
+    if (profile && !profileError) {
+      console.log('User role from profiles table:', profile);
+      return profile.role === 'admin' || profile.role === 'team-admin';
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+}
+
+// Connection health check function
+export const checkSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('team_news')
+      .select('count')
+      .limit(1)
+      .single()
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Supabase connection check failed:', error)
+    return false
+  }
+}
+
+// Retry mechanism for Supabase queries
+export const retryOperation = async (operation, maxAttempts = 3, delay = 1000) => {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await operation()
+      return result
+    } catch (error) {
+      if (attempt === maxAttempts) throw error
+      await new Promise(resolve => setTimeout(resolve, delay * attempt))
+    }
+  }
+}
 
 export const checkAuth = async () => {
   try {

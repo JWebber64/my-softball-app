@@ -378,7 +378,7 @@ html, body {
 
 /* Tab Styling */
 .chakra-tabs__tab {
-  color: #c0fad0 !important;
+  color: #EFF7EC !important;
   background-color: #2e3726 !important;
   margin: 0 0.5rem;  /* Added spacing between tabs */
   border-radius: 0.5rem !important;  /* Consistent radius */
@@ -438,8 +438,8 @@ html, body {
   --ag-background-color: #545e46;
   --ag-header-background-color: #2e3726;
   --ag-odd-row-background-color: #4b543e;
-  --ag-header-foreground-color: #E7F8E8;
-  --ag-foreground-color: #E7F8E8;
+  --ag-header-foreground-color: #EFF7EC;
+  --ag-foreground-color: #EFF7EC;
   --ag-row-hover-color: #6b7660;
   --ag-alpine-active-color: #7c866b;
   --ag-border-color: transparent;
@@ -500,4 +500,136 @@ html, body {
 
 .ag-theme-alpine-dark .ag-center-cols-container {
   width: 100% !important;
+}
+
+/* Baseball Card 3D Effects */
+.baseball-card-container {
+  perspective: 1000px;
+}
+
+.baseball-card {
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.baseball-card:hover {
+  transform: scale(1.02);
+}
+
+.card-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Target all input fields in the scoresheet with high specificity */
+.page-container input[type="text"],
+.card input[type="text"],
+.digital-scoresheet input[type="text"] {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Specifically target player name and sub inputs */
+.flex.flex-col.space-y-1 input[type="text"] {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Target out and note inputs */
+input[placeholder="Out"],
+input[placeholder="Note"] {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Add these styles to override disabled input appearance */
+input[type="text"]:disabled {
+  color: #000000 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: bold !important;
+  background-color: #ffffff !important; /* Ensure background is white */
+  cursor: default !important; /* Show normal cursor */
+}
+
+/* Target all inputs in the scoresheet */
+.digital-scoresheet input[type="text"],
+.digital-scoresheet input[type="text"]:disabled {
+  color: #000000 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Target placeholder text */
+input[type="text"]::placeholder {
+  color: #666666 !important;
+  opacity: 1 !important;
+}
+
+/* Target input focus state */
+input[type="text"]:focus {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Universal text styling for consistency */
+.digital-scoresheet input[type="text"],
+.digital-scoresheet input[type="text"]:disabled,
+.digital-scoresheet button,
+.digital-scoresheet label,
+.digital-scoresheet span,
+.digital-scoresheet div,
+.digital-scoresheet p,
+.digital-scoresheet h1,
+.digital-scoresheet h2,
+.digital-scoresheet h3,
+.digital-scoresheet h4,
+.digital-scoresheet h5,
+.digital-scoresheet h6,
+.digital-scoresheet select,
+.digital-scoresheet option {
+  color: #000000 !important;
+  font-weight: bold !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Ensure inputs have consistent styling */
+.digital-scoresheet input[type="text"],
+.digital-scoresheet input[type="text"]:disabled {
+  color: #000000 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: bold !important;
+  background-color: #ffffff !important;
+  cursor: default !important;
+}
+
+/* Dropdown menu items */
+.digital-scoresheet button,
+.digital-scoresheet .dropdown-menu button {
+  color: #000000 !important;
+  font-weight: bold !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Placeholder text */
+.digital-scoresheet input[type="text"]::placeholder {
+  color: #666666 !important;
+  opacity: 1 !important;
+}
+
+/* Table headers and cells */
+.digital-scoresheet th,
+.digital-scoresheet td {
+  color: #000000 !important;
+  font-weight: bold !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Override any hover states */
+.digital-scoresheet button:hover,
+.digital-scoresheet a:hover {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
 }

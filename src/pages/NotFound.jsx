@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const NotFoundPage = () => {
+const NotFound = () => {
   const navigate = useNavigate();
 
   return (
     <div className="not-found-container">
       <h1>404 - Page Not Found</h1>
-      <p>The page you're looking for doesn't exist.</p>
+      <p>The page you&apos;re looking for doesn&apos;t exist.</p>
       <button 
         className="nav-button"
         onClick={() => navigate('/')}
@@ -18,4 +18,4 @@ const NotFoundPage = () => {
   );
 };
 
-export default NotFoundPage;
+export default NotFound;

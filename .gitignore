@@ -1,20 +1,37 @@
-# dependencies
-/node_modules
+# Dependencies
+node_modules
+.pnp
+.pnp.js
 
-# environment variables
+# Testing
+coverage
+
+# Production
+dist
+build
+
+# Misc
+.DS_Store
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# build output
-/dist
-/build
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# misc
-.DS_Store
-*.pem
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# Important: Do NOT ignore reference files
-!src/reference/
+# Vite
+.vite
