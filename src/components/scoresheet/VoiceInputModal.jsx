@@ -50,9 +50,36 @@ const VoiceInputModal = ({ isOpen, onClose }) => {
             onZoom={handleZoom}
           />
         </ModalBody>
-        <ModalFooter>
-          <Button colorScheme="green" onClick={handleClose}>
-            Done
+        <ModalFooter
+          display="flex"
+          justifyContent="center"
+          gap={3}
+          bg="#7C866B"
+          position="sticky"
+          bottom="0"
+          p={4}
+          borderTop="1px solid"
+          borderColor="rgba(255,255,255,0.1)"
+        >
+          <Button
+            bg="#545E46"
+            color="#EFF7EC"
+            _hover={{ bg: "#6b7660" }}
+            onClick={handleSave}
+            size="lg"
+            borderRadius="1rem"
+          >
+            Save
+          </Button>
+          <Button 
+            bg="#545E46"
+            color="#EFF7EC"
+            _hover={{ bg: "#6b7660" }}
+            onClick={onClose}
+            size="lg"
+            borderRadius="1rem"
+          >
+            Cancel
           </Button>
         </ModalFooter>
       </ModalContent>

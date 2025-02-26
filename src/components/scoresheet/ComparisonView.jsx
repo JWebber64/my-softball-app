@@ -1,147 +1,86 @@
-import React, { useEffect } from 'react';
-import { Box, Grid, Text } from '@chakra-ui/react';
+import React from 'react';
 
 const ComparisonView = ({ originalImage, digitalScoreSheet }) => {
-  // Add console log to verify component is rendering
-  useEffect(() => {
-    console.log('ComparisonView MOUNTED');
-    
-    // Log the props
-    console.log('originalImage:', originalImage);
-    console.log('digitalScoreSheet:', digitalScoreSheet);
-    
-    return () => {
-      console.log('ComparisonView UNMOUNTED');
-    };
-  }, []);
+  // Define the heading style directly
+  const headingStyle = {
+    display: 'inline-block',
+    backgroundColor: '#545E46',
+    color: '#EFF7EC',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    fontWeight: 'bold',
+    fontSize: '24px'
+  };
 
-  // Use inline styles that can't be overridden
+  // Define the empty box style directly
+  const emptyBoxStyle = {
+    backgroundColor: '#545E46',
+    color: '#EFF7EC',
+    padding: '16px',
+    borderRadius: '8px',
+    fontWeight: 'bold'
+  };
+
   return (
-    <div 
-      style={{
-        background: 'red !important',
-        border: '10px solid black !important',
-        padding: '20px !important',
-        margin: '20px !important',
-        position: 'relative !important'
-      }}
-      className="comparison-view-container"
-    >
-      {/* Add a marker that will be visible regardless of styling */}
+    <div style={{ backgroundColor: '#7C866B', width: '100%', padding: '16px' }}>
       <div 
         style={{
-          position: 'absolute !important',
-          top: '0 !important',
-          left: '0 !important',
-          background: 'yellow !important',
-          color: 'black !important',
-          padding: '10px !important',
-          zIndex: '9999 !important',
-          fontSize: '24px !important',
-          fontWeight: 'bold !important',
-          border: '5px solid red !important'
-        }}
-      >
-        COMPARISON VIEW RENDERED
-      </div>
-      
-      <Grid 
-        templateColumns={{ base: "1fr", md: "1fr 1fr" }}
-        gap={8}
-        style={{
-          display: 'grid !important',
-          gridTemplateColumns: '1fr 1fr !important',
-          gap: '32px !important',
-          maxWidth: '1800px !important',
-          margin: '0 auto !important',
-          background: 'purple !important',
-          padding: '16px !important'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '32px',
+          maxWidth: '1800px',
+          margin: '0 auto'
         }}
       >
         {/* Original Image */}
-        <Box
+        <div
           style={{
-            width: '100% !important',
-            minHeight: '226mm !important',
-            background: 'green !important',
-            border: '4px solid red !important',
-            borderRadius: '8px !important',
-            padding: '16px !important',
-            overflow: 'auto !important'
+            backgroundColor: '#7C866B',
+            borderRadius: '8px',
+            padding: '16px',
+            minHeight: '226mm',
+            width: '100%',
+            overflow: 'auto'
           }}
         >
-          <Text 
-            style={{
-              fontWeight: 'bold !important',
-              fontSize: '24px !important',
-              marginBottom: '16px !important',
-              color: 'white !important'
-            }}
-          >
-            ORIGINAL IMAGE SECTION
-          </Text>
+          <div style={headingStyle}>ORIGINAL IMAGE SECTION</div>
+          
           {originalImage ? (
             <img 
               src={originalImage} 
               alt="Original Score Sheet" 
               style={{ 
-                width: '100% !important',
-                height: 'auto !important',
-                objectFit: 'contain !important',
-                border: '2px solid yellow !important'
+                width: '100%',
+                height: 'auto',
+                objectFit: 'contain'
               }} 
             />
           ) : (
-            <div style={{
-              background: 'orange !important',
-              color: 'black !important',
-              padding: '16px !important',
-              fontWeight: 'bold !important'
-            }}>
-              No image provided
-            </div>
+            <div style={emptyBoxStyle}>No image provided</div>
           )}
-        </Box>
+        </div>
 
         {/* Digital Score Sheet */}
-        <Box
+        <div
           style={{
-            width: '100% !important',
-            minHeight: '226mm !important',
-            background: 'blue !important',
-            border: '4px solid yellow !important',
-            borderRadius: '8px !important',
-            padding: '16px !important',
-            overflow: 'auto !important'
+            backgroundColor: '#7C866B',
+            borderRadius: '8px',
+            padding: '16px',
+            minHeight: '226mm',
+            width: '100%',
+            overflow: 'auto'
           }}
         >
-          <Text 
-            style={{
-              fontWeight: 'bold !important',
-              fontSize: '24px !important',
-              marginBottom: '16px !important',
-              color: 'white !important'
-            }}
-          >
-            DIGITAL SCORESHEET SECTION
-          </Text>
-          <div style={{
-            border: '2px dashed white !important',
-            padding: '8px !important'
-          }}>
+          <div style={headingStyle}>DIGITAL SCORESHEET SECTION</div>
+          
+          <div style={{ padding: '8px' }}>
             {digitalScoreSheet || (
-              <div style={{
-                background: 'red !important',
-                color: 'white !important',
-                padding: '16px !important',
-                fontWeight: 'bold !important'
-              }}>
-                No digital scoresheet provided
-              </div>
+              <div style={emptyBoxStyle}>No digital scoresheet provided</div>
             )}
           </div>
-        </Box>
-      </Grid>
+        </div>
+      </div>
     </div>
   );
 };

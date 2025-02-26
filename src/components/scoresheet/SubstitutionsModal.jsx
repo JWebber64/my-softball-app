@@ -11,31 +11,28 @@ import {
   FormControl,
   FormLabel,
   Input,
-  Select,
   VStack,
   HStack,
+  Select
 } from '@chakra-ui/react';
 
 const SubstitutionsModal = ({ isOpen, onClose, onSubmit }) => {
   const [substitution, setSubstitution] = useState({
     inning: '',
     outPlayer: '',
-    inPlayer: '',
-    position: ''
+    inPlayer: ''
   });
 
-  const positions = [
-    'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'EH'
-  ];
+  // Generate innings 1-12 for the dropdown
+  const innings = Array.from({ length: 12 }, (_, i) => i + 1);
 
   const handleSubmit = () => {
-    if (substitution.inning && substitution.outPlayer && substitution.inPlayer && substitution.position) {
+    if (substitution.inning && substitution.outPlayer && substitution.inPlayer) {
       onSubmit(substitution);
       setSubstitution({
         inning: '',
         outPlayer: '',
-        inPlayer: '',
-        position: ''
+        inPlayer: ''
       });
       onClose();
     }
@@ -53,15 +50,20 @@ const SubstitutionsModal = ({ isOpen, onClose, onSubmit }) => {
           <VStack spacing={4} py={2}>
             <FormControl isRequired>
               <FormLabel>Inning</FormLabel>
-              <Input
-                type="number"
-                min="1"
+              <Select
+                placeholder="Select inning"
                 value={substitution.inning}
                 onChange={(e) => setSubstitution({
                   ...substitution,
                   inning: e.target.value
                 })}
-              />
+              >
+                {innings.map(inning => (
+                  <option key={inning} value={inning}>
+                    {inning}
+                  </option>
+                ))}
+              </Select>
             </FormControl>
             
             <HStack width="100%" spacing={4}>
@@ -87,22 +89,6 @@ const SubstitutionsModal = ({ isOpen, onClose, onSubmit }) => {
                 />
               </FormControl>
             </HStack>
-
-            <FormControl isRequired>
-              <FormLabel>Position</FormLabel>
-              <Select
-                value={substitution.position}
-                onChange={(e) => setSubstitution({
-                  ...substitution,
-                  position: e.target.value
-                })}
-              >
-                <option value="">Select position</option>
-                {positions.map((pos) => (
-                  <option key={pos} value={pos}>{pos}</option>
-                ))}
-              </Select>
-            </FormControl>
           </VStack>
         </ModalBody>
 

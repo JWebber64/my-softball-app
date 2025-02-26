@@ -82,6 +82,7 @@ const ManualEntryModal = ({
         w="100%"
         justify="center"
         align="stretch"
+        bg="#7C866B"
       >
         {/* Original Image Side */}
         <Box 
@@ -93,7 +94,18 @@ const ManualEntryModal = ({
           maxH={{ lg: '80vh' }}
           overflow="auto"
         >
-          <Heading size="md" mb={4} textAlign="center">Original Scoresheet</Heading>
+          <Box
+            bg="#2e3726"
+            py={2}
+            px={4}
+            borderRadius="md"
+            mx="auto"
+            mb={4}
+            textAlign="center"
+            width="fit-content"
+          >
+            <Text color="white" fontWeight="bold">Original Scoresheet</Text>
+          </Box>
           {originalImage ? (
             <Image 
               src={originalImage} 
@@ -113,22 +125,30 @@ const ManualEntryModal = ({
         {/* Digital Scoresheet Side */}
         <Box 
           flex="1"
+          bg="white"
+          p={4}
+          borderRadius="md"
+          boxShadow="md"
           maxH={{ lg: '80vh' }}
           overflow="auto"
         >
-          <Heading size="md" mb={4} textAlign="center">Digital Entry</Heading>
           <Box
-            bg="white"
-            p={6}
-            borderRadius="lg"
-            boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
+            bg="#2e3726"
+            py={2}
+            px={4}
+            borderRadius="md"
+            mx="auto"
+            mb={4}
+            textAlign="center"
+            width="fit-content"
           >
-            <DigitalScoreSheet 
-              data={scoreSheetData}
-              onDataChange={handleDataChange}
-              editable={true}
-            />
+            <Text color="white" fontWeight="bold">Digital Entry</Text>
           </Box>
+          <DigitalScoreSheet 
+            data={scoreSheetData}
+            onDataChange={handleDataChange}
+            editable={true}
+          />
         </Box>
       </Flex>
     );
@@ -148,20 +168,29 @@ const ManualEntryModal = ({
         maxH="90vh"
         bg="#7C866B"
         my="5vh"
+        position="relative"
       >
-        <Text fontSize="3xl" color="purple.600" bg="green.200" p={2} textAlign="center">
-          COMPLETELY REWRITTEN MANUAL ENTRY MODAL
-        </Text>
         <ModalHeader 
-          color="black"
+          color="white"
           textAlign="center"
         >
-          Manual Score Entry - {new Date().toLocaleTimeString()}
+          <Box
+            bg="#2e3726"
+            py={2}
+            px={4}
+            borderRadius="md"
+            mx="auto"
+            textAlign="center"
+            width="fit-content"
+          >
+            <Text color="white" fontWeight="bold">Manual Score Entry</Text>
+          </Box>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody 
           p={6} 
           overflow="auto"
+          bg="#7C866B"
         >
           {renderComparisonView()}
         </ModalBody>

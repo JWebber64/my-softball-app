@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export function useTeamData(section, limit = null) {
@@ -85,7 +85,7 @@ export function useTeamData(section, limit = null) {
   }, [section, limit]);
 
   // Initial fetch
-  useState(() => {
+  useEffect(() => {
     fetchData();
   }, [fetchData]);
 

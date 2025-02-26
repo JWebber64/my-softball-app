@@ -23,8 +23,14 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
   const webcamRef = useRef(null);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [cameraReady, setCameraReady] = useState(false);
   const toast = useToast();
   const ocrService = useRef(new OCRService());
+
+  // Add a callback to detect when the camera is ready
+  const handleUserMedia = useCallback(() => {
+    setCameraReady(true);
+  }, []);
 
   const handleCancel = () => {
     if (scanning) {
@@ -101,13 +107,15 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
     >
       <ModalOverlay />
       <ModalContent bg="#545e46">
-        <ModalHeader color="#c0fad0">Scan Score Sheet</ModalHeader>
+        <Box textAlign="center" width="100%">
+          <ModalHeader color="white" textAlign="center">Scan Score Sheet</ModalHeader>
+        </Box>
         <ModalCloseButton 
-          color="#c0fad0"
+          color="white"
           isDisabled={scanning}
         />
         <ModalBody>
-          <VStack spacing={4}>
+          <VStack spacing={4} align="center">
             <Box
               width="100%"
               height="400px"
@@ -118,6 +126,7 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
               <Webcam
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
+                onUserMedia={handleUserMedia}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -137,7 +146,7 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
                   justifyContent="center"
                 >
                   <VStack>
-                    <Text color="#c0fad0">Processing...</Text>
+                    <Text color="white" fontWeight="bold">Processing...</Text>
                     <Progress
                       value={progress}
                       size="sm"
@@ -148,31 +157,43 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
                 </Box>
               )}
             </Box>
-            <Text fontSize="sm" color="#c0fad0">
+            <Text fontSize="sm" color="white" textAlign="center" fontWeight="medium" maxW="80%" mx="auto">
               Position the score sheet within the frame and ensure good lighting
             </Text>
           </VStack>
         </ModalBody>
-        <ModalFooter>
-          <HStack spacing={4}>
-            <Button
-              colorScheme="green"
-              onClick={handleCapture}
-              isLoading={scanning}
-              loadingText="Scanning..."
-              isDisabled={scanning}
-            >
-              Capture & Process
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              colorScheme="red"
-              isDisabled={scanning}
-            >
-              {scanning ? 'Stop Scan' : 'Cancel'}
-            </Button>
-          </HStack>
+        <ModalFooter
+          display="flex"
+          justifyContent="center"
+          gap={3}
+          bg="#7C866B"
+          position="sticky"
+          bottom="0"
+          p={4}
+          borderTop="1px solid"
+          borderColor="rgba(255,255,255,0.1)"
+        >
+          <Button
+            bg="#545E46"
+            color="#EFF7EC"
+            _hover={{ bg: "#6b7660" }}
+            onClick={handleCapture}
+            size="lg"
+            borderRadius="1rem"
+            isDisabled={!cameraReady}
+          >
+            Capture
+          </Button>
+          <Button 
+            bg="#545E46"
+            color="#EFF7EC"
+            _hover={{ bg: "#6b7660" }}
+            onClick={onClose}
+            size="lg"
+            borderRadius="1rem"
+          >
+            Cancel
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
