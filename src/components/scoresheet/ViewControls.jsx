@@ -15,6 +15,10 @@ const ViewControls = ({ viewMode, onViewModeChange }) => {
           isActive={viewMode === 'side-by-side'}
           onClick={() => onViewModeChange('side-by-side')}
           aria-label="Side by side view"
+          bg="#545E46"
+          color="#EFF7EC"
+          _hover={{ bg: "#6b7660" }}
+          _active={{ bg: "#3a4531" }}
         />
       </Tooltip>
       <Tooltip label="Overlay View">
@@ -23,6 +27,10 @@ const ViewControls = ({ viewMode, onViewModeChange }) => {
           isActive={viewMode === 'overlay'}
           onClick={() => onViewModeChange('overlay')}
           aria-label="Overlay view"
+          bg="#545E46"
+          color="#EFF7EC"
+          _hover={{ bg: "#6b7660" }}
+          _active={{ bg: "#3a4531" }}
         />
       </Tooltip>
       <Tooltip label="Image Only">
@@ -31,6 +39,10 @@ const ViewControls = ({ viewMode, onViewModeChange }) => {
           isActive={viewMode === 'image-only'}
           onClick={() => onViewModeChange('image-only')}
           aria-label="Image only view"
+          bg="#545E46"
+          color="#EFF7EC"
+          _hover={{ bg: "#6b7660" }}
+          _active={{ bg: "#3a4531" }}
         />
       </Tooltip>
     </ButtonGroup>

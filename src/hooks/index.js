@@ -1,1 +1,15 @@
-// This is a request to see if there are any custom hooks being exported
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import { ChakraProvider } from '@chakra-ui/react';
+import { theme } from './theme/theme';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <ChakraProvider theme={theme}>
+      <App />
+    </ChakraProvider>
+  </React.StrictMode>
+);

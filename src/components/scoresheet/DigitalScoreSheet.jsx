@@ -17,16 +17,6 @@ const DEFAULT_PLAYERS = [
 ];
 
 const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
-  const textStyle = {
-    color: '#000000',
-    fontWeight: 'bold',
-  };
-
-  const inputStyle = {
-    ...textStyle,
-    backgroundColor: '#ffffff',
-  };
-
   const [players, setPlayers] = useState(DEFAULT_PLAYERS);
   const [showExtraInnings, setShowExtraInnings] = useState(false);
   const [innings, setInnings] = useState(Array(DEFAULT_PLAYERS.length).fill(Array(10).fill(null))); // Expanded to 10 innings
@@ -65,7 +55,7 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
   };
 
   return (
-    <div className="digital-scoresheet" style={textStyle}>
+    <div className="w-full">
       <div className="flex justify-end mb-2">
         <button
           className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1"
@@ -80,14 +70,14 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
         <table className="min-w-full border-collapse">
           <thead>
             <tr>
-              <th className="border border-gray-400 p-2 w-24 font-semibold text-black">
+              <th className="border border-gray-400 p-2 w-24 font-semibold">
                 Player
               </th>
               {/* Regular Innings */}
               {[1, 2, 3, 4, 5, 6, 7].map((inning) => (
                 <th 
                   key={inning} 
-                  className="border border-gray-400 p-1 w-36 font-semibold text-black"
+                  className="border border-gray-400 p-1 w-36 font-semibold"
                   style={{ width: "9rem" }}
                 >
                   {`${inning}${getOrdinalSuffix(inning)}`}
@@ -97,7 +87,7 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
               {showExtraInnings && [8, 9, 10].map((inning) => (
                 <th 
                   key={inning} 
-                  className="border border-gray-400 p-1 w-36 font-semibold bg-gray-50 text-black"
+                  className="border border-gray-400 p-1 w-36 font-semibold bg-gray-50"
                   style={{ width: "9rem" }}
                 >
                   {`${inning}${getOrdinalSuffix(inning)}`}
@@ -145,18 +135,8 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
 };
 
 const PlayerCell = ({ player, onChange, editable }) => {
-  const textStyle = {
-    color: '#000000',
-    fontWeight: 'bold',
-  };
-
-  const inputStyle = {
-    ...textStyle,
-    backgroundColor: '#ffffff',
-  };
-
   return (
-    <div className="flex flex-col space-y-1" style={textStyle}>
+    <div className="flex flex-col space-y-1">
       <input
         type="text"
         className="border text-sm p-1 w-24"
@@ -164,7 +144,6 @@ const PlayerCell = ({ player, onChange, editable }) => {
         value={player?.name || ''}
         onChange={(e) => editable && onChange({ ...player, name: e.target.value })}
         disabled={!editable}
-        style={inputStyle}
       />
       <input
         type="text"
@@ -176,23 +155,12 @@ const PlayerCell = ({ player, onChange, editable }) => {
           sub: { ...player?.sub, name: e.target.value }
         })}
         disabled={!editable}
-        style={inputStyle}
       />
     </div>
   );
 };
 
 const InningCell = ({ data, onDataChange, editable }) => {
-  const textStyle = {
-    color: '#000000',
-    fontWeight: 'bold',
-  };
-
-  const inputStyle = {
-    ...textStyle,
-    backgroundColor: '#ffffff',
-  };
-
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRBI, setSelectedRBI] = useState('');
   const [outDetails, setOutDetails] = useState('');
@@ -576,7 +544,6 @@ const InningCell = ({ data, onDataChange, editable }) => {
             onClick={() => editable && setIsEventModalOpen(!isEventModalOpen)}
             disabled={!editable}
             title={displayText || 'Event'}
-            style={textStyle}
           >
             {displayText || 'Event'}
           </button>
@@ -587,7 +554,7 @@ const InningCell = ({ data, onDataChange, editable }) => {
               {hasContent && (
                 <>
                   <button
-                    className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-red-800 font-medium"
+                    className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-red-600"
                     onClick={handleClear}
                   >
                     Clear
@@ -600,7 +567,7 @@ const InningCell = ({ data, onDataChange, editable }) => {
               {['1B', '2B', '3B', 'HR'].map(hit => (
                 <button
                   key={hit}
-                  className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-black font-medium"
+                  className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
                   onClick={() => handleEventSelect(hit)}
                 >
                   {hit}
@@ -609,7 +576,7 @@ const InningCell = ({ data, onDataChange, editable }) => {
 
               {/* Runner Section (formerly Advance Runners) */}
               <div className="relative group">
-                <button className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full flex justify-between items-center text-black font-medium">
+                <button className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full flex justify-between items-center">
                   Runner <span>▸</span>
                 </button>
                 <div className="absolute left-full top-0 w-32 bg-white border rounded shadow-lg hidden group-hover:block">
@@ -660,14 +627,14 @@ const InningCell = ({ data, onDataChange, editable }) => {
 
               {/* RBI Section */}
               <div className="relative group">
-                <button className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full flex justify-between items-center text-black font-medium">
+                <button className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full flex justify-between items-center">
                   RBI <span>▸</span>
                 </button>
                 <div className="absolute left-full top-0 w-24 bg-white border rounded shadow-lg hidden group-hover:block">
                   {[1, 2, 3, 4].map(num => (
                     <button
                       key={num}
-                      className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-black font-medium"
+                      className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
                       onClick={() => handleEventSelect(`RBI${num}`)}
                     >
                       {num} RBI
@@ -681,7 +648,7 @@ const InningCell = ({ data, onDataChange, editable }) => {
               {['K', 'ꓘ', 'FO', 'GO', 'LO', 'DP'].map(out => (
                 <button
                   key={out}
-                  className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-black font-medium"
+                  className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
                   onClick={() => handleEventSelect(out)}
                 >
                   {out}
@@ -691,7 +658,7 @@ const InningCell = ({ data, onDataChange, editable }) => {
               {/* Other Section */}
               <div className="border-t border-gray-200"></div>
               <button
-                className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-black font-medium"
+                className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
                 onClick={() => handleEventSelect('BB')}
               >
                 BB
@@ -699,14 +666,14 @@ const InningCell = ({ data, onDataChange, editable }) => {
 
               {/* Error Section */}
               <div className="relative group">
-                <button className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full flex justify-between items-center text-black font-medium">
+                <button className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full flex justify-between items-center">
                   E <span>▸</span>
                 </button>
                 <div className="absolute left-full top-0 w-24 bg-white border rounded shadow-lg hidden group-hover:block">
                   {[...Array(10)].map((_, i) => (
                     <button
                       key={i + 1}
-                      className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-black font-medium"
+                      className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
                       onClick={() => handleEventSelect(`E${i + 1}`)}
                     >
                       E{i + 1}
@@ -718,7 +685,7 @@ const InningCell = ({ data, onDataChange, editable }) => {
               {['FC', 'SAC'].map(other => (
                 <button
                   key={other}
-                  className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full text-black font-medium"
+                  className="text-left px-2 py-1 text-sm hover:bg-gray-100 w-full"
                   onClick={() => handleEventSelect(other)}
                 >
                   {other}
@@ -744,7 +711,6 @@ const InningCell = ({ data, onDataChange, editable }) => {
             });
           }}
           disabled={!editable}
-          style={inputStyle}
         />
 
         {/* Custom input */}
@@ -763,7 +729,6 @@ const InningCell = ({ data, onDataChange, editable }) => {
             });
           }}
           disabled={!editable}
-          style={inputStyle}
         />
       </div>
     </div>

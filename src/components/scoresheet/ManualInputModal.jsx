@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -9,10 +9,21 @@ import {
   Button,
   Box,
   Text,
+  Heading,
 } from '@chakra-ui/react';
 import DigitalScoreSheet from './DigitalScoreSheet';
 
-const ManualInputModal = ({ isOpen, onClose }) => {
+const ManualInputModal = ({ isOpen, onClose, onSave }) => {
+  const [scoreSheetData, setScoreSheetData] = useState({});
+
+  const handleDataChange = (newData) => {
+    setScoreSheetData(newData);
+  };
+
+  const handleSave = () => {
+    onSave?.(scoreSheetData);
+  };
+
   return (
     <Modal 
       isOpen={isOpen} 
@@ -29,14 +40,21 @@ const ManualInputModal = ({ isOpen, onClose }) => {
         my="5vh"
         position="relative"
       >
-        <Text fontSize="3xl" color="blue.600" bg="green.200" p={2} textAlign="center">
-          THIS IS MANUAL INPUT MODAL (NO COMPARISON VIEW)
-        </Text>
         <ModalHeader 
-          color="black"
+          color="white"
           textAlign="center"
         >
-          Manual Score Entry
+          <Box
+            bg="#2e3726"
+            py={2}
+            px={4}
+            borderRadius="md"
+            mx="auto"
+            textAlign="center"
+            width="fit-content"
+          >
+            <Text fontWeight="bold">Manual Score Entry</Text>
+          </Box>
         </ModalHeader>
         <ModalBody 
           p={6} 
@@ -52,27 +70,52 @@ const ManualInputModal = ({ isOpen, onClose }) => {
             borderRadius="lg"
             boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
           >
-            <DigitalScoreSheet hideActionCards={true} />
+            <Box
+              bg="#2e3726"
+              py={2}
+              px={4}
+              borderRadius="md"
+              mx="auto"
+              mb={4}
+              textAlign="center"
+              width="fit-content"
+            >
+              <Text color="white" fontWeight="bold">Digital Scoresheet</Text>
+            </Box>
+            <DigitalScoreSheet 
+              editable={true} 
+              onDataChange={handleDataChange}
+            />
           </Box>
         </ModalBody>
         <ModalFooter
           display="flex"
           justifyContent="center"
           gap={3}
+          bg="#7C866B"
+          position="sticky"
+          bottom="0"
+          p={4}
+          borderTop="1px solid"
+          borderColor="rgba(255,255,255,0.1)"
         >
           <Button
-            bg="#545e46"
+            bg="#545E46"
             color="#EFF7EC"
-            _hover={{ bg: "#3a4531" }}
-            onClick={onClose}
+            _hover={{ bg: "#6b7660" }}
+            onClick={handleSave}
             size="lg"
+            borderRadius="1rem"
           >
             Save
           </Button>
           <Button 
-            variant="ghost" 
+            bg="#545E46"
+            color="#EFF7EC"
+            _hover={{ bg: "#6b7660" }}
             onClick={onClose}
             size="lg"
+            borderRadius="1rem"
           >
             Cancel
           </Button>

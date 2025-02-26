@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// Enhanced client configuration with better reconnection settings
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -12,7 +13,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   realtime: {
     params: {
       eventsPerSecond: 2
-    }
+    },
+    // Add reconnection config for realtime subscriptions
+    reconnect: true,
+    timeout: 60000, // Longer timeout (60 seconds)
+    retryAttempts: 5, // More retry attempts
+    retryBackoff: true // Exponential backoff for retries
   },
   db: {
     schema: 'public'
@@ -20,9 +26,35 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: {
     headers: { 'x-application-name': 'team-stats' }
   },
-  retryAttempts: 3,
-  retryInterval: 1000
+  // Increase retry attempts and interval for all operations
+  retryAttempts: 5,
+  retryInterval: 2000
 })
+
+// Add a connection monitor function that can be called periodically
+export const monitorConnection = () => {
+  let connectionCheckInterval;
+  
+  const startMonitoring = (checkIntervalMs = 30000) => {
+    if (connectionCheckInterval) {
+      clearInterval(connectionCheckInterval);
+    }
+    
+    connectionCheckInterval = setInterval(async () => {
+      const isConnected = await checkSupabaseConnection();
+      if (!isConnected) {
+        console.warn('Connection check failed, attempting to reconnect...');
+        // Force a reconnection attempt
+        const { data, error } = await supabase.auth.refreshSession();
+        console.log('Reconnection attempt result:', error ? 'Failed' : 'Success');
+      }
+    }, checkIntervalMs);
+    
+    return () => clearInterval(connectionCheckInterval);
+  };
+  
+  return { startMonitoring };
+};
 
 // Function to check if a user has admin role
 export const checkUserIsAdmin = async (userId) => {
@@ -77,17 +109,72 @@ export const checkSupabaseConnection = async () => {
   }
 }
 
-// Retry mechanism for Supabase queries
-export const retryOperation = async (operation, maxAttempts = 3, delay = 1000) => {
+// Enhanced connection health check with detailed diagnostics
+export const checkSupabaseConnectionDetailed = async () => {
+  const startTime = performance.now();
+  const results = {
+    isConnected: false,
+    responseTime: 0,
+    error: null,
+    timestamp: new Date().toISOString(),
+    details: {}
+  };
+  
+  try {
+    // Test basic query functionality
+    const { data, error } = await supabase
+      .from('team_news')
+      .select('count')
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    
+    // Test auth functionality
+    const { data: authData, error: authError } = await supabase.auth.getSession();
+    results.details.authStatus = authError ? 'error' : 'ok';
+    results.details.hasSession = !!authData?.session;
+    
+    // Calculate response time
+    results.responseTime = Math.round(performance.now() - startTime);
+    results.isConnected = true;
+    
+    return results;
+  } catch (error) {
+    results.error = {
+      message: error.message,
+      code: error.code,
+      details: error.details
+    };
+    results.responseTime = Math.round(performance.now() - startTime);
+    console.error('Supabase connection check failed:', error);
+    return results;
+  }
+}
+
+// Improved retry mechanism for Supabase queries with exponential backoff
+export const retryOperation = async (operation, maxAttempts = 3, initialDelay = 1000) => {
+  let lastError = null;
+  
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const result = await operation()
-      return result
+      const result = await operation();
+      return result;
     } catch (error) {
-      if (attempt === maxAttempts) throw error
-      await new Promise(resolve => setTimeout(resolve, delay * attempt))
+      lastError = error;
+      console.warn(`Operation failed (attempt ${attempt}/${maxAttempts}):`, error.message);
+      
+      if (attempt === maxAttempts) break;
+      
+      // Exponential backoff with jitter
+      const delay = initialDelay * Math.pow(2, attempt - 1) * (0.9 + Math.random() * 0.2);
+      console.log(`Retrying in ${Math.round(delay)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
+  
+  console.error(`All ${maxAttempts} retry attempts failed`);
+  throw lastError;
 }
 
 export const checkAuth = async () => {

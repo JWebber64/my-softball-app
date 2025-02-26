@@ -1,21 +1,24 @@
 import React from 'react';
-import { ChakraProvider } from '@chakra-ui/react';
-import { BrowserRouter } from 'react-router-dom';
-import AppRoutes from './routes';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { Box, ChakraProvider } from '@chakra-ui/react';
+import { SimpleAuthProvider } from './context/SimpleAuthContext';
 import theme from './theme/theme';
-import './styles/global.css';
-import TestComponent from './components/scoresheet/TestComponent';
+import AppRoutes from './routes/index';
 
-const App = () => {
+function App() {
   return (
-    <ChakraProvider theme={theme}>
-      <BrowserRouter>
-        <TestComponent />
-        <AppRoutes />
-      </BrowserRouter>
-    </ChakraProvider>
+    <React.StrictMode>
+      <ChakraProvider theme={theme}>
+        <SimpleAuthProvider>
+          <Router>
+            <Box className="app-container">
+              <AppRoutes />
+            </Box>
+          </Router>
+        </SimpleAuthProvider>
+      </ChakraProvider>
+    </React.StrictMode>
   );
-};
+}
 
 export default App;
-

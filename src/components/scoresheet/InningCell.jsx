@@ -1,110 +1,86 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { Box, Input, Text } from '@chakra-ui/react';
+import { INNING_CELL_STYLES } from '../../styles/constants';
 
+/**
+ * Standard inning cell component for the digital scoresheet
+ * 
+ * Layout follows v1.0-scoresheet-layout:
+ * - Left column (5.5rem height):
+ *   - RBI text at top
+ *   - Centered diamond (1.5rem)
+ *   - Equal spacing above/below
+ * - Right column:
+ *   - 3 vertical inputs (w-14)
+ *   - Event/Out/Note fields
+ * - 0.75rem column gap
+ */
 const InningCell = ({ 
+  inning, 
+  player, 
   data = {}, 
-  onDataChange, 
-  editable = true 
+  onChange 
 }) => {
-  const { event = '', outDetails = '', custom = '' } = data;
-  
-  const handleEventChange = (newEvent) => {
-    if (!editable) return;
-    onDataChange?.({
-      event: newEvent,
-      outDetails,
-      custom
-    });
-  };
-  
-  const handleOutDetailsChange = (e) => {
-    if (!editable) return;
-    onDataChange?.({
-      event,
-      outDetails: e.target.value,
-      custom
-    });
-  };
-  
-  const handleCustomChange = (e) => {
-    if (!editable) return;
-    onDataChange?.({
-      event,
-      outDetails,
-      custom: e.target.value
-    });
+  const handleChange = (field, value) => {
+    if (onChange) {
+      onChange({
+        inning,
+        player,
+        field,
+        value
+      });
+    }
   };
 
   return (
-    <div className="flex w-full h-full items-center" style={{ gap: "0.75rem" }}>
-      {/* Left column with diamond */}
-      <div className="flex flex-col items-center" style={{ width: "1.5rem", height: "5.5rem" }}>
-        {/* RBI text at top */}
-        <div className="text-xs text-center mb-1">
-          {event.startsWith('RBI') ? event : ''}
-        </div>
-        
-        {/* Centered diamond */}
-        <div
-          className="relative self-center"
-          style={{ 
-            width: "1.5rem",
-            height: "1.5rem",
-            transform: "rotate(45deg)",
-            border: "1px solid black",
-            marginTop: "auto",
-            marginBottom: "auto"
-          }}
+    <Box sx={INNING_CELL_STYLES.container}>
+      {/* Left column with RBI and diamond */}
+      <Box sx={INNING_CELL_STYLES.diamondColumn}>
+        <Text fontSize="xs">RBI: {data.rbi || 0}</Text>
+        <Box 
+          sx={INNING_CELL_STYLES.diamond}
+          bg={data.hit ? 'green.100' : 'transparent'}
         />
-        
-        {/* Space below diamond */}
-        <div className="mt-1"></div>
-      </div>
-      
-      {/* Right column with inputs */}
-      <div className="flex flex-col space-y-2" style={{ width: "3.5rem" }}>
-        {/* Event input */}
-        <input
-          type="text"
-          className="border text-[0.75rem] text-center p-0.5 w-14"
+        <Box h="0.5rem" /> {/* Spacer for equal spacing */}
+      </Box>
+
+      {/* Right column with input fields */}
+      <Box sx={INNING_CELL_STYLES.inputColumn}>
+        <Input
+          sx={INNING_CELL_STYLES.input}
           placeholder="Event"
-          value={event}
-          onChange={(e) => handleEventChange(e.target.value)}
-          disabled={!editable}
+          value={data.event || ''}
+          onChange={(e) => handleChange('event', e.target.value)}
         />
-        
-        {/* Out input */}
-        <input
-          type="text"
-          className="border text-[0.75rem] text-center p-0.5 w-14"
+        <Input
+          sx={INNING_CELL_STYLES.input}
           placeholder="Out"
-          value={outDetails}
-          onChange={handleOutDetailsChange}
-          disabled={!editable}
+          value={data.out || ''}
+          onChange={(e) => handleChange('out', e.target.value)}
         />
-        
-        {/* Custom input */}
-        <input
-          type="text"
-          className="border text-[0.75rem] text-center p-0.5 w-14"
+        <Input
+          sx={INNING_CELL_STYLES.input}
           placeholder="Note"
-          value={custom}
-          onChange={handleCustomChange}
-          disabled={!editable}
+          value={data.note || ''}
+          onChange={(e) => handleChange('note', e.target.value)}
         />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 
 InningCell.propTypes = {
+  inning: PropTypes.number.isRequired,
+  player: PropTypes.number.isRequired,
   data: PropTypes.shape({
+    rbi: PropTypes.number,
+    hit: PropTypes.bool,
     event: PropTypes.string,
-    outDetails: PropTypes.string,
-    custom: PropTypes.string
+    out: PropTypes.string,
+    note: PropTypes.string
   }),
-  onDataChange: PropTypes.func,
-  editable: PropTypes.bool
+  onChange: PropTypes.func
 };
 
 export default InningCell;

@@ -1,59 +1,59 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Box, Flex, Heading, Image, Text } from '@chakra-ui/react';
+import { Box, Heading, Image, Text } from '@chakra-ui/react';
+import { COMPARISON_VIEW_STYLES } from '../../styles/constants';
 
 /**
  * Component to display side-by-side comparison of original scoresheet image
  * and digital scoresheet entry
+ * 
+ * Follows the standard layout defined in SCORESHEET_LAYOUT.md:
+ * - Two equal columns (1fr 1fr)
+ * - Max width: 1800px
+ * - Gap: 2rem
+ * - Responsive design (stacks on mobile)
  */
 const ScoreComparisonView = ({ originalImage, digitalScoreSheet }) => {
-  console.log('ScoreComparisonView rendering with image:', originalImage ? 'present' : 'missing');
-  
   return (
-    <Flex 
-      direction={{ base: 'column', lg: 'row' }}
-      gap={4}
-      w="100%"
-      justify="center"
-      align="stretch"
-    >
-      {/* Original Image Side */}
-      <Box 
-        flex="1"
-        bg="white"
-        p={4}
-        borderRadius="md"
-        boxShadow="md"
-        maxH={{ lg: '80vh' }}
-        overflow="auto"
-      >
-        <Heading size="md" mb={4} textAlign="center">Original Scoresheet</Heading>
+    <Box sx={COMPARISON_VIEW_STYLES.container}>
+      {/* Left side - Original Image */}
+      <Box sx={COMPARISON_VIEW_STYLES.panel}>
+        <Heading 
+          {...COMPARISON_VIEW_STYLES.heading} 
+          color="#EFF7EC" 
+          bg="#545E46"
+          padding="0.5rem 1rem"
+          borderRadius="0.5rem"
+        >
+          Uploaded Score Sheet
+        </Heading>
         {originalImage ? (
           <Image 
             src={originalImage} 
             alt="Original scoresheet" 
-            maxW="100%" 
-            mx="auto"
-            border="1px solid"
-            borderColor="gray.200"
+            sx={COMPARISON_VIEW_STYLES.image}
           />
         ) : (
-          <Text textAlign="center" color="gray.500" py={10}>
+          <Text sx={COMPARISON_VIEW_STYLES.noImageText} color="#EFF7EC">
             No original image available
           </Text>
         )}
       </Box>
 
-      {/* Digital Scoresheet Side */}
-      <Box 
-        flex="1"
-        maxH={{ lg: '80vh' }}
-        overflow="auto"
-      >
-        <Heading size="md" mb={4} textAlign="center">Digital Entry</Heading>
+      {/* Right side - Digital Score Sheet */}
+      <Box sx={COMPARISON_VIEW_STYLES.panel}>
+        <Heading 
+          {...COMPARISON_VIEW_STYLES.heading} 
+          color="#EFF7EC" 
+          bg="#545E46"
+          padding="0.5rem 1rem"
+          borderRadius="0.5rem"
+        >
+          Digital Score Sheet
+        </Heading>
         {digitalScoreSheet}
       </Box>
-    </Flex>
+    </Box>
   );
 };
 

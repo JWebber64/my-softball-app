@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   Modal,
   ModalOverlay,
@@ -10,11 +11,20 @@ import {
   Text,
   VStack,
   Heading,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { COMMAND_TYPES, getGroupedCommands } from '../../utils/voiceCommands';
 
+/**
+ * Dialog component that displays available voice commands
+ * Grouped by command type (navigation, scoring, etc.)
+ */
 const CommandHelpDialog = ({ isOpen, onClose }) => {
   const groupedCommands = getGroupedCommands();
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const cardBgColor = useColorModeValue('gray.50', 'gray.700');
+  const descriptionColor = useColorModeValue('gray.600', 'gray.400');
 
   const typeLabels = {
     [COMMAND_TYPES.NAVIGATION]: 'Navigation',
@@ -26,33 +36,40 @@ const CommandHelpDialog = ({ isOpen, onClose }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Available Voice Commands</ModalHeader>
+      <ModalContent bg={bgColor} color={textColor}>
+        <ModalHeader borderBottomWidth="1px">Available Voice Commands</ModalHeader>
         <ModalCloseButton />
-        <ModalBody pb={6}>
-          <VStack spacing={4} align="stretch">
-            {Object.entries(groupedCommands).map(([type, commands]) => (
-              <Box key={type}>
-                <Heading size="sm" color="gray.600" mb={2}>
-                  {typeLabels[type]}
-                </Heading>
-                <VStack align="stretch" spacing={2} pl={4}>
-                  {commands.map(({ command, description }) => (
-                    <Box key={command}>
-                      <Text fontWeight="bold">"{command}"</Text>
-                      <Text fontSize="sm" color="gray.600">
-                        {description}
-                      </Text>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            ))}
-          </VStack>
+        <ModalBody py={4}>
+          {Object.entries(groupedCommands).map(([type, commands]) => (
+            <Box key={type} mb={6}>
+              <Heading size="sm" mb={2} color="brand.primary">
+                {typeLabels[type] || type}
+              </Heading>
+              <VStack align="stretch" spacing={2}>
+                {commands.map((command) => (
+                  <Box 
+                    key={command.phrase} 
+                    p={3} 
+                    borderRadius="md" 
+                    bg={cardBgColor}
+                    boxShadow="sm"
+                  >
+                    <Text fontWeight="bold">"{command.phrase}"</Text>
+                    <Text fontSize="sm" color={descriptionColor}>{command.description}</Text>
+                  </Box>
+                ))}
+              </VStack>
+            </Box>
+          ))}
         </ModalBody>
       </ModalContent>
     </Modal>
   );
+};
+
+CommandHelpDialog.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired
 };
 
 export default CommandHelpDialog;
