@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -15,7 +15,6 @@ import {
   DrawerCloseButton,
   useBreakpointValue,
   Flex,
-  useToast,
   IconButton,
   Tooltip
 } from '@chakra-ui/react';
@@ -31,201 +30,153 @@ const Sidebar = ({
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const { signOut } = useSimpleAuth();
-  const toast = useToast();
+  const { signOut, clearAuth } = useSimpleAuth();
   
+  // Check if the current route is active
   const isActive = (path) => {
     return location.pathname === path;
   };
   
+  // Handle logout
   const handleLogout = async () => {
     const { success } = await signOut();
     if (success) {
       console.log("Logout successful");
+      // Clear the state when navigating to home
+      clearAuth();
       navigate('/');
     } else {
       console.error("Logout failed");
     }
-    if (isMobile) onClose();
+    if (isMobile && onClose) onClose();
   };
+
+  // Handle navigation to home page
+  const handleHome = () => {
+      console.log("Navigating to HOME with simple route");
+      clearAuth();
+      navigate('/');
+      if (isMobile && onClose) onClose();
+  }
   
+  // Handle navigation between routes
   const handleNavigation = (path) => {
-    // For home route, use a completely different approach
-    if (path === '/') {
-      console.log("FORCE NAVIGATING TO HOME with complete reset");
-      
-      try {
-        // Clear ALL localStorage and sessionStorage
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Set only the essential bypass flag with a fresh timestamp
-        const timestamp = new Date().getTime();
-        localStorage.setItem('bypassRedirect', 'true');
-        localStorage.setItem('bypassTimestamp', timestamp.toString());
-        console.log(`Reset storage and set bypass flags at ${timestamp}`);
-        
-        // Force reload the page completely, bypassing cache
-        document.location.href = '/?forcereload=' + timestamp;
-        
-        // As an extra measure, if the above doesn't trigger immediately
-        setTimeout(() => {
-          window.location.replace('/');
-        }, 100);
-        
-        return;
-      } catch (error) {
-        console.error("Critical navigation error:", error);
-        // Last resort - most basic approach
-        window.location = '/';
-      }
-      return;
-    }
-    
-    // For other routes, navigate normally
     navigate(path);
-    if (isMobile) onClose();
+    if (isMobile && onClose) onClose();
   };
   
   // Button style to apply consistently
   const buttonStyle = {
     width: "100%",
-    justifyContent: isCollapsed ? "center" : "center",
+    justifyContent: "center",
     textAlign: "center",
     borderRadius: "1rem",
-    py: 2,
+    py: 1.5,
+    px: isCollapsed ? 0 : 4,
     _focus: { boxShadow: "none", outline: "none" },
-    overflow: "visible"
+    overflow: "visible",
+    fontSize: "sm",
+    height: "40px",  // Fixed height for both modes
+    minHeight: "40px",
   };
   
   // Main navigation content
   const navigationContent = (
-    <VStack spacing={4} align="stretch" w="full">
-      {!isCollapsed && (
-        <>
-          <Text fontWeight="bold" fontSize="lg" color="brand.text">Main Menu</Text>
-          <Divider borderColor="brand.border" />
-        </>
-      )}
-      
-      {/* Add top margin to the first button when collapsed to avoid overlap with toggle button */}
-      <Tooltip label="Home" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant={isActive('/') ? 'primary' : 'ghost'}
-          onClick={() => handleNavigation('/')}
-          {...buttonStyle}
-          mt={isCollapsed ? 10 : 0} // Add top margin when collapsed
-        >
-          {isCollapsed ? "H" : "Home"}
-        </Button>
-      </Tooltip>
-      
-      {!isCollapsed && (
-        <>
-          <Text fontWeight="bold" fontSize="md" color="brand.text" mt={2}>Team</Text>
-          <Divider borderColor="brand.border" />
-        </>
-      )}
-      
-      <Tooltip label="Score Sheets" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant={isActive('/scoresheets') ? 'primary' : 'ghost'}
-          onClick={() => handleNavigation('/scoresheets')}
-          {...buttonStyle}
-        >
-          {isCollapsed ? "SS" : "Score Sheets"}
-        </Button>
-      </Tooltip>
-      
-      <Tooltip label="Team Stats" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant={isActive('/team-stats') ? 'primary' : 'ghost'}
-          onClick={() => handleNavigation('/team-stats')}
-          {...buttonStyle}
-        >
-          {isCollapsed ? "TS" : "Team Stats"}
-        </Button>
-      </Tooltip>
-      
-      <Tooltip label="Team Info" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant={isActive('/team-info') ? 'primary' : 'ghost'}
-          onClick={() => handleNavigation('/team-info')}
-          {...buttonStyle}
-        >
-          {isCollapsed ? "TI" : "Team Info"}
-        </Button>
-      </Tooltip>
-      
-      <Tooltip label="Team Admin" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant={isActive('/team-admin') ? 'primary' : 'ghost'}
-          onClick={() => handleNavigation('/team-admin')}
-          {...buttonStyle}
-        >
-          {isCollapsed ? "TA" : "Team Admin"}
-        </Button>
-      </Tooltip>
-      
-      {!isCollapsed && (
-        <>
-          <Text fontWeight="bold" fontSize="md" color="brand.text" mt={2}>League</Text>
-          <Divider borderColor="brand.border" />
-        </>
-      )}
-      
-      <Tooltip label="League Info" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant={isActive('/league-info') ? 'primary' : 'ghost'}
-          onClick={() => handleNavigation('/league-info')}
-          {...buttonStyle}
-        >
-          {isCollapsed ? "LI" : "League Info"}
-        </Button>
-      </Tooltip>
-      
-      <Tooltip label="League Admin" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant={isActive('/league-admin') ? 'primary' : 'ghost'}
-          onClick={() => handleNavigation('/league-admin')}
-          {...buttonStyle}
-        >
-          {isCollapsed ? "LA" : "League Admin"}
-        </Button>
-      </Tooltip>
-    </VStack>
-  );
-  
-  // Logout section
-  const logoutSection = (
-    <Box w="full" mt={4} pb={4}>
-      {!isCollapsed && (
-        <>
-          <Text fontWeight="bold" fontSize="md" color="brand.text">Account</Text>
-          <Divider borderColor="brand.border" mb={4} />
-        </>
-      )}
-      
-      <Tooltip label="Logout" placement="right" isDisabled={!isCollapsed}>
-        <Button
-          variant="logout"
-          onClick={handleLogout}
-          {...buttonStyle}
-        >
-          {isCollapsed ? "X" : "Logout"}
-        </Button>
-      </Tooltip>
-    </Box>
-  );
-  
-  // Combined sidebar content with flex layout to push logout to bottom
-  const sidebarContent = (
-    <Flex direction="column" h="full" p={isCollapsed ? 2 : 4}>
-      <Box flex="1" overflowY="auto" pr={isCollapsed ? 0 : 2}>
-        {navigationContent}
+    <VStack 
+      spacing={0}
+      align="stretch" 
+      w="full"
+      h="100%"  // Changed from 100vh
+    >
+      {/* Collapse toggle button */}
+      <Box 
+        display="flex" 
+        justifyContent={isCollapsed ? "center" : "flex-end"}
+        p={2}
+      >
+        <IconButton
+          icon={isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          size="sm"
+          variant="ghost"
+          color="brand.text"
+          onClick={onToggleCollapse}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          _focus={{ boxShadow: "none", outline: "none" }}
+        />
       </Box>
-      {logoutSection}
-    </Flex>
+
+      {isCollapsed ? (
+        <VStack 
+          spacing={8}  // Increased from 6 to 8
+          align="stretch" 
+          pt={4}       // Top padding
+          h="100%"     // Take full height
+        >
+          <Button {...buttonStyle}>H</Button>
+          <Button {...buttonStyle}>SS</Button>
+          <Button {...buttonStyle}>TS</Button>
+          <Button {...buttonStyle}>TI</Button>
+          <Button {...buttonStyle}>TA</Button>
+          <Button {...buttonStyle}>LI</Button>
+          <Button {...buttonStyle}>LA</Button>
+          <Button 
+            {...buttonStyle} 
+            bg="black" 
+            _hover={{ bg: "#333" }} 
+            color="white"
+          >
+            X
+          </Button>
+        </VStack>
+      ) : (
+        // Expanded view - original layout
+        <VStack spacing={4} flex="1">  // Reduced from 8 to 4
+          <VStack spacing={3} align="stretch">
+            <Text fontWeight="bold" fontSize="sm" color="brand.text" textAlign="center">Main Menu</Text>
+            <Divider borderColor="brand.border" />
+            <Button {...buttonStyle} variant={isActive('/') ? 'primary' : 'ghost'} onClick={() => handleHome()}>
+              Home
+            </Button>
+          </VStack>
+
+          <VStack spacing={3} align="stretch">
+            <Text fontWeight="bold" fontSize="sm" color="brand.text" textAlign="center">Team</Text>
+            <Divider borderColor="brand.border" />
+            <Button {...buttonStyle} variant={isActive('/scoresheets') ? 'primary' : 'ghost'} onClick={() => handleNavigation('/scoresheets')}>
+              Score Sheets
+            </Button>
+            <Button {...buttonStyle} variant={isActive('/team-stats') ? 'primary' : 'ghost'} onClick={() => handleNavigation('/team-stats')}>
+              Team Stats
+            </Button>
+            <Button {...buttonStyle} variant={isActive('/team-info') ? 'primary' : 'ghost'} onClick={() => handleNavigation('/team-info')}>
+              Team Info
+            </Button>
+            <Button {...buttonStyle} variant={isActive('/team-admin') ? 'primary' : 'ghost'} onClick={() => handleNavigation('/team-admin')}>
+              Team Admin
+            </Button>
+          </VStack>
+
+          <VStack spacing={3} align="stretch">
+            <Text fontWeight="bold" fontSize="sm" color="brand.text" textAlign="center">League</Text>
+            <Divider borderColor="brand.border" />
+            <Button {...buttonStyle} variant={isActive('/league-info') ? 'primary' : 'ghost'} onClick={() => handleNavigation('/league-info')}>
+              League Info
+            </Button>
+            <Button {...buttonStyle} variant={isActive('/league-admin') ? 'primary' : 'ghost'} onClick={() => handleNavigation('/league-admin')}>
+              League Admin
+            </Button>
+          </VStack>
+
+          <VStack spacing={3} align="stretch">  // Removed mt="auto"
+            <Text fontWeight="bold" fontSize="sm" color="brand.text" textAlign="center">Account</Text>
+            <Divider borderColor="brand.border" />
+            <Button {...buttonStyle} variant="ghost" onClick={handleLogout} bg="black" _hover={{ bg: "#333" }} color="white">
+              Logout
+            </Button>
+          </VStack>
+        </VStack>
+      )}
+    </VStack>
   );
   
   // For mobile: render in a drawer
@@ -242,7 +193,7 @@ const Sidebar = ({
             Diamond Data
           </DrawerHeader>
           <DrawerBody p={0}>
-            {sidebarContent}
+            {navigationContent}
           </DrawerBody>
         </DrawerContent>
       </Drawer>
@@ -256,7 +207,7 @@ const Sidebar = ({
       left={0}
       w={isCollapsed ? "60px" : "250px"}
       top={0}
-      bottom={0}
+      h="100vh"
       bg="#111613"
       bgGradient="linear(to-b, #111613, #2e3726, #111613)"
       borderRight="1px"
@@ -265,6 +216,7 @@ const Sidebar = ({
       zIndex="1"
       overflowY="auto"
       transition="width 0.3s ease"
+      p={isCollapsed ? 2 : 4}
       sx={{
         "&::-webkit-scrollbar": {
           width: "8px",
@@ -281,34 +233,14 @@ const Sidebar = ({
         },
       }}
     >
-      {/* Collapse toggle button - positioned at the top */}
-      <Box 
-        position="absolute" 
-        top="10px" 
-        width="100%" 
-        display="flex" 
-        justifyContent={isCollapsed ? "center" : "flex-end"}
-        px={3}
-        zIndex="2"
-      >
-        <IconButton
-          icon={isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          size="sm"
-          variant="ghost"
-          color="brand.text"
-          onClick={onToggleCollapse}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          _focus={{ boxShadow: "none", outline: "none" }}
-        />
-      </Box>
-      {sidebarContent}
+      {navigationContent}
     </Box>
   );
 };
 
 Sidebar.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
   isCollapsed: PropTypes.bool,
   onToggleCollapse: PropTypes.func
 };
