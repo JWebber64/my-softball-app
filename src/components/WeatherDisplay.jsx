@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Text, Flex, Icon, Spinner, VStack, HStack, useToast, Badge, Divider } from '@chakra-ui/react';
+import { Box, Text, Flex, Icon, Spinner, VStack, HStack, Badge, Divider } from '@chakra-ui/react';
 import { FaTemperatureHigh, FaWind, FaTint, FaExclamationTriangle, FaCloudSun, FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { weatherService } from '../services/weatherService';
 
 // Default fallback weather data if none is provided
 const DEFAULT_FALLBACK_WEATHER = {
-  temperature: 22, // Changed to Celsius (72F ≈ 22C)
+  temperature: 22,
   condition: "Partly Cloudy",
   humidity: 45,
-  windSpeed: 13, // Converted to km/h (8mph ≈ 13km/h)
+  windSpeed: 13,
   icon: "//cdn.weatherapi.com/weather/64x64/day/116.png"
 };
 
 const WeatherDisplay = ({ 
   date = new Date(), 
-  location = 'New York, NY',
+  location = '', // Remove default New York value
   showDetails = true,
   onError,
   fallbackData = DEFAULT_FALLBACK_WEATHER
@@ -24,9 +24,10 @@ const WeatherDisplay = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiKeyIssue, setApiKeyIssue] = useState(false);
-  const toast = useToast();
 
   useEffect(() => {
+    let isMounted = true; // For cleanup
+
     const fetchWeatherData = async () => {
       if (!location) {
         setError('Location is required');
@@ -36,26 +37,37 @@ const WeatherDisplay = ({
 
       try {
         setLoading(true);
+        console.log('Fetching weather for:', location); // Debug log
+
         const weatherData = await weatherService.getGameDayForecast(
           location.trim(),
           new Date(date).toISOString().split('T')[0]
         );
         
+        console.log('Received weather data:', weatherData); // Debug log
+
+        if (!isMounted) return;
+
         // Convert temperature from Fahrenheit to Celsius
-        const celsiusTemp = fahrenheitToCelsius(weatherData.temperature);
+        const celsiusTemp = Math.round((weatherData.temperature - 32) * 5 / 9);
         // Convert wind speed from mph to km/h
-        const kmhWindSpeed = mphToKmh(weatherData.windSpeed);
+        const kmhWindSpeed = Math.round(weatherData.windSpeed * 1.60934);
         
-        setWeather({
+        const processedWeather = {
           ...weatherData,
           temperature: celsiusTemp,
           windSpeed: kmhWindSpeed
-        });
+        };
+
+        console.log('Processed weather data:', processedWeather); // Debug log
         
+        setWeather(processedWeather);
         setError(null);
         setApiKeyIssue(false);
       } catch (err) {
         console.error('Weather fetch error:', err);
+        if (!isMounted) return;
+
         setError(err.message || 'Failed to load weather data');
         
         // Check if the error is related to API key
@@ -67,6 +79,7 @@ const WeatherDisplay = ({
         
         // Use fallback data if provided
         if (fallbackData) {
+          console.log('Using fallback data:', fallbackData); // Debug log
           setWeather(fallbackData);
         }
         
@@ -74,22 +87,19 @@ const WeatherDisplay = ({
           onError(err);
         }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchWeatherData();
-  }, [location, date, onError, fallbackData]);
 
-  // Helper function to convert Fahrenheit to Celsius
-  const fahrenheitToCelsius = (fahrenheit) => {
-    return Math.round((fahrenheit - 32) * 5 / 9);
-  };
-  
-  // Helper function to convert mph to km/h
-  const mphToKmh = (mph) => {
-    return Math.round(mph * 1.60934);
-  };
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, [location, date, onError, fallbackData]);
 
   if (loading) {
     return (
@@ -137,7 +147,7 @@ const WeatherDisplay = ({
     <Box 
       w="100%" 
       h="auto" 
-      p={4} 
+      p={showDetails ? 4 : 2} 
       borderRadius="lg" 
       color="#EFF7EC"
       boxShadow="0 4px 12px rgba(0,0,0,0.15)"
@@ -145,34 +155,46 @@ const WeatherDisplay = ({
       position="relative"
       overflow="hidden"
     >
-      {/* Decorative weather pattern overlay */}
-      <Box 
-        position="absolute" 
-        top="0" 
-        right="0" 
-        bottom="0" 
-        left="0" 
-        opacity="0.05" 
-        backgroundImage="url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSIxMDAiPgo8cGF0aCBkPSJNMjggNjZMMCA1MEwwIDE2TDI4IDBMNTYgMTZMNTYgNTBMMjggNjZMMjggMTAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')"
-        backgroundSize="56px 100px"
-      />
-      
-      <VStack spacing={3} align="stretch" position="relative">
+      <VStack spacing={showDetails ? 3 : 1} align="stretch" position="relative">
         {/* Header with Location and Date */}
-        <Flex justify="space-between" align="center">
-          <Flex align="center">
-            <Icon as={FaMapMarkerAlt} color="#c0fad0" mr={1} boxSize="0.8em" />
-            <Text fontSize="md" fontWeight="bold" isTruncated>
-              {location}
+        {showDetails && (
+          <Flex justify="space-between" align="center">
+            <Flex align="center">
+              <Icon as={FaMapMarkerAlt} color="#c0fad0" mr={1} boxSize="0.8em" />
+              <Text fontSize="md" fontWeight="bold" isTruncated>
+                {location}
+              </Text>
+            </Flex>
+            <Flex align="center">
+              <Icon as={FaCalendarAlt} color="#c0fad0" mr={1} boxSize="0.8em" />
+              <Text fontSize="xs">
+                {new Date(date).toLocaleDateString()}
+              </Text>
+            </Flex>
+          </Flex>
+        )}
+
+        {/* Compact View */}
+        {!showDetails && (
+          <Flex justify="space-between" align="center">
+            <HStack spacing={2}>
+              {weather.icon ? (
+                <img 
+                  src={weather.icon.startsWith('//') ? `https:${weather.icon}` : weather.icon} 
+                  alt={weather.condition} 
+                  width="32" 
+                  height="32"
+                />
+              ) : (
+                <Icon as={FaCloudSun} boxSize="2rem" color="#c0fad0" />
+              )}
+              <Text fontSize="sm">{Math.round(weather.temperature)}°</Text>
+            </HStack>
+            <Text fontSize="sm" isTruncated maxW="60%">
+              {weather.condition}
             </Text>
           </Flex>
-          <Flex align="center">
-            <Icon as={FaCalendarAlt} color="#c0fad0" mr={1} boxSize="0.8em" />
-            <Text fontSize="xs">
-              {new Date(date).toLocaleDateString()}
-            </Text>
-          </Flex>
-        </Flex>
+        )}
 
         {/* Error Notice */}
         {error && (
@@ -195,40 +217,42 @@ const WeatherDisplay = ({
         <Divider borderColor="rgba(239, 247, 236, 0.2)" />
 
         {/* Main Weather Display */}
-        <Flex align="center" justify="space-between" py={2}>
-          {/* Left: Icon and Condition */}
-          <Flex align="center">
-            {weather.icon ? (
-              <img 
-                src={weather.icon.startsWith('//') ? `https:${weather.icon}` : weather.icon} 
-                alt={weather.condition || "Weather"} 
-                width="64" 
-                height="64" 
-                style={{ marginRight: '12px' }}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  // Show fallback icon
-                  const iconContainer = e.target.parentNode;
-                  if (iconContainer) {
-                    const fallbackIcon = document.createElement('div');
-                    fallbackIcon.innerHTML = '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3V4M12 20V21M21 12H20M4 12H3M18.364 18.364L17.657 17.657M6.343 6.343L5.636 5.636M18.364 5.636L17.657 6.343M6.343 17.657L5.636 18.364M16 12C16 14.209 14.209 16 12 16C9.791 16 8 14.209 8 12C8 9.791 9.791 8 12 8C14.209 8 16 9.791 16 12Z" stroke="#EFF7EC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-                    iconContainer.appendChild(fallbackIcon);
-                  }
-                }}
-              />
-            ) : (
-              <Icon as={FaCloudSun} boxSize="3rem" color="#c0fad0" mr={3} />
-            )}
-            <Text fontSize="md" fontWeight="medium">
-              {weather.condition || "Unknown"}
+        {showDetails && (
+          <Flex align="center" justify="space-between" py={2}>
+            {/* Left: Icon and Condition */}
+            <Flex align="center">
+              {weather.icon ? (
+                <img 
+                  src={weather.icon.startsWith('//') ? `https:${weather.icon}` : weather.icon} 
+                  alt={weather.condition || "Weather"} 
+                  width="64" 
+                  height="64" 
+                  style={{ marginRight: '12px' }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    // Show fallback icon
+                    const iconContainer = e.target.parentNode;
+                    if (iconContainer) {
+                      const fallbackIcon = document.createElement('div');
+                      fallbackIcon.innerHTML = '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3V4M12 20V21M21 12H20M4 12H3M18.364 18.364L17.657 17.657M6.343 6.343L5.636 5.636M18.364 5.636L17.657 6.343M6.343 17.657L5.636 18.364M16 12C16 14.209 14.209 16 12 16C9.791 16 8 14.209 8 12C8 9.791 9.791 8 12 8C14.209 8 16 9.791 16 12Z" stroke="#EFF7EC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                      iconContainer.appendChild(fallbackIcon);
+                    }
+                  }}
+                />
+              ) : (
+                <Icon as={FaCloudSun} boxSize="3rem" color="#c0fad0" mr={3} />
+              )}
+              <Text fontSize="md" fontWeight="medium">
+                {weather.condition || "Unknown"}
+              </Text>
+            </Flex>
+            
+            {/* Right: Temperature */}
+            <Text fontSize="3xl" fontWeight="bold">
+              {Math.round(weather.temperature)}°C
             </Text>
           </Flex>
-          
-          {/* Right: Temperature */}
-          <Text fontSize="3xl" fontWeight="bold">
-            {Math.round(weather.temperature)}°C
-          </Text>
-        </Flex>
+        )}
 
         {/* Details Section */}
         {showDetails && (

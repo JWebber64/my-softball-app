@@ -11,8 +11,19 @@ export const AuthProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const checkAdminStatus = async (currentUser) => {
-    if (!currentUser) return false;
+    if (!currentUser) {
+      setIsAdmin(false);
+      return false;
+    }
     
+    // Log the current user's metadata for debugging
+    console.log('Checking admin status for user:', {
+      id: currentUser.id,
+      app_metadata: currentUser.app_metadata,
+      user_metadata: currentUser.user_metadata,
+      role: currentUser.role
+    });
+
     // Check various possible locations for admin role
     const localCheck = 
       (currentUser.app_metadata?.role === 'team-admin') || 
@@ -21,10 +32,15 @@ export const AuthProvider = ({ children }) => {
       (currentUser.role === 'admin') ||
       (currentUser.user_metadata?.role === 'admin');
     
-    if (localCheck) return true;
+    if (localCheck) {
+      console.log('User has admin role in metadata');
+      return true;
+    }
     
     // If not found in user object, check database
-    return await checkUserIsAdmin(currentUser.id);
+    const isDbAdmin = await checkUserIsAdmin(currentUser.id);
+    console.log('Database admin check result:', isDbAdmin);
+    return isDbAdmin;
   };
 
   useEffect(() => {
@@ -33,14 +49,6 @@ export const AuthProvider = ({ children }) => {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         
-        console.log('Auth Status:', {
-          hasSession: !!session,
-          userId: session?.user?.id,
-          userEmail: session?.user?.email,
-          loading,
-          timestamp: new Date().toISOString()
-        });
-        
         setSession(session);
         const currentUser = session?.user || null;
         setUser(currentUser);
@@ -48,10 +56,12 @@ export const AuthProvider = ({ children }) => {
         if (currentUser) {
           const adminStatus = await checkAdminStatus(currentUser);
           setIsAdmin(adminStatus);
-          console.log('Admin status check result:', adminStatus);
+        } else {
+          setIsAdmin(false);
         }
       } catch (error) {
         console.error('Session fetch error:', error.message);
+        setIsAdmin(false);
       } finally {
         setLoading(false);
       }
@@ -60,14 +70,6 @@ export const AuthProvider = ({ children }) => {
     fetchSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('Auth state changed:', {
-        event: _event,
-        hasSession: !!session,
-        userId: session?.user?.id,
-        userEmail: session?.user?.email,
-        timestamp: new Date().toISOString()
-      });
-      
       setSession(session);
       const currentUser = session?.user || null;
       setUser(currentUser);
@@ -75,7 +77,6 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         const adminStatus = await checkAdminStatus(currentUser);
         setIsAdmin(adminStatus);
-        console.log('Admin status check result:', adminStatus);
       } else {
         setIsAdmin(false);
       }
@@ -88,7 +89,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, session, loading, isAdmin }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

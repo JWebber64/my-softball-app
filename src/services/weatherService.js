@@ -96,17 +96,21 @@ async function getCoordinates(locationString) {
     return DEFAULT_COORDINATES[cleanLocation];
   }
   
-  // Try geocoding only if we have a valid API key
-  if (OPENCAGE_API_KEY && OPENCAGE_API_KEY !== '56a86ba8c598928aaf30486299fc3b95') {
+  // Try geocoding if we have an API key
+  if (OPENCAGE_API_KEY) {
     try {
       console.log('Attempting to geocode with OpenCage API');
       return await geocodeLocation(cleanLocation);
     } catch (error) {
-      console.warn('Geocoding failed, using fallback coordinates:', error);
-      return FALLBACK_COORDINATES;
+      console.warn('Geocoding failed:', error);
+      // Only use fallback if location is not found
+      if (!cleanLocation || error.message.includes('not found')) {
+        return FALLBACK_COORDINATES;
+      }
+      throw error; // Re-throw other errors
     }
   } else {
-    console.warn('No valid OpenCage API key, using fallback coordinates');
+    console.warn('No OpenCage API key found');
     return FALLBACK_COORDINATES;
   }
 }
@@ -114,6 +118,7 @@ async function getCoordinates(locationString) {
 // Helper function to geocode a location string to coordinates using OpenCage
 async function geocodeLocation(locationString) {
   try {
+    console.log('Geocoding location:', locationString);
     const response = await fetch(
       `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(locationString)}&key=${OPENCAGE_API_KEY}`
     );
@@ -123,18 +128,21 @@ async function geocodeLocation(locationString) {
     }
     
     const data = await response.json();
+    console.log('Geocoding response:', data);
+
     if (data.results && data.results.length > 0) {
-      return {
+      const coordinates = {
         latitude: data.results[0].geometry.lat,
         longitude: data.results[0].geometry.lng
       };
+      console.log('Found coordinates:', coordinates);
+      return coordinates;
     } else {
-      console.warn('No geocoding results found, using fallback coordinates');
-      return FALLBACK_COORDINATES;
+      throw new Error('Location not found');
     }
   } catch (error) {
     console.error('Geocoding error:', error);
-    throw error; // Let the caller handle this
+    throw error;
   }
 }
 

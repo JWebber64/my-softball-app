@@ -3,6 +3,7 @@ import { Box, Image, Text, VStack, HStack, Grid, GridItem, IconButton, useTheme 
 import { FaSync } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
 import PropTypes from 'prop-types';
+import { DEFAULT_IMAGES } from '../../constants/assets';
 
 const BaseballCard = ({ player, stats, onExport }) => {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -81,14 +82,13 @@ const BaseballCard = ({ player, stats, onExport }) => {
 
           {/* Player photo */}
           <Image
-            src={imageError ? '/default-player.png' : (player.photoUrl || '/default-player.png')}
+            src={imageError ? DEFAULT_IMAGES.PLAYER_PHOTO : (player.photoUrl || DEFAULT_IMAGES.PLAYER_PHOTO)}
             alt={player.player_name}
             w="100%"
             h="60%"
             objectFit="cover"
             mt="20%"
             onError={handleImageError}
-            fallback={<Box>Loading...</Box>}
           />
 
           {/* Player info */}

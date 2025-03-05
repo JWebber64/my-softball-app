@@ -1,83 +1,87 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { 
-  Box, 
-  Flex, 
-  Image, 
-  Text, 
-  VStack,
-  useStyleConfig,
-  IconButton
-} from '@chakra-ui/react';
-import { HamburgerIcon } from '@chakra-ui/icons';
-import { useNavigate } from 'react-router-dom';
+import { Box, Flex, Image, Text, HStack } from '@chakra-ui/react';
+import { useTeam } from '../../context/TeamContext';
+import { DEFAULT_IMAGES } from '../../constants/assets';
 
-const Header = ({ onOpenSidebar }) => {
-  const styles = useStyleConfig("Header");
-  const navigate = useNavigate();
-  
-  const handleLogoClick = () => {
-    // Set bypass flag before navigation to home with a timestamp
-    const timestamp = new Date().getTime();
-    localStorage.setItem('bypassRedirect', 'true');
-    localStorage.setItem('bypassTimestamp', timestamp.toString());
-    console.log(`Header: Set bypass flag at ${timestamp} before navigating to /`);
-    navigate('/');
-  };
-  
+const Header = ({ isCollapsed = false }) => {
+  const { teamDetails } = useTeam();
+  const sidebarWidth = isCollapsed ? "60px" : "250px";
+
   return (
-    <Box __css={styles} as="header">
-      <Flex 
-        maxW="container.2xl" 
-        mx="auto" 
-        position="relative" 
-        justifyContent="center" 
-        alignItems="center"
-        px={4}
-      >
-        {/* Mobile menu button - only visible on small screens */}
-        <IconButton
-          icon={<HamburgerIcon />}
-          aria-label="Open menu"
-          variant="ghost"
-          color="brand.text"
-          onClick={onOpenSidebar}
-          position="absolute"
-          left={4}
-          display={{ base: 'flex', md: 'none' }}
-        />
-        
-        {/* Logo and Title - Make clickable to go home */}
-        <VStack spacing={2} cursor="pointer" onClick={handleLogoClick}>
-          <Image 
-            src="/logo.svg" 
-            alt="Logo" 
-            boxSize="64px"
-            borderRadius="1rem" 
-            fallbackSrc="/images/default-team-logo.png"
-            onError={(e) => {
-              console.error("Logo failed to load:", e);
-            }}
-          />
-          <Text 
-            bg="brand.primary" 
-            color="brand.text" 
-            px={4}
-            py={2}
-            borderRadius="1rem" 
-            fontSize="xl" 
+    <Box
+      as="header"
+      bg="#111613"
+      bgGradient="linear(to-r, #111613, #2e3726, #111613)"
+      height="100px"
+      display="flex"
+      alignItems="center"
+      px={4}
+      position="fixed"
+      top="0"
+      left={{ base: 0, md: sidebarWidth }}
+      right="0"
+      zIndex="1000"
+      transition="left 0.3s ease"
+      borderBottom="1px"
+      borderBottomColor="brand.border"
+    >
+      {/* Left side - Team info */}
+      {teamDetails && (
+        <HStack spacing={4} flex="1">
+          {teamDetails.logo_url && (
+            <Image
+              src={teamDetails.logo_url || DEFAULT_IMAGES.TEAM_LOGO}
+              alt={`${teamDetails.name} Logo`}
+              height="64px"
+              width="64px"
+              objectFit="contain"
+              borderRadius="full"
+              bg="white"
+              p={1}
+            />
+          )}
+          <Text
+            color="brand.text.primary"
+            fontSize="1.25rem"
             fontWeight="bold"
           >
-            Diamond Data
+            {teamDetails.name}
           </Text>
-        </VStack>
+        </HStack>
+      )}
+
+      {/* Center - App logo */}
+      <Flex 
+        direction="column" 
+        align="center"
+        flex="1"
+        justifyContent="center"
+      >
+        <Image
+          src="/logo.svg"
+          alt="Diamond Data Logo"
+          height="64px"
+          width="64px"
+          objectFit="contain"
+          borderRadius="1rem"
+          bg="white"
+          p={1}
+        />
       </Flex>
+
+      {/* Right side - Empty space to balance the layout */}
+      <Box flex="1" />
     </Box>
   );
 };
 
 Header.propTypes = {
-  onOpenSidebar: PropTypes.func.isRequired
+  isCollapsed: PropTypes.bool
+};
+
+Header.defaultProps = {
+  isCollapsed: false
 };
 
 export default Header;

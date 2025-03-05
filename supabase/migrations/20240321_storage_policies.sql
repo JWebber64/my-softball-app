@@ -46,3 +46,27 @@ ON storage.objects
 FOR DELETE
 TO authenticated
 USING (bucket_id = 'scoresheets');
+
+-- Add policy for team-logos bucket
+CREATE POLICY "Allow public access to team-logos"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'team-logos');
+
+-- Allow authenticated users to upload to team-logos
+CREATE POLICY "Allow authenticated users to upload team logos"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'team-logos');
+
+-- Allow team admins to manage their logos
+CREATE POLICY "Allow team admins to manage their logos"
+ON storage.objects
+FOR ALL
+TO authenticated
+USING (
+  bucket_id = 'team-logos' 
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);

@@ -1,46 +1,88 @@
 import * as yup from 'yup';
 
-// Validation schemas
-export const schemas = {
-  news: yup.object().shape({
-    title: yup.string().required('Title is required').max(200),
-    content: yup.string().required('Content is required').max(2000),
-  }),
-  
-  player: yup.object().shape({
+const phoneRegExp = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+
+export const signupSchemas = {
+  user: yup.object({
+    email: yup.string().email('Invalid email').required('Email is required'),
+    password: yup.string()
+      .required('Password is required')
+      .min(8, 'Password must be at least 8 characters')
+      .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .matches(/[0-9]/, 'Password must contain at least one number'),
     firstName: yup.string().required('First name is required').max(50),
     lastName: yup.string().required('Last name is required').max(50),
-    number: yup.string().required('Number is required')
-      .matches(/^\d{1,2}$/, 'Number must be 1-2 digits'),
+  }),
+
+  'team-admin': yup.object({
+    email: yup.string().email('Invalid email').required('Email is required'),
+    password: yup.string()
+      .required('Password is required')
+      .min(8, 'Password must be at least 8 characters')
+      .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .matches(/[0-9]/, 'Password must contain at least one number'),
+    teamName: yup.string().required('Team name is required').max(100),
+    phoneNumber: yup.string()
+      .required('Phone number is required')
+      .matches(phoneRegExp, 'Phone number is not valid'),
+  }),
+
+  'league-admin': yup.object({
+    email: yup.string().email('Invalid email').required('Email is required'),
+    password: yup.string()
+      .required('Password is required')
+      .min(8, 'Password must be at least 8 characters')
+      .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .matches(/[0-9]/, 'Password must contain at least one number'),
+    leagueName: yup.string().required('League name is required').max(100),
+    organization: yup.string().required('Organization is required').max(100),
+    phoneNumber: yup.string()
+      .required('Phone number is required')
+      .matches(phoneRegExp, 'Phone number is not valid'),
+  }),
+};
+
+// Add data validation schemas for different types
+const validationSchemas = {
+  player: yup.object({
+    firstName: yup.string().required('First name is required'),
+    lastName: yup.string().required('Last name is required'),
+    number: yup.number().required('Player number is required').positive().integer(),
     position: yup.string().required('Position is required'),
+    battingOrder: yup.number().min(1).max(9).nullable(),
     status: yup.string().oneOf(['active', 'inactive', 'injured']),
   }),
   
-  game: yup.object().shape({
-    date: yup.date().required('Date is required'),
+  team: yup.object({
+    name: yup.string().required('Team name is required'),
+    division: yup.string().required('Division is required'),
+    season: yup.string().required('Season is required'),
+  }),
+
+  game: yup.object({
+    date: yup.date().required('Game date is required'),
     opponent: yup.string().required('Opponent is required'),
     location: yup.string().required('Location is required'),
-    score: yup.object().shape({
-      us: yup.number().min(0),
-      them: yup.number().min(0),
-    }),
+    time: yup.string().required('Game time is required'),
   }),
 };
 
 export const validateData = async (type, data) => {
   try {
-    const schema = schemas[type];
-    if (!schema) throw new Error(`No validation schema for type: ${type}`);
-    
+    const schema = validationSchemas[type];
+    if (!schema) {
+      throw new Error(`No validation schema found for type: ${type}`);
+    }
+
     await schema.validate(data, { abortEarly: false });
-    return { isValid: true, errors: null };
+    return { isValid: true, errors: {} };
   } catch (error) {
-    return {
-      isValid: false,
-      errors: error.inner.reduce((acc, err) => ({
-        ...acc,
-        [err.path]: err.message
-      }), {})
-    };
+    const errors = {};
+    if (error.inner) {
+      error.inner.forEach((err) => {
+        errors[err.path] = err.message;
+      });
+    }
+    return { isValid: false, errors };
   }
 };

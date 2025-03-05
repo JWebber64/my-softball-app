@@ -6,55 +6,75 @@ import {
   CardBody, 
   Icon, 
   Text,
-  useDisclosure
+  VStack
 } from '@chakra-ui/react';
 import { FaCamera, FaFileUpload, FaMicrophone, FaKeyboard } from 'react-icons/fa';
 
 const ScoreSheetViewer = ({ onSelectMethod }) => {
   return (
-    <Box>
-      <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} mb={4}>
+    <Box width="100%" mb={4}>
+      <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
         <Card 
           cursor="pointer" 
           onClick={() => onSelectMethod('scan')}
-          _hover={{ borderColor: "blue.500", shadow: "md" }}
+          _hover={{ transform: 'scale(1.02)', shadow: "md" }}
+          bg="#545e46"
+          height="180px"  // Increased height to accommodate description
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
-            <Icon as={FaCamera} boxSize={6} mb={2} color="blue.500" />
-            <Text fontWeight="medium">Scan Scoresheet</Text>
+            <Icon as={FaCamera} boxSize={8} mb={3} color="#2e3726" />
+            <VStack spacing={2}>
+              <Text fontWeight="medium" color="#E7F8E8" textAlign="center">Scan Scoresheet</Text>
+              <Text fontSize="sm" color="#E7F8E8" textAlign="center">Use camera to capture scoresheet image</Text>
+            </VStack>
           </CardBody>
         </Card>
         
         <Card 
           cursor="pointer" 
           onClick={() => onSelectMethod('upload')}
-          _hover={{ borderColor: "blue.500", shadow: "md" }}
+          _hover={{ transform: 'scale(1.02)', shadow: "md" }}
+          bg="#545e46"
+          height="180px"
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
-            <Icon as={FaFileUpload} boxSize={6} mb={2} color="blue.500" />
-            <Text fontWeight="medium">Upload Scoresheet</Text>
+            <Icon as={FaFileUpload} boxSize={8} mb={3} color="#2e3726" />
+            <VStack spacing={2}>
+              <Text fontWeight="medium" color="#E7F8E8" textAlign="center">Upload File</Text>
+              <Text fontSize="sm" color="#E7F8E8" textAlign="center">Import existing scoresheet image</Text>
+            </VStack>
           </CardBody>
         </Card>
         
         <Card 
           cursor="pointer" 
           onClick={() => onSelectMethod('voice')}
-          _hover={{ borderColor: "blue.500", shadow: "md" }}
+          _hover={{ transform: 'scale(1.02)', shadow: "md" }}
+          bg="#545e46"
+          height="180px"
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
-            <Icon as={FaMicrophone} boxSize={6} mb={2} color="blue.500" />
-            <Text fontWeight="medium">Voice Recorder</Text>
+            <Icon as={FaMicrophone} boxSize={8} mb={3} color="#2e3726" />
+            <VStack spacing={2}>
+              <Text fontWeight="medium" color="#E7F8E8" textAlign="center">Voice Input</Text>
+              <Text fontSize="sm" color="#E7F8E8" textAlign="center">Record game plays using voice commands</Text>
+            </VStack>
           </CardBody>
         </Card>
         
         <Card 
           cursor="pointer" 
           onClick={() => onSelectMethod('manual')}
-          _hover={{ borderColor: "blue.500", shadow: "md" }}
+          _hover={{ transform: 'scale(1.02)', shadow: "md" }}
+          bg="#545e46"
+          height="180px"
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
-            <Icon as={FaKeyboard} boxSize={6} mb={2} color="blue.500" />
-            <Text fontWeight="medium">Manual Input</Text>
+            <Icon as={FaKeyboard} boxSize={8} mb={3} color="#2e3726" />
+            <VStack spacing={2}>
+              <Text fontWeight="medium" color="#E7F8E8" textAlign="center">Manual Entry</Text>
+              <Text fontSize="sm" color="#E7F8E8" textAlign="center">Enter game data manually using form</Text>
+            </VStack>
           </CardBody>
         </Card>
       </SimpleGrid>

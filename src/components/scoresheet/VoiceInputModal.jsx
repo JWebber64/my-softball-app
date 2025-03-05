@@ -1,85 +1,120 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
   ModalContent,
   ModalHeader,
-  ModalBody,
   ModalFooter,
+  ModalBody,
   ModalCloseButton,
   Button,
+  Text,
+  VStack,
+  useToast
 } from '@chakra-ui/react';
-import VoiceCommandPanel from './VoiceCommandPanel';
+import PropTypes from 'prop-types';
 
-const VoiceInputModal = ({ isOpen, onClose }) => {
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
+// Use default parameter instead of defaultProps
+const VoiceInputModal = ({ 
+  isOpen, 
+  onClose, 
+  onSave = () => {} // Default parameter here
+}) => {
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [recognition, setRecognition] = useState(null);
+  const toast = useToast();
 
-  const handleGameChange = (gameNumber) => {
-    // TODO: Implement game change logic
-    console.log('Game changed to:', gameNumber);
+  useEffect(() => {
+    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      
+      recognitionInstance.onresult = (event) => {
+        const current = event.resultIndex;
+        const transcriptText = event.results[current][0].transcript;
+        setTranscript(prev => prev + ' ' + transcriptText);
+      };
+
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        toast({
+          title: "Error",
+          description: `Speech recognition error: ${event.error}`,
+          status: "error",
+          duration: 3000,
+        });
+        setIsListening(false);
+      };
+
+      setRecognition(recognitionInstance);
+    }
+
+    return () => {
+      if (recognition) {
+        recognition.stop();
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognition) {
+      toast({
+        title: "Error",
+        description: "Speech recognition is not supported in your browser",
+        status: "error",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+    setIsListening(!isListening);
   };
 
-  const handleScoreUpdate = (data) => {
-    // TODO: Implement score update logic
-    console.log('Score updated:', data);
-  };
-
-  const handleZoom = (direction) => {
-    // TODO: Implement zoom logic if needed
-    console.log('Zoom:', direction);
-  };
-
-  const handleClose = () => {
-    setIsVoiceActive(false);
+  const handleSaveTranscript = () => {
+    onSave(transcript);
+    setTranscript('');
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
-      <ModalContent bg="#545e46">
-        <ModalHeader color="#c0fad0">Voice Stats Input</ModalHeader>
-        <ModalCloseButton color="#c0fad0" />
+      <ModalContent>
+        <ModalHeader>Voice Input</ModalHeader>
+        <ModalCloseButton />
         <ModalBody>
-          <VoiceCommandPanel
-            isActive={isVoiceActive}
-            onToggle={setIsVoiceActive}
-            onGameChange={handleGameChange}
-            currentGame={1}
-            onScoreUpdate={handleScoreUpdate}
-            onZoom={handleZoom}
-          />
+          <VStack spacing={4}>
+            <Button
+              colorScheme={isListening ? "red" : "green"}
+              onClick={toggleListening}
+            >
+              {isListening ? "Stop Recording" : "Start Recording"}
+            </Button>
+            <Text>Transcript:</Text>
+            <Text border="1px" borderColor="gray.200" p={4} borderRadius="md" w="100%">
+              {transcript || "No transcript yet..."}
+            </Text>
+          </VStack>
         </ModalBody>
-        <ModalFooter
-          display="flex"
-          justifyContent="center"
-          gap={3}
-          bg="#7C866B"
-          position="sticky"
-          bottom="0"
-          p={4}
-          borderTop="1px solid"
-          borderColor="rgba(255,255,255,0.1)"
-        >
-          <Button
-            bg="#545E46"
-            color="#EFF7EC"
-            _hover={{ bg: "#6b7660" }}
-            onClick={handleSave}
-            size="lg"
-            borderRadius="1rem"
-          >
-            Save
+        <ModalFooter>
+          <Button variant="ghost" mr={3} onClick={onClose}>
+            Cancel
           </Button>
           <Button 
-            bg="#545E46"
-            color="#EFF7EC"
-            _hover={{ bg: "#6b7660" }}
-            onClick={onClose}
-            size="lg"
-            borderRadius="1rem"
+            colorScheme="blue" 
+            onClick={handleSaveTranscript}
+            isDisabled={!transcript}
           >
-            Cancel
+            Save
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -87,4 +122,11 @@ const VoiceInputModal = ({ isOpen, onClose }) => {
   );
 };
 
+VoiceInputModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func
+};
+
+// Remove defaultProps
 export default VoiceInputModal;

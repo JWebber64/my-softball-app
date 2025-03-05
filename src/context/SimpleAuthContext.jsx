@@ -1,102 +1,162 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useNavigate } from 'react-router-dom';
+import { ROUTER_CONFIG } from '../constants/routing';
 
-// Create the context
-const SimpleAuthContext = createContext(null);
+export const SimpleAuthContext = createContext();
 
-// Provider component
-export const SimpleAuthProvider = ({ children }) => {
+export function useSimpleAuth() {
+  const context = useContext(SimpleAuthContext);
+  if (!context) {
+    throw new Error('useSimpleAuth must be used within a SimpleAuthProvider');
+  }
+  return context;
+}
+
+export function SimpleAuthProvider({ children }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // Check if user is authenticated on mount
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        console.log('Auth session data:', data);
-        setUser(data?.session?.user || null);
-      } catch (error) {
-        console.error('Error checking auth:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    checkUser();
-    
-    // Set up auth state listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        setUser(session?.user || null);
-      }
-    );
-    
-    return () => {
-      authListener?.subscription?.unsubscribe();
-    };
-  }, []);
-  
-  const isAuthenticated = !!user;
-  console.log('SimpleAuthContext state:', { isAuthenticated, userId: user?.id });
-  
-  // Sign in with email
-  const signInWithEmail = async (email, password) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { success: false, error };
-    }
+  const [allTeams, setAllTeams] = useState([]);
+  const [activeTeam, setActiveTeam] = useState(null);
+  const [noTeamsAvailable, setNoTeamsAvailable] = useState(false);
+  const navigate = useNavigate();
+
+  const clearAuth = () => {
+    setSession(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    setAllTeams([]);
+    setActiveTeam(null);
+    localStorage.clear(); // Clear all localStorage
   };
 
-  // Sign up with email
-  const signUpWithEmail = async (email, password, userData = {}) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData
-        }
-      });
-      
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { success: false, error };
-    }
-  };
-
-  // Sign out
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      return { success: true };
+      
+      clearAuth();
+      
+      // Remove any remaining auth-related items
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('activeTeamId');
+      localStorage.removeItem('bypassRedirect');
+      
+      // Clear any session cookies
+      document.cookie.split(";").forEach(cookie => {
+        document.cookie = cookie
+          .replace(/^ +/, "")
+          .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+      });
+
+      return true;
     } catch (error) {
-      console.error('Sign out error:', error);
-      return { success: false, error };
+      console.error('Logout error:', error);
+      throw error;
     }
   };
 
-  // Value to be provided to consumers
+  const setCurrentTeam = async (teamId) => {
+    try {
+      if (!teamId) {
+        setActiveTeam(null);
+        localStorage.removeItem('activeTeamId');
+        return null;
+      }
+
+      // Fetch full team details including logo
+      const { data: teamData, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .single();
+
+      if (error) throw error;
+
+      setActiveTeam(teamData);
+      localStorage.setItem('activeTeamId', teamId);
+      return teamData;
+    } catch (error) {
+      console.error('Error setting current team:', error);
+      throw error;
+    }
+  };
+
+  const fetchTeamInfo = async (userId) => {
+    try {
+      if (!userId) return null;
+
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('admin_id', userId);
+
+      if (error) throw error;
+
+      setAllTeams(data || []);
+
+      if (data && data.length > 0) {
+        const savedTeamId = localStorage.getItem('activeTeamId');
+        if (savedTeamId && data.some(team => team.id === savedTeamId)) {
+          await setCurrentTeam(savedTeamId);
+        } else {
+          await setCurrentTeam(data[0].id);
+        }
+      } else {
+        setActiveTeam(null);
+        localStorage.removeItem('activeTeamId');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in fetchTeamInfo:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session);
+        
+        if (session?.user) {
+          await fetchTeamInfo(session.user.id);
+        } else {
+          // Clear team state if not authenticated
+          setAllTeams([]);
+          setActiveTeam(null);
+          localStorage.removeItem('activeTeamId');
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        clearAuth();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
   const value = {
+    isAuthenticated,
     user,
+    session,
     loading,
-    signInWithEmail,
-    signUpWithEmail,
+    activeTeam,
+    allTeams,
+    noTeamsAvailable,
+    setCurrentTeam,
     signOut,
-    isAuthenticated
+    clearAuth,
+    fetchTeamInfo
   };
 
   return (
@@ -104,13 +164,4 @@ export const SimpleAuthProvider = ({ children }) => {
       {children}
     </SimpleAuthContext.Provider>
   );
-};
-
-// Custom hook to use the auth context
-export const useSimpleAuth = () => {
-  const context = useContext(SimpleAuthContext);
-  if (!context) {
-    throw new Error('useSimpleAuth must be used within a SimpleAuthProvider');
-  }
-  return context;
-};
+}

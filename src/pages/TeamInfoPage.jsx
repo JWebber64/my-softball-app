@@ -1,652 +1,563 @@
-import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import ErrorBoundary from '../components/ErrorBoundary';
-import { useTeamData } from '../hooks/useTeamData';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
-  SimpleGrid,
-  Heading,
-  Text,
-  Icon,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
   VStack,
   HStack,
-  Card,
-  CardHeader,
-  CardBody,
-  Spinner,
-  Button,
+  Select,
+  NumberInput,
+  NumberInputField,
+  useToast,
+  Avatar,
+  Icon,
+  Text,
+  Grid,
+  GridItem,
+  InputGroup,
+  InputLeftAddon,
+  InputRightElement,
   Image,
+  SimpleGrid,
+  useDisclosure
 } from '@chakra-ui/react';
-import { 
-  FaInstagram, 
-  FaFacebook, 
-  FaYoutube, 
-  FaTiktok, 
-  FaTwitter, 
-  FaCalendarAlt, 
-  FaMapMarkerAlt, 
-  FaNewspaper, 
-  FaSync, 
-  FaCloud, 
-  FaUser, 
+import {
+  FaChevronRight,
   FaUsers,
-  FaMedal,
-  FaLink,
-  FaExclamationTriangle,
+  FaUser,
+  FaList,
   FaImage,
+  FaInstagram,
+  FaTwitter
 } from 'react-icons/fa';
-import { supabase, checkSupabaseConnection } from '../lib/supabaseClient';
-import WeatherDisplay from "../components/WeatherDisplay";
+import { supabase } from '../lib/supabaseClient';
+import PropTypes from 'prop-types';
+import html2canvas from 'html2canvas';
+import ReactDOM from 'react-dom/client';
+import ErrorBoundary from '../components/ErrorBoundary';
 import BaseballCard from '../components/baseball-card/BaseballCard';
-
-// SectionCard component definition
-const SectionCard = ({ 
-  title, 
-  loading = false, 
-  isEmpty = false, 
-  error = null, 
-  icon = null, 
-  children = null, 
-  onRefresh = null 
-}) => (
-  <Card 
-    bg="brand.primary" 
-    color="brand.text"
-    position="absolute"
-    top="0"
-    left="0"
-    right="0"
-    bottom="0"
-    display="flex"
-    flexDirection="column"
-  >
-    <CardHeader py={4} px={6}>
-      <HStack justify="space-between">
-        <Heading size="md" display="flex" alignItems="center" gap={2} width="100%" justifyContent="center">
-          {icon && <Icon as={icon} />}
-          {title}
-        </Heading>
-        {loading && <Spinner size="sm" position="absolute" right="6" />}
-      </HStack>
-    </CardHeader>
-    <CardBody 
-      flex="1" 
-      display="flex" 
-      flexDirection="column" 
-      p={6}
-      overflow="hidden"
-    >
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" flex="1">
-          <Spinner size="lg" />
-        </Box>
-      ) : error ? (
-        <Box textAlign="center" display="flex" flexDirection="column" justifyContent="center" flex="1">
-          <Text color="red.500" mb={2}>Error loading {title.toLowerCase()}</Text>
-          {onRefresh && (
-            <Button 
-              size="sm" 
-              onClick={onRefresh}
-              leftIcon={<Icon as={FaSync} />}
-            >
-              Retry
-            </Button>
-          )}
-        </Box>
-      ) : isEmpty ? (
-        <Box textAlign="center" display="flex" flexDirection="column" justifyContent="center" flex="1">
-          <Text mb={2}>No {title.toLowerCase()} available</Text>
-          {onRefresh && (
-            <Button 
-              size="sm" 
-              onClick={onRefresh}
-              leftIcon={<Icon as={FaSync} />}
-            >
-              Refresh
-            </Button>
-          )}
-        </Box>
-      ) : (
-        <Box flex="1" overflow="hidden">
-          {children}
-        </Box>
-      )}
-    </CardBody>
-  </Card>
-);
-
-SectionCard.propTypes = {
-  title: PropTypes.string.isRequired,
-  loading: PropTypes.bool,
-  isEmpty: PropTypes.bool,
-  error: PropTypes.any,
-  icon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
-  children: PropTypes.node,
-  onRefresh: PropTypes.func
-};
-
-// Remove SectionCard.defaultProps as we're now using default parameters
-
-// First, add a styled container for consistent card sizing
-const CardContainer = ({ children }) => (
-  <Box
-    height="500px"
-    width="100%"
-    position="relative"
-  >
-    {children}
-  </Box>
-);
-
-CardContainer.propTypes = {
-  children: PropTypes.node.isRequired
-};
-
-// Add placeholder data
-const PLACEHOLDER_WEATHER = {
-  temperature: 75,
-  condition: 'Sunny',
-  humidity: 45,
-  windSpeed: 8
-};
-
-const PLACEHOLDER_MEDIA = [
-  {
-    id: 1,
-    type: 'video',
-    title: 'Season Highlights',
-    url: '#',
-    thumbnail: '/placeholder-thumbnail.jpg'
-  },
-  {
-    id: 2,
-    type: 'image',
-    title: 'Team Photo',
-    url: '#',
-    thumbnail: '/placeholder-image.jpg'
-  }
-];
+import SectionCard from '../components/common/SectionCard';
+import CardContainer from '../components/CardContainer';
+import { useTeam } from '../context/TeamContext';
 
 const TeamInfoPage = () => {
-  const [connectionStatus, setConnectionStatus] = useState('checking');
-  const [playerStats, setPlayerStats] = useState({});
-  const [currentLocation, setCurrentLocation] = useState('');
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [weatherError, setWeatherError] = useState(false);
-
-  // Add useEffect to get user's location
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        try {
-          // Check if API key is defined
-          const apiKey = import.meta.env.VITE_OPENCAGE_API_KEY;
-          if (!apiKey) {
-            console.error('OpenCage API key is not defined');
-            setCurrentLocation('New York, NY'); // fallback location
-            return;
-          }
-          
-          const response = await fetch(
-            `https://api.opencagedata.com/geocode/v1/json?q=${position.coords.latitude}+${position.coords.longitude}&key=${apiKey}`
-          );
-          
-          if (!response.ok) {
-            throw new Error(`OpenCage API error: ${response.status} ${response.statusText}`);
-          }
-          
-          const data = await response.json();
-          if (data.results && data.results.length > 0) {
-            const components = data.results[0].components;
-            
-            // Extract city and state with better fallbacks
-            const city = components.city || 
-                        components.town || 
-                        components.village || 
-                        components.county || 
-                        components.state;
-                        
-            // Handle international locations that might not have state_code
-            const state = components.state_code || 
-                          components.state || 
-                          components.country_code?.toUpperCase();
-            
-            if (city && state) {
-              setCurrentLocation(`${city}, ${state}`);
-            } else if (city) {
-              setCurrentLocation(city);
-            } else {
-              // Use formatted address as last resort
-              setCurrentLocation(data.results[0].formatted.split(',')[0]);
-            }
-            
-            console.log('Location set to:', currentLocation);
-          } else {
-            throw new Error('No results found in geocoding response');
-          }
-        } catch (error) {
-          console.error('Error getting location:', error);
-          setCurrentLocation('New York, NY'); // fallback location
-        }
-      }, () => {
-        console.warn('Geolocation permission denied or unavailable');
-        setCurrentLocation('New York, NY'); // fallback location on error
-      });
-    } else {
-      console.warn('Geolocation not supported by browser');
-      setCurrentLocation('New York, NY'); // fallback location if geolocation not available
-    }
-  }, []);
-
-  // Add a useEffect that depends on currentLocation to see when it changes
-  useEffect(() => {
-    console.log('Location changed to:', currentLocation);
-    // You could also reset weatherError here if needed
-    if (currentLocation) {
-      setWeatherError(false);
-    }
-  }, [currentLocation]);
-
-  // News Section
-  const { 
-    data: newsData, 
-    loading: newsLoading, 
-    error: newsError, 
-    refresh: newsRefresh 
-  } = useTeamData('team_news');
-
-  // Schedule Section
-  const {
-    data: scheduleData,
-    loading: scheduleLoading,
-    error: scheduleError,
-    refresh: scheduleRefresh
-  } = useTeamData('team_schedule');
-
-  // Roster Section
-  const {
-    data: rosterData,
-    loading: rosterLoading,
-    error: rosterError,
-    refresh: rosterRefresh
-  } = useTeamData('team_roster');
-
-  // Players of Week Section
-  const {
-    data: playersOfWeekData,
-    loading: playersOfWeekLoading,
-    error: playersOfWeekError,
-    refresh: playersOfWeekRefresh
-  } = useTeamData('players_of_week');
-
-  // Social Media Section
-  const {
-    data: socialEmbedsData,
-    loading: socialEmbedsLoading,
-    error: socialEmbedsError,
-    refresh: socialEmbedsRefresh
-  } = useTeamData('social_media_embeds');
-
-  // Media Embeds Section
-  const mediaEmbedsData = PLACEHOLDER_MEDIA;
+  const { teamDetails } = useTeam();
+  const toast = useToast();
+  const cardRef = useRef();
+  
+  // State declarations
+  const [teamBios, setTeamBios] = useState([]);
+  const [biosLoading, setBiosLoading] = useState(true);
+  const [biosError, setBiosError] = useState(null);
+  const [selectedPlayerForCard, setSelectedPlayerForCard] = useState(null);
 
   useEffect(() => {
-    const checkConnection = async () => {
-      const isConnected = await checkSupabaseConnection();
-      setConnectionStatus(isConnected ? 'connected' : 'error');
-    };
-    checkConnection();
-  }, []);
-
-  useEffect(() => {
-    const fetchPlayerStats = async () => {
+    const fetchTeamBios = async () => {
       try {
+        setBiosLoading(true);
         const { data, error } = await supabase
-          .from('player_stats')
+          .from('player_bios')
           .select('*');
+        
         if (error) throw error;
         
-        const statsMap = {};
-        data.forEach(stat => {
-          statsMap[stat.player_id] = stat;
-        });
-        setPlayerStats(statsMap);
+        setTeamBios(data);
       } catch (error) {
-        console.error('Error fetching player stats:', error);
+        console.error('Error fetching team bios:', error);
+        setBiosError(error.message);
+      } finally {
+        setBiosLoading(false);
       }
     };
 
-    fetchPlayerStats();
-  }, []);
+    fetchTeamBios();
+  }, []); // Empty dependency array means this runs once on component mount
 
-  // Add this useEffect to handle weather errors
+  // useDisclosure hooks
+  const { 
+    isOpen: isCardOpen, 
+    onOpen: onCardOpen, 
+    onClose: onCardClose 
+  } = useDisclosure();
+  
+  const { isOpen: isProfileFormOpen, onOpen: onProfileFormOpen, onClose: onProfileFormClose } = useDisclosure();
+
   useEffect(() => {
-    const handleWeatherError = (err) => {
-      console.error('Weather API error detected:', err);
-      setWeatherError(true);
-    };
-    
-    // Listen for weather errors
-    window.addEventListener('weather-api-error', handleWeatherError);
-    
-    return () => {
-      window.removeEventListener('weather-api-error', handleWeatherError);
-    };
-  }, []);
+    console.log('Current team details:', teamDetails);
+  }, [teamDetails]);
 
-  // Add this function to your component
-  const retryWeather = () => {
-    console.log('Retrying weather with location:', currentLocation);
-    setWeatherError(false);
-    // Force a re-render by updating the date slightly
-    setCurrentDate(new Date().toISOString().split('T')[0]);
+  const handleExportCard = async (player) => {
+    if (!player) return;
+    
+    const cardData = {
+      player: {
+        id: player.id,
+        player_name: player.name,
+        jersey_number: player.number,
+        position: player.position,
+        photoUrl: player.photo_url
+      },
+      stats: {
+        avg: player.batting_average,
+        games: player.games_played,
+        at_bats: player.at_bats,
+        hits: player.hits,
+        rbi: player.rbis,
+        runs: player.runs,
+        home_runs: player.home_runs
+      }
+    };
+
+    try {
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+
+      const root = ReactDOM.createRoot(container);
+      root.render(
+        <ErrorBoundary>
+          <BaseballCard
+            ref={cardRef}
+            {...cardData}
+          />
+        </ErrorBoundary>
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false
+      });
+      
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${player.name.replace(/\s+/g, '-')}-card.png`;
+      link.href = image;
+      link.click();
+
+      document.body.removeChild(container);
+    } catch (error) {
+      console.error('Error exporting card:', error);
+      toast({
+        title: 'Export failed',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
-  // Add this debugging code temporarily
+  const handleCreateProfile = async (profileData) => {
+    try {
+      const { error } = await supabase
+        .from('player_bios')
+        .insert([profileData]);
+
+      if (error) throw error;
+
+      const { data: updatedBios } = await supabase
+        .from('player_bios')
+        .select('*');
+      
+      setTeamBios(updatedBios);
+
+      toast({
+        title: "Profile created successfully",
+        status: "success",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error creating profile:', error);
+      toast({
+        title: "Error creating profile",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    }
+  };
+
+  const PlayerProfileForm = ({ isOpen, onClose, onSubmit, initialData = {} }) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const formToast = useToast();
+
+    const [formData, setFormData] = useState({
+      name: '',
+      number: '',
+      position: '',
+      bats: 'Right',
+      throws: 'Right',
+      height: '',
+      weight: '',
+      photo_url: '',
+      instagram_link: '',
+      twitter_link: '',
+      ...initialData
+    });
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      
+      if (!formData.name || !formData.number || !formData.position) {
+        formToast({
+          title: "Required fields missing",
+          description: "Please fill in all required fields",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+
+      try {
+        setIsSubmitting(true);
+        await onSubmit(formData);
+        onClose();
+      } catch (error) {
+        formToast({
+          title: "Error saving profile",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <Modal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        size="lg"
+        closeOnOverlayClick={!isSubmitting}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            {initialData.id ? 'Edit Profile' : 'Create Profile'}
+          </ModalHeader>
+          <ModalCloseButton isDisabled={isSubmitting} />
+          <form onSubmit={handleSubmit}>
+            <ModalBody pb={6}>
+              <VStack spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel>Name</FormLabel>
+                  <Input 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    isDisabled={isSubmitting}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Jersey Number</FormLabel>
+                  <NumberInput min={0} max={99}>
+                    <NumberInputField 
+                      value={formData.number}
+                      onChange={(e) => setFormData({...formData, number: e.target.value})}
+                    />
+                  </NumberInput>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Position</FormLabel>
+                  <Select 
+                    value={formData.position}
+                    onChange={(e) => setFormData({...formData, position: e.target.value})}
+                  >
+                    <option value="Pitcher">Pitcher</option>
+                    <option value="Catcher">Catcher</option>
+                    <option value="First Base">First Base</option>
+                    <option value="Second Base">Second Base</option>
+                    <option value="Third Base">Third Base</option>
+                    <option value="Shortstop">Shortstop</option>
+                    <option value="Left Field">Left Field</option>
+                    <option value="Center Field">Center Field</option>
+                    <option value="Right Field">Right Field</option>
+                  </Select>
+                </FormControl>
+
+                <HStack width="100%" spacing={4}>
+                  <FormControl>
+                    <FormLabel>Bats</FormLabel>
+                    <Select 
+                      value={formData.bats}
+                      onChange={(e) => setFormData({...formData, bats: e.target.value})}
+                    >
+                      <option value="Right">Right</option>
+                      <option value="Left">Left</option>
+                      <option value="Switch">Switch</option>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Throws</FormLabel>
+                    <Select 
+                      value={formData.throws}
+                      onChange={(e) => setFormData({...formData, throws: e.target.value})}
+                    >
+                      <option value="Right">Right</option>
+                      <option value="Left">Left</option>
+                    </Select>
+                  </FormControl>
+                </HStack>
+
+                <HStack width="100%" spacing={4}>
+                  <FormControl>
+                    <FormLabel>Height</FormLabel>
+                    <Input 
+                      value={formData.height}
+                      onChange={(e) => setFormData({...formData, height: e.target.value})}
+                      placeholder="5'10&quot;"
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Weight</FormLabel>
+                    <Input 
+                      value={formData.weight}
+                      onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                      placeholder="175 lbs"
+                    />
+                  </FormControl>
+                </HStack>
+
+                <FormControl>
+                  <FormLabel>Photo URL</FormLabel>
+                  <InputGroup>
+                    <Input 
+                      value={formData.photo_url}
+                      onChange={(e) => setFormData({...formData, photo_url: e.target.value})}
+                      isDisabled={isSubmitting}
+                    />
+                    <InputRightElement>
+                      {formData.photo_url && (
+                        <Image 
+                          src={formData.photo_url} 
+                          alt="Preview"
+                          boxSize="20px"
+                          fallback={<Icon as={FaImage} />}
+                        />
+                      )}
+                    </InputRightElement>
+                  </InputGroup>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Social Media</FormLabel>
+                  <VStack spacing={2}>
+                    <InputGroup>
+                      <InputLeftAddon><FaInstagram /></InputLeftAddon>
+                      <Input 
+                        value={formData.instagram_link}
+                        onChange={(e) => setFormData({...formData, instagram_link: e.target.value})}
+                        placeholder="Instagram profile URL"
+                        isDisabled={isSubmitting}
+                      />
+                    </InputGroup>
+                    <InputGroup>
+                      <InputLeftAddon><FaTwitter /></InputLeftAddon>
+                      <Input 
+                        value={formData.twitter_link}
+                        onChange={(e) => setFormData({...formData, twitter_link: e.target.value})}
+                        placeholder="Twitter profile URL"
+                        isDisabled={isSubmitting}
+                      />
+                    </InputGroup>
+                  </VStack>
+                </FormControl>
+              </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button 
+                colorScheme="blue" 
+                mr={3} 
+                type="submit"
+                isLoading={isSubmitting}
+              >
+                {initialData.id ? 'Save Changes' : 'Create Profile'}
+              </Button>
+              <Button onClick={onClose} isDisabled={isSubmitting}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+    );
+  };
+
+  PlayerProfileForm.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onSubmit: PropTypes.func.isRequired,
+    initialData: PropTypes.shape({
+      id: PropTypes.string,
+      name: PropTypes.string,
+      number: PropTypes.string,
+      position: PropTypes.string,
+      bats: PropTypes.string,
+      throws: PropTypes.string,
+      height: PropTypes.string,
+      weight: PropTypes.string,
+      photo_url: PropTypes.string,
+      instagram_link: PropTypes.string,
+      twitter_link: PropTypes.string
+    })
+  };
+
+  PlayerProfileForm.defaultProps = {
+    initialData: {}
+  };
+
   useEffect(() => {
-    console.log('Environment check:');
-    console.log('- NODE_ENV:', import.meta.env.MODE);
-    console.log('- WEATHER_API_KEY defined:', !!import.meta.env.VITE_WEATHER_API_KEY);
-    console.log('- OPENCAGE_API_KEY defined:', !!import.meta.env.VITE_OPENCAGE_API_KEY);
-    // Don't log the actual keys for security reasons
-  }, []);
+    if (selectedPlayerForCard) {
+      onCardOpen(); // Open the card modal when a player is selected
+    }
+  }, [selectedPlayerForCard, onCardOpen]);
 
-  // Now we can have conditional returns
-  if (connectionStatus === 'checking') {
-    return (
-      <Box p={8} maxW="1200px" mx="auto">
-        <VStack spacing={4}>
-          <Spinner size="xl" />
-          <Text>Connecting to server...</Text>
-        </VStack>
-      </Box>
-    );
-  }
-
-  if (connectionStatus === 'error') {
-    return (
-      <Box p={8} maxW="1200px" mx="auto">
-        <VStack spacing={4}>
-          <Icon as={FaExclamationTriangle} w={8} h={8} color="red.500" />
-          <Text>Connection error. Please check your internet connection.</Text>
-          <Button
-            onClick={() => window.location.reload()}
-            leftIcon={<Icon as={FaSync} />}
-          >
-            Retry Connection
-          </Button>
-        </VStack>
-      </Box>
-    );
-  }
+  const handlePlayerClick = (player) => {
+    setSelectedPlayerForCard({
+      id: player.id,
+      player_name: player.name,
+      jersey_number: player.number,
+      position: player.position,
+      photoUrl: player.photo_url,
+      stats: {
+        avg: player.batting_average,
+        games: player.games_played,
+        at_bats: player.at_bats,
+        hits: player.hits,
+        rbi: player.rbis,
+        runs: player.runs,
+        home_runs: player.home_runs
+      }
+    });
+  };
 
   return (
-    <Box p={8} maxW="1400px" mx="auto">
-      <SimpleGrid 
-        columns={{ base: 1, md: 2 }} 
-        spacing={8}
-        alignItems="stretch"
-      >
-        {/* Row 1 */}
-        <CardContainer>
-          <ErrorBoundary onRetry={newsRefresh}>
-            <SectionCard 
-              title="Team News" 
-              loading={newsLoading}
-              isEmpty={!newsData?.length}
-              error={newsError}
-              icon={FaNewspaper}
-              onRefresh={newsRefresh}
-            >
-              <Box overflowY="auto" height="calc(100% - 2rem)">
-                <VStack align="stretch" spacing={4}>
-                  {newsData?.map((item) => (
-                    <Box key={item.id}>
-                      <Heading size="sm">{item.title}</Heading>
-                      <Text noOfLines={3}>{item.content}</Text>
-                      <Text fontSize="sm" color="gray.500">
-                        {new Date(item.created_at).toLocaleString()}
-                      </Text>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            </SectionCard>
-          </ErrorBoundary>
-        </CardContainer>
-
-        <CardContainer>
-          <ErrorBoundary onRetry={scheduleRefresh}>
-            <SectionCard
-              title="Today's Schedule"
-              loading={scheduleLoading}
-              isEmpty={!scheduleData?.length}
-              error={scheduleError}
-              icon={FaCalendarAlt}
-              onRefresh={scheduleRefresh}
-            >
-              <Box overflowY="auto" height="calc(100% - 2rem)">
-                <VStack align="stretch" spacing={4}>
-                  {scheduleData?.map((event) => (
-                    <Box key={event.id}>
-                      <Heading size="sm">{event.title}</Heading>
-                      <Text>{event.description}</Text>
-                      <HStack fontSize="sm" color="gray.500" spacing={4}>
-                        <Text>{new Date(event.event_date).toLocaleTimeString()}</Text>
-                        {event.location && (
-                          <Text display="flex" alignItems="center">
-                            <Icon as={FaMapMarkerAlt} mr={1} />
-                            {event.location}
-                          </Text>
-                        )}
-                      </HStack>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            </SectionCard>
-          </ErrorBoundary>
-        </CardContainer>
-
-        <CardContainer>
-          <ErrorBoundary onRetry={rosterRefresh}>
-            <SectionCard
-              title="Team Roster"
-              loading={rosterLoading}
-              isEmpty={!rosterData?.length}
-              error={rosterError}
-              icon={FaUsers}
-              onRefresh={rosterRefresh}
-            >
-              <Box overflowY="auto" height="calc(100% - 2rem)">
-                <VStack align="stretch" spacing={4}>
-                  {rosterData?.map((player) => (
-                    <Box 
-                      key={player.id} 
-                      p={3} 
-                      borderRadius="md" 
-                      bg="whiteAlpha.100"
-                      _hover={{ bg: "whiteAlpha.200" }}
-                    >
-                      <HStack justify="space-between">
-                        <VStack align="start" spacing={1}>
-                          <Heading size="sm">{player.name}</Heading>
-                          <Text>#{player.number} - {player.position}</Text>
-                          {playerStats[player.id] && (
-                            <Text fontSize="sm" color="gray.500">
-                              AVG: {playerStats[player.id].avg} | HR: {playerStats[player.id].hr}
-                            </Text>
-                          )}
-                        </VStack>
-                      </HStack>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            </SectionCard>
-          </ErrorBoundary>
-        </CardContainer>
-
-        <CardContainer>
-          <SectionCard 
-            title="Weather Forecast" 
-            icon={FaCloud}
-            loading={!currentLocation} // Only show loading if location isn't set
-            error={weatherError}
-            onRefresh={() => setWeatherError(false)}
-          >
-            <ErrorBoundary fallback={<Text>Weather display error. Please try again later.</Text>}>
-              <WeatherDisplay 
-                location={currentLocation}
-                date={currentDate}
-                fallbackData={PLACEHOLDER_WEATHER}
-                onError={(err) => {
-                  console.error('Weather component error:', err);
-                  setWeatherError(true);
-                }}
-              />
-            </ErrorBoundary>
-          </SectionCard>
-        </CardContainer>
-
-        {/* Row 2 */}
-        <CardContainer>
-          <ErrorBoundary onRetry={rosterRefresh}>
+    <>
+      <Box className="container" p={4}>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mb={6}>
+          <CardContainer>
             <SectionCard
               title="Player Profiles"
-              loading={rosterLoading}
-              isEmpty={!rosterData?.length}
-              error={rosterError}
-              icon={FaUser}
-              onRefresh={rosterRefresh}
+              loading={biosLoading}
+              error={biosError}
+              isEmpty={!teamBios || teamBios.length === 0}
+              icon={FaUsers}
             >
-              <Box overflowY="auto" height="calc(100% - 2rem)">
-                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
-                  {rosterData?.map((player) => (
-                    <BaseballCard
-                      key={player.id}
-                      player={{
-                        player_name: player.name,
-                        jersey_number: player.number,
-                        position: player.position,
-                        photo_url: player.photoUrl,
-                        stats: playerStats[player.id] || {}
-                      }}
-                    />
-                  ))}
-                </SimpleGrid>
+              <Box mb={4}>
+                <Button
+                  leftIcon={<FaUser />}
+                  colorScheme="green"
+                  onClick={onProfileFormOpen}
+                >
+                  Create Profile
+                </Button>
               </Box>
+              <Grid 
+                templateColumns="repeat(auto-fill, minmax(150px, 1fr))" 
+                gap={4}
+                overflowY="auto"
+                maxH="400px"
+                p={2}
+              >
+                {teamBios && teamBios.map(player => (
+                  <GridItem 
+                    key={player.id}
+                    as="button"
+                    onClick={() => handlePlayerClick(player)}
+                    _hover={{ transform: 'scale(1.02)' }}
+                    transition="transform 0.2s"
+                  >
+                    <VStack
+                      bg="brand.primary.base"
+                      p={3}
+                      borderRadius="md"
+                      spacing={2}
+                      align="center"
+                      boxShadow="sm"
+                    >
+                      <Avatar size="lg" name={player.name} src={player.photo_url} />
+                      <Text fontWeight="bold" fontSize="sm" color="brand.text.primary">{player.name}</Text>
+                      <Text fontSize="xs" color="brand.text.muted">#{player.number} • {player.position}</Text>
+                    </VStack>
+                  </GridItem>
+                ))}
+              </Grid>
             </SectionCard>
-          </ErrorBoundary>
-        </CardContainer>
+          </CardContainer>
 
-        <CardContainer>
-          <ErrorBoundary onRetry={playersOfWeekRefresh}>
+          <CardContainer>
             <SectionCard
-              title="Players of the Week"
-              loading={playersOfWeekLoading}
-              isEmpty={!playersOfWeekData?.length}
-              error={playersOfWeekError}
-              icon={FaMedal}
-              onRefresh={playersOfWeekRefresh}
+              title="Team Roster"
+              loading={biosLoading}
+              error={biosError}
+              isEmpty={!teamBios || teamBios.length === 0}
+              icon={FaList}
             >
-              <Box overflowY="auto" height="calc(100% - 2rem)">
-                <VStack align="stretch" spacing={4}>
-                  {playersOfWeekData?.map((player) => (
-                    <Box key={player.id}>
-                      <Heading size="sm">{player.name}</Heading>
-                      <Text>{player.achievement}</Text>
-                      <Text fontSize="sm" color="gray.500">
-                        Week of {new Date(player.week_start).toLocaleDateString()}
-                      </Text>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            </SectionCard>
-          </ErrorBoundary>
-        </CardContainer>
-
-        <CardContainer>
-          <ErrorBoundary onRetry={socialEmbedsRefresh}>
-            <SectionCard
-              title="Social Media"
-              loading={socialEmbedsLoading}
-              isEmpty={!socialEmbedsData?.length}
-              error={socialEmbedsError}
-              icon={FaLink}
-              onRefresh={socialEmbedsRefresh}
-            >
-              <Box overflowY="auto" height="calc(100% - 2rem)">
-                <VStack align="stretch" spacing={4}>
-                  {socialEmbedsData?.map((embed) => (
-                    <Box key={embed.id}>
-                      <HStack spacing={2} mb={2}>
-                        <Icon 
-                          as={
-                            embed.platform === 'instagram' ? FaInstagram :
-                            embed.platform === 'facebook' ? FaFacebook :
-                            embed.platform === 'twitter' ? FaTwitter :
-                            embed.platform === 'youtube' ? FaYoutube :
-                            embed.platform === 'tiktok' ? FaTiktok :
-                            FaLink
-                          }
-                        />
-                        <Text>{embed.title}</Text>
-                      </HStack>
-                      <Box dangerouslySetInnerHTML={{ __html: embed.embed_code }} />
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            </SectionCard>
-          </ErrorBoundary>
-        </CardContainer>
-
-        <CardContainer>
-          <ErrorBoundary>
-            <SectionCard 
-              title="Media" 
-              loading={false}
-              isEmpty={false}
-              error={null}
-              icon={FaImage}
-            >
-              <VStack align="stretch" spacing={6}>
-                {mediaEmbedsData.map((media) => (
-                  <Box key={media.id}>
-                    <HStack spacing={3} mb={3}>
-                      <Icon 
-                        as={media.type === 'video' ? FaYoutube : FaImage}
-                        color={media.type === 'video' ? 'red.500' : 'blue.500'}
-                        boxSize={6}
-                      />
-                      <Text fontSize="lg">{media.title}</Text>
+              <VStack spacing={2} align="stretch" maxH="400px" overflowY="auto">
+                {teamBios && teamBios.map(player => (
+                  <Box 
+                    key={player.id}
+                    cursor="pointer"
+                    onClick={() => handlePlayerClick(player)}
+                    _hover={{ bg: 'brand.primary.hover' }}
+                    p={3}
+                    borderRadius="md"
+                    transition="all 0.2s"
+                  >
+                    <HStack spacing={4}>
+                      <Avatar size="sm" name={player.name} src={player.photo_url} />
+                      <Box flex="1">
+                        <Text fontWeight="bold" color="brand.text.primary">{player.name}</Text>
+                        <Text fontSize="sm" color="brand.text.muted">
+                          #{player.number} • {player.position} • B: {player.bats} • T: {player.throws}
+                        </Text>
+                      </Box>
+                      <Icon as={FaChevronRight} color="brand.text.muted" />
                     </HStack>
-                    <Image
-                      src={media.thumbnail}
-                      alt={media.title}
-                      fallback={
-                        <Box
-                          bg="gray.100"
-                          h="200px"
-                          borderRadius="md"
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
-                        >
-                          <Text color="gray.500" fontSize="lg">Media Preview</Text>
-                        </Box>
-                      }
-                    />
                   </Box>
                 ))}
               </VStack>
             </SectionCard>
-          </ErrorBoundary>
-        </CardContainer>
-      </SimpleGrid>
-    </Box>
+          </CardContainer>
+        </SimpleGrid>
+      </Box>
+      <Modal isOpen={isCardOpen} onClose={onCardClose} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Player Card</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {selectedPlayerForCard && (
+              <BaseballCard
+                player={selectedPlayerForCard}
+                onExport={() => handleExportCard(selectedPlayerForCard)}
+              />
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+      <PlayerProfileForm
+        isOpen={isProfileFormOpen}
+        onClose={onProfileFormClose}
+        onSubmit={handleCreateProfile}
+      />
+    </>
   );
 };
 

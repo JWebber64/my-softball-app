@@ -2,16 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Softball App</title>
-    <!-- Update OpenCV.js to use a specific version and add error handling -->
+    <!-- Prevent favicon requests -->
+    <link rel="icon" href="data:,">
+    <!-- OpenCV script -->
     <script>
       window.onOpenCvReady = function() {
         console.log('OpenCV.js is ready');
         window.isOpenCvReady = true;
       };
-      
-      // Add error handling for OpenCV loading
       window.onOpenCvError = function(err) {
         console.error('OpenCV.js failed to load:', err);
         window.isOpenCvReady = false;

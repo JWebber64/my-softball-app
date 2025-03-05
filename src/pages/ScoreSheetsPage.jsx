@@ -1,26 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Box, 
-  Heading, 
-  SimpleGrid, 
-  Card, 
-  CardBody, 
-  Icon, 
-  Text,
-  useDisclosure,
   Container,
   VStack,
-  Input,
+  Spinner,
+  Flex,
+  useToast,
+  Image,
+  SimpleGrid,
+  Text,
+  useDisclosure,
   Modal,
   ModalOverlay,
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalCloseButton,
   ModalFooter,
-  Button,
-  Flex,
-  useToast,
-  Image
+  Button
 } from '@chakra-ui/react';
 import { FaCamera, FaFileUpload, FaMicrophone, FaKeyboard } from 'react-icons/fa';
 import { supabase } from '../lib/supabaseClient';
@@ -28,67 +25,102 @@ import ScoreSheetScanner from '../components/scoresheet/ScoreSheetScanner';
 import ManualInputModal from '../components/scoresheet/ManualInputModal';
 import VoiceInputModal from '../components/scoresheet/VoiceInputModal';
 import DigitalScoreSheet from '../components/scoresheet/DigitalScoreSheet';
+import ManualEntryModal from '../components/scoresheet/ManualEntryModal';
+import ScoreComparisonView from '../components/scoresheet/ScoreComparisonView';
+import ScoreSheetViewer from '../components/scoresheet/ScoreSheetViewer';
 
 const ScoreSheetsPage = ({ userRole }) => {
-  const [scoreSheets, setScoreSheets] = useState([
-    { id: 1, image: "https://via.placeholder.com/300", description: "Game 1 Score Sheet" },
-    { id: 2, image: "https://via.placeholder.com/300", description: "Game 2 Score Sheet" },
-  ]);
+  // State management
+  const [scoreSheets, setScoreSheets] = useState([]);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [scoreSheetData, setScoreSheetData] = useState(null);
-  const toast = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Refs
   const fileInputRef = useRef(null);
-  
-  // Modal controls - use refs to access current state in callbacks
+  const isModalOpenRef = useRef(false);
+
+  // Hooks
+  const toast = useToast();
   const scannerDisclosure = useDisclosure();
   const manualDisclosure = useDisclosure();
   const voiceDisclosure = useDisclosure();
   const comparisonDisclosure = useDisclosure();
-  const isModalOpenRef = useRef(false);
 
-  // Track modal state changes
+  // Load existing scoresheets on mount
+  useEffect(() => {
+    fetchScoreSheets();
+  }, []);
+
+  // Track modal state
   useEffect(() => {
     isModalOpenRef.current = comparisonDisclosure.isOpen;
-    console.log('Modal state changed:', comparisonDisclosure.isOpen);
   }, [comparisonDisclosure.isOpen]);
 
-  // Separate function to handle file reading
+  const fetchScoreSheets = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('score_sheets')  // Changed from 'scoresheets' to 'score_sheets'
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setScoreSheets(data || []);
+    } catch (err) {
+      console.error('Error fetching scoresheets:', err);
+      setError(err.message);
+      toast({
+        title: 'Error fetching scoresheets',
+        description: err.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const processFile = (file) => {
-    console.log('Processing file:', file.name);
-    
     if (!file) {
-      console.warn('No file provided to processFile');
+      toast({
+        title: 'Error',
+        description: 'No file selected',
+        status: 'error',
+        duration: 3000,
+      });
       return;
     }
-    
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload an image file (JPEG, PNG, or GIF)',
+        status: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
     const reader = new FileReader();
     
     reader.onload = () => {
-      console.log('File read complete');
       setUploadedImage(reader.result);
-      
-      setScoreSheets(prev => [...prev, { 
-        id: prev.length + 1, 
-        image: reader.result, 
-        description: `Game ${prev.length + 1} Score Sheet` 
-      }]);
-      
-      // Reset scoresheet data when uploading a new image
-      setScoreSheetData(null);
-      
-      // Ensure modal opens
-      console.log('Opening comparison modal');
       comparisonDisclosure.onOpen();
     };
     
     reader.onerror = (error) => {
       console.error('Error reading file:', error);
       toast({
-        title: "Error reading file",
-        description: "There was a problem reading the uploaded file.",
-        status: "error",
+        title: 'Error',
+        description: 'Failed to read the uploaded file',
+        status: 'error',
         duration: 3000,
-        isClosable: true,
       });
     };
     
@@ -96,86 +128,18 @@ const ScoreSheetsPage = ({ userRole }) => {
   };
 
   const handleUploadScoreSheet = (event) => {
-    console.log('Upload triggered');
-    
-    // Defensive check for event
-    if (!event || !event.target) {
-      console.error('Invalid event in handleUploadScoreSheet');
-      return;
-    }
-    
-    const file = event.target.files?.[0];
-    
+    const file = event?.target?.files?.[0];
     if (file) {
-      console.log('File selected:', file.name);
       processFile(file);
-    } else {
-      console.warn('No file selected');
     }
-    
-    // Reset the file input value so the same file can be selected again
-    if (event.target) {
+    // Reset input
+    if (event?.target) {
       event.target.value = '';
-      console.log('File input reset');
     }
   };
 
-  // Direct file upload method that bypasses the input element
   const triggerFileUpload = () => {
-    console.log('Triggering file upload');
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    } else {
-      console.error('File input ref is null');
-    }
-  };
-
-  const handleScanScoreSheet = () => {
-    scannerDisclosure.onOpen();
-  };
-
-  const handleManualInput = () => {
-    manualDisclosure.onOpen();
-  };
-
-  const handleVoiceRecognition = () => {
-    voiceDisclosure.onOpen();
-  };
-
-  const handleMethodSelect = (method) => {
-    console.log('Method selected:', method);
-    
-    switch(method) {
-      case 'scan':
-        handleScanScoreSheet();
-        break;
-      case 'upload':
-        triggerFileUpload(); // Use the ref-based approach instead
-        break;
-      case 'voice':
-        handleVoiceRecognition();
-        break;
-      case 'manual':
-        handleManualInput();
-        break;
-      default:
-        console.warn('Unknown method selected:', method);
-    }
-  };
-
-  const handleScoreSheetDataChange = (newData) => {
-    setScoreSheetData(newData);
-  };
-
-  const handleCancelComparison = () => {
-    console.log('Canceling comparison');
-    // Reset state when canceling
-    comparisonDisclosure.onClose();
-    
-    // Small delay to ensure state is updated properly
-    setTimeout(() => {
-      console.log('Modal closed state confirmed:', !comparisonDisclosure.isOpen);
-    }, 100);
+    fileInputRef.current?.click();
   };
 
   const handleSaveScoreSheet = async () => {
@@ -185,336 +149,248 @@ const ScoreSheetsPage = ({ userRole }) => {
         description: "Please enter scoresheet data before saving",
         status: "warning",
         duration: 3000,
-        isClosable: true,
       });
       return;
     }
 
     try {
-      // Save the image to storage
-      const { data: imageData, error: imageError } = await supabase.storage
-        .from('scoresheets')
-        .upload(`scoresheet-${Date.now()}.jpg`, uploadedImage, {
-          contentType: 'image/jpeg',
-          upsert: false
-        });
+      setIsLoading(true);
+      
+      // Upload image if exists
+      let imageUrl = null;
+      if (uploadedImage) {
+        const fileName = `scoresheet-${Date.now()}.jpg`;
+        const { data: imageData, error: imageError } = await supabase.storage
+          .from('scoresheets')
+          .upload(fileName, uploadedImage, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
 
-      if (imageError) throw imageError;
+        if (imageError) throw imageError;
+        imageUrl = imageData.path;
+      }
 
-      // Save the scoresheet data to the database
-      const { data, error } = await supabase
-        .from('scoresheets')
-        .insert([
-          { 
-            image_url: imageData.path,
-            data: scoreSheetData,
-            created_at: new Date()
-          }
-        ]);
+      // Save scoresheet data
+      const { error } = await supabase
+        .from('score_sheets')  // Changed from 'scoresheets' to 'score_sheets'
+        .insert([{ 
+          image_url: imageUrl,
+          data: scoreSheetData,
+          created_at: new Date()
+        }]);
 
       if (error) throw error;
 
       toast({
-        title: "Scoresheet saved",
-        description: "Your scoresheet has been saved successfully",
+        title: "Success",
+        description: "Scoresheet saved successfully",
         status: "success",
         duration: 3000,
-        isClosable: true,
       });
 
+      // Reset states and close modal
+      setUploadedImage(null);
+      setScoreSheetData(null);
       comparisonDisclosure.onClose();
+      
+      // Refresh scoresheet list
+      fetchScoreSheets();
+
     } catch (error) {
       console.error('Error saving scoresheet:', error);
       toast({
-        title: "Error saving scoresheet",
+        title: "Error",
         description: error.message,
         status: "error",
         duration: 5000,
-        isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Force modal to close on unmount
-  useEffect(() => {
-    return () => {
-      if (comparisonDisclosure.isOpen) {
-        comparisonDisclosure.onClose();
-      }
-    };
-  }, []);
+  const handleMethodSelect = (method) => {
+    switch(method) {
+      case 'scan':
+        scannerDisclosure.onOpen();
+        break;
+      case 'upload':
+        fileInputRef.current?.click();
+        break;
+      case 'voice':
+        voiceDisclosure.onOpen();
+        break;
+      case 'manual':
+        manualDisclosure.onOpen();
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
-    <Box bg="#7c866b" minH="100vh" py={8} px={4} color="#FFFFFF">
-      <Container maxW="container.xl">
-        <VStack spacing={8}>
-          {/* Input Method Cards */}
-          <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full">
-            <Card 
-              cursor="pointer" 
-              onClick={() => handleMethodSelect('scan')}
-              _hover={{ transform: "translateY(-5px)", shadow: "lg" }}
-              transition="all 0.3s"
-              bg="#545e46"
-              color="#FFFFFF"
-            >
-              <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={5}>
-                <Icon as={FaCamera} boxSize={10} mb={4} color="#FFFFFF" />
-                <Text fontWeight="bold" fontSize="lg" textAlign="center">Scan Scoresheet</Text>
-                <Text fontSize="sm" textAlign="center" mt={2}>
-                  Take a picture of your paper scoresheet
-                </Text>
-              </CardBody>
-            </Card>
-            
-            <Card 
-              cursor="pointer" 
-              onClick={() => handleMethodSelect('upload')}
-              _hover={{ transform: "translateY(-5px)", shadow: "lg" }}
-              transition="all 0.3s"
-              bg="#545e46"
-              color="#FFFFFF"
-            >
-              <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={5}>
-                <Icon as={FaFileUpload} boxSize={10} mb={4} color="#FFFFFF" />
-                <Text fontWeight="bold" fontSize="lg" textAlign="center">Upload Scoresheet</Text>
-                <Text fontSize="sm" textAlign="center" mt={2}>
-                  Upload an existing scoresheet image
-                </Text>
-              </CardBody>
-            </Card>
-            
-            <Card 
-              cursor="pointer" 
-              onClick={() => handleMethodSelect('voice')}
-              _hover={{ transform: "translateY(-5px)", shadow: "lg" }}
-              transition="all 0.3s"
-              bg="#545e46"
-              color="#FFFFFF"
-            >
-              <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={5}>
-                <Icon as={FaMicrophone} boxSize={10} mb={4} color="#FFFFFF" />
-                <Text fontWeight="bold" fontSize="lg" textAlign="center">Voice Input</Text>
-                <Text fontSize="sm" textAlign="center" mt={2}>
-                  Record game events with voice
-                </Text>
-              </CardBody>
-            </Card>
-            
-            <Card 
-              cursor="pointer" 
-              onClick={() => handleMethodSelect('manual')}
-              _hover={{ transform: "translateY(-5px)", shadow: "lg" }}
-              transition="all 0.3s"
-              bg="#545e46"
-              color="#FFFFFF"
-            >
-              <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={5}>
-                <Icon as={FaKeyboard} boxSize={10} mb={4} color="#FFFFFF" />
-                <Text fontWeight="bold" fontSize="lg" textAlign="center">Manual Entry</Text>
-                <Text fontSize="sm" textAlign="center" mt={2}>
-                  Enter game data manually
-                </Text>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
-          
-          {/* Comparison Modal */}
-          <Modal 
-            isOpen={comparisonDisclosure.isOpen} 
-            onClose={handleCancelComparison}
-            size="full"
-            scrollBehavior="inside"
-          >
-            <ModalOverlay />
-            <ModalContent 
-              maxH="90vh"
-              bg="#7c866b"
-              my="5vh"
-              position="relative"
-              display="flex"
-              flexDirection="column"
-            >
-              <ModalHeader color="#FFFFFF" textAlign="center">
-                <Box
-                  bg="#545e46"
-                  py={2}
-                  px={4}
-                  borderRadius="md"
-                  mx="auto"
-                  textAlign="center"
-                  width="fit-content"
-                >
-                  <Text color="#FFFFFF" fontWeight="bold">Score Sheet Comparison</Text>
-                </Box>
-              </ModalHeader>
-              
-              <ModalBody 
-                p={6} 
-                overflow="auto"
-                flex="1"
-                maxH="calc(90vh - 180px)" /* Ensure space for footer */
-              >
-                <Flex 
-                  direction={{ base: 'column', lg: 'row' }}
-                  gap={4}
-                  w="100%"
-                  justify="center"
-                  align="stretch"
-                >
-                  {/* Original Image Side */}
-                  <Box 
-                    flex="1"
-                    bg="#7c866b"
-                    borderRadius="md"
-                    boxShadow="md"
-                    maxH={{ lg: '100%' }}
-                    overflow="auto"
-                    p={4}
-                  >
-                    <Box
-                      bg="#545e46"
-                      py={2}
-                      px={4}
-                      borderRadius="md"
-                      mx="auto"
-                      mb={4}
-                      textAlign="center"
-                      width="fit-content"
-                    >
-                      <Text color="#FFFFFF" fontWeight="bold">Uploaded Score Sheet</Text>
-                    </Box>
-                    {uploadedImage ? (
-                      <Image 
-                        src={uploadedImage} 
-                        alt="Uploaded Score Sheet" 
-                        maxW="100%" 
-                        mx="auto"
-                        borderRadius="md"
-                      />
-                    ) : (
-                      <Box 
-                        p={4} 
-                        bg="#545e46" 
-                        color="#FFFFFF" 
-                        borderRadius="md"
-                        textAlign="center"
-                      >
-                        No image uploaded
-                      </Box>
-                    )}
-                  </Box>
+    <Box 
+      bg="#7c866b" 
+      minH="170vh"    // Increased from 160vh
+      py={4}
+      px={4} 
+      color="#FFFFFF"
+    >
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleUploadScoreSheet}
+        accept="image/*"
+      />
 
-                  {/* Digital Entry Side */}
-                  <Box 
-                    flex="1"
-                    bg="#7c866b"
-                    borderRadius="md"
-                    boxShadow="md"
-                    maxH={{ lg: '100%' }}
-                    overflow="auto"
-                    p={4}
-                  >
-                    <Box
-                      bg="#545e46"
-                      py={2}
-                      px={4}
-                      borderRadius="md"
-                      mx="auto"
-                      mb={4}
-                      textAlign="center"
-                      width="fit-content"
-                    >
-                      <Text color="#FFFFFF" fontWeight="bold">Digital Entry</Text>
-                    </Box>
-                    <DigitalScoreSheet 
-                      editable={true}
-                      onDataChange={handleScoreSheetDataChange}
-                      data={scoreSheetData}
-                    />
-                  </Box>
-                </Flex>
-              </ModalBody>
-              
-              <ModalFooter
-                display="flex"
-                justifyContent="center"
-                gap={3}
-                bg="#7c866b"
-                position="sticky"
-                bottom="0"
-                p={4}
-                borderTop="1px solid"
-                borderColor="rgba(255,255,255,0.1)"
-              >
-                <Button
-                  bg="#545e46"
-                  color="#FFFFFF"
-                  _hover={{ bg: "#6b7660" }}
-                  onClick={handleSaveScoreSheet}
-                  size="lg"
-                  borderRadius="1rem"
-                >
-                  Save
-                </Button>
-                <Button 
-                  bg="#545e46"
-                  color="#FFFFFF"
-                  _hover={{ bg: "#6b7660" }}
-                  onClick={handleCancelComparison}
-                  size="lg"
-                  borderRadius="1rem"
-                >
-                  Cancel
-                </Button>
-              </ModalFooter>
-            </ModalContent>
-          </Modal>
-          
-          {/* Scanner Modal */}
-          <ScoreSheetScanner 
-            isOpen={scannerDisclosure.isOpen} 
-            onClose={scannerDisclosure.onClose}
-            onScanComplete={(scoreSheetData) => {
-              setScoreSheetData(scoreSheetData);
-              comparisonDisclosure.onOpen();
-            }}
+      {/* Method Selection */}
+      <ScoreSheetViewer onSelectMethod={handleMethodSelect} />
+
+      {/* Scoresheet Image Viewer */}
+      <Box 
+        mt={4}
+        bg="#545e46"    // Changed from white to match button color
+        borderRadius="md" 
+        p={4} 
+        boxShadow="md"
+        maxW="800px"
+        mx="auto"
+        height="150vh"
+        overflow="auto"
+      >
+        <Box
+          bg="#2e3726"
+          py={2}
+          px={4}
+          borderRadius="md"
+          mx="auto"
+          mb={4}
+          textAlign="center"
+          width="fit-content"
+        >
+          <Text color="white" fontWeight="bold">Scoresheet Viewer</Text>
+        </Box>
+        <Box 
+          height="calc(150vh - 100px)"
+          bg="white"     // Keep scoresheet area white
+          borderRadius="md"
+          p={4}
+        >
+          <Image
+            src="/scoresheet.png"
+            alt="Scoresheet"
+            maxW="700px"
+            w="100%"
+            h="auto"
+            objectFit="contain"
+            mx="auto"
+            border="1px solid"
+            borderColor="gray.200"
           />
-          
-          {/* Manual Input Modal */}
-          <ManualInputModal 
-            isOpen={manualDisclosure.isOpen} 
-            onClose={manualDisclosure.onClose}
-            onSave={(data) => {
-              setScoreSheetData(data);
-              manualDisclosure.onClose();
-              comparisonDisclosure.onOpen();
-            }}
-          />
-          
-          {/* Voice Input Modal */}
-          <Modal 
-            isOpen={voiceDisclosure.isOpen} 
-            onClose={voiceDisclosure.onClose}
-            size="xl"
-          >
-            <ModalOverlay />
-            <ModalContent bg="#545e46">
-              <ModalHeader color="#c0fad0">Voice Score Entry</ModalHeader>
-              <ModalBody>
-                <VoiceInputModal 
-                  onSave={(data) => {
-                    setScoreSheetData(data);
-                    voiceDisclosure.onClose();
-                    comparisonDisclosure.onOpen();
-                  }}
-                  onCancel={voiceDisclosure.onClose}
+        </Box>
+      </Box>
+
+      {/* Display existing scoresheets */}
+      {isLoading ? (
+        <Flex justify="center" align="center" minH="200px">
+          <Spinner size="xl" color="#E7F8E8" />
+        </Flex>
+      ) : error ? (
+        <Text color="red.500" textAlign="center">{error}</Text>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} mt={8}>
+          {scoreSheets.map((sheet) => (
+            <Box 
+              key={sheet.id}
+              bg="#545e46"
+              p={4}
+              borderRadius="md"
+              color="#E7F8E8"
+            >
+              {sheet.image_url && (
+                <Image
+                  src={sheet.image_url}
+                  alt="Scoresheet"
+                  mb={4}
+                  borderRadius="md"
                 />
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-        </VStack>
-      </Container>
+              )}
+              <Text>Created: {new Date(sheet.created_at).toLocaleDateString()}</Text>
+            </Box>
+          ))}
+        </SimpleGrid>
+      )}
+
+      {/* Modals */}
+      <ScoreSheetScanner
+        isOpen={scannerDisclosure.isOpen}
+        onClose={scannerDisclosure.onClose}
+        onScan={(data) => {
+          setScoreSheetData(data);
+          scannerDisclosure.onClose();
+          comparisonDisclosure.onOpen();
+        }}
+      />
+
+      <ManualInputModal
+        isOpen={manualDisclosure.isOpen}
+        onClose={manualDisclosure.onClose}
+        onSubmit={(data) => {
+          setScoreSheetData(data);
+          manualDisclosure.onClose();
+          comparisonDisclosure.onOpen();
+        }}
+      />
+
+      <VoiceInputModal
+        isOpen={voiceDisclosure.isOpen}
+        onClose={voiceDisclosure.onClose}
+        onSubmit={(data) => {
+          setScoreSheetData(data);
+          voiceDisclosure.onClose();
+          comparisonDisclosure.onOpen();
+        }}
+      />
+
+      <Modal
+        isOpen={comparisonDisclosure.isOpen}
+        onClose={comparisonDisclosure.onClose}
+        size="full"
+      >
+        <ModalOverlay />
+        <ModalContent bg="#7c866b">
+          <ModalHeader color="#E7F8E8">Review Scoresheet</ModalHeader>
+          <ModalCloseButton color="#E7F8E8" />
+          <ModalBody>
+            <ScoreComparisonView
+              imageData={uploadedImage}
+              scoreData={scoreSheetData}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              mr={3}
+              onClick={comparisonDisclosure.onClose}
+              color="#E7F8E8"
+            >
+              Cancel
+            </Button>
+            <Button
+              bg="#545e46"
+              color="#E7F8E8"
+              _hover={{ bg: "#6b7660" }}
+              onClick={handleSaveScoreSheet}
+              isLoading={isLoading}
+            >
+              Save Scoresheet
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

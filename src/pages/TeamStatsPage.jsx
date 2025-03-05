@@ -20,6 +20,7 @@ import {
   StatNumber,
   Grid,
   GridItem,
+  VStack,
 } from "@chakra-ui/react";
 import { supabase } from "../lib/supabaseClient";
 import PlayerTrendVisualizations from '../components/PlayerTrendVisualizations';
@@ -156,253 +157,253 @@ const TeamStatsPage = () => {
   }
 
   return (
-    <div className="container" style={{ paddingTop: 0, marginTop: 0 }}>
-      <div className="main-content" style={{ paddingTop: 0, marginTop: 0 }}>
-        <Box
+    <Box 
+      className="container" 
+      p={8} // Increased padding from 4 to 8 to add more space from header
+      display="flex"
+      flexDirection="column"
+      minHeight="calc(100vh - 160px)" // Account for header and footer height
+      justifyContent="space-between" // Evenly distribute space
+    >
+      <VStack
+        spacing={8} // Consistent 2rem gap between all cards
+        align="stretch"
+        width="100%"
+        flex="1" // Allow the stack to take up available space
+        py={4} // Add vertical padding
+      >
+        {/* Team Record Card */}
+        <Box 
+          className="card"
+          bg="#545e46"
+          borderRadius="lg"
+          boxShadow="lg"
           width="100%"
-          maxW="1200px"
+          maxW="600px"
           mx="auto"
-          px={4}
-          pt={4} // Reduced from 8 to 4 (1rem instead of 2rem)
-          mt={-4} // Added negative margin to pull content up
-          display="flex"
-          flexDirection="column"
-          gap={8} // 2rem gap between cards
+          p={4}
         >
-          {/* Team Record Card */}
-          <Box 
-            className="card"
-            bg="#545e46"
-            borderRadius="lg"
-            boxShadow="lg"
-            width="100%"
-            maxW="600px"
-            mx="auto"
-            p={4}
-            mt={0} // Explicitly set margin top to 0
+          <Heading 
+            size="md" 
+            color="#EFF7EC" 
+            textAlign="center"
+            mb={3}
+            position="relative"
           >
-            <Heading 
-              size="md" 
-              color="#EFF7EC" 
-              textAlign="center"
-              mb={3}
-              position="relative"
-            >
-              Team Record
-            </Heading>
-            <Table 
-              variant="simple" 
-              size="sm"
-              colorScheme="whiteAlpha" 
-              width="100%" 
-              maxW="400px" 
-              mx="auto"
-              position="relative"
-            >
+            Team Record
+          </Heading>
+          <Table 
+            variant="simple" 
+            size="sm"
+            colorScheme="whiteAlpha" 
+            width="100%" 
+            maxW="400px" 
+            mx="auto"
+            position="relative"
+          >
+            <Thead>
+              <Tr>
+                <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Wins</Th>
+                <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Losses</Th>
+                <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Ties</Th>
+                <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Win %</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              <Tr>
+                <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>{teamRecord.wins || 0}</Td>
+                <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>{teamRecord.losses || 0}</Td>
+                <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>{teamRecord.ties || 0}</Td>
+                <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>
+                  {((teamRecord.wins || 0) / ((teamRecord.wins || 0) + (teamRecord.losses || 0) + (teamRecord.ties || 0)) || 0).toFixed(3)}
+                </Td>
+              </Tr>
+            </Tbody>
+          </Table>
+        </Box>
+
+        {/* Team Stats Card */}
+        <Box 
+          className="card"
+          p={4}
+          bg="#545e46"
+          borderRadius="lg"
+          boxShadow="lg"
+          width="100%"
+          maxW="900px"
+          mx="auto"
+          overflowX="auto"
+        >
+          <Heading size="lg" mb={4} color="#EFF7EC" textAlign="center">
+            Team Statistics
+          </Heading>
+          <Box display="flex" justifyContent="center">
+            <Table variant="simple" size="sm" colorScheme="whiteAlpha">
               <Thead>
                 <Tr>
-                  <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Wins</Th>
-                  <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Losses</Th>
-                  <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Ties</Th>
-                  <Th textAlign="center" color="#EFF7EC" fontSize="xs" p={2}>Win %</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">G</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">PA</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">AB</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">H</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">1B</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">2B</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">3B</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">HR</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">R</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">RBI</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">BB</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">SO</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">AVG</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">OBP</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">SLG</Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">OPS</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 <Tr>
-                  <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>{teamRecord.wins || 0}</Td>
-                  <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>{teamRecord.losses || 0}</Td>
-                  <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>{teamRecord.ties || 0}</Td>
-                  <Td textAlign="center" fontSize="md" color="#E7F8E8" p={2}>
-                    {((teamRecord.wins || 0) / ((teamRecord.wins || 0) + (teamRecord.losses || 0) + (teamRecord.ties || 0)) || 0).toFixed(3)}
-                  </Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.gamesPlayed || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.plateAppearances || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.atBats || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.hits || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.singles || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.doubles || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.triples || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.homeRuns || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.runs || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.rbi || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.walks || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.strikeouts || 0}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.avg || 0).toFixed(3)}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.obp || 0).toFixed(3)}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.slg || 0).toFixed(3)}</Td>
+                  <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.ops || 0).toFixed(3)}</Td>
                 </Tr>
               </Tbody>
             </Table>
           </Box>
+        </Box>
 
-          {/* Team Stats Card */}
-          <Box 
-            className="card"
-            p={4}
-            bg="#545e46"
-            borderRadius="lg"
-            boxShadow="lg"
-            width="100%"
-            maxW="900px"
-            mx="auto"
-            overflowX="auto"
-          >
-            <Heading size="lg" mb={4} color="#EFF7EC" textAlign="center">
-              Team Statistics
-            </Heading>
-            <Box display="flex" justifyContent="center">
-              <Table variant="simple" size="sm" colorScheme="whiteAlpha">
-                <Thead>
-                  <Tr>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">G</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">PA</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">AB</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">H</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">1B</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">2B</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">3B</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">HR</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">R</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">RBI</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">BB</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">SO</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">AVG</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">OBP</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">SLG</Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs">OPS</Th>
+        {/* Player Stats Card */}
+        <Box 
+          className="card"
+          p={4}
+          bg="#545e46"
+          borderRadius="lg"
+          boxShadow="lg"
+          width="100%"
+          maxW="900px"
+          mx="auto"
+          overflowX="auto"
+        >
+          <Heading size="lg" mb={4} color="#EFF7EC" textAlign="center">
+            Player Statistics
+          </Heading>
+          <Box display="flex" justifyContent="center">
+            <Table variant="simple" size="sm" colorScheme="whiteAlpha">
+              <Thead>
+                <Tr>
+                  <Th color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('name')}>
+                    Name {sortConfig.key === 'name' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('gamesplayed')}>
+                    G {sortConfig.key === 'gamesplayed' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('plateappearances')}>
+                    PA {sortConfig.key === 'plateappearances' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('atbats')}>
+                    AB {sortConfig.key === 'atbats' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('hits')}>
+                    H {sortConfig.key === 'hits' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('singles')}>
+                    1B {sortConfig.key === 'singles' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('doubles')}>
+                    2B {sortConfig.key === 'doubles' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('triples')}>
+                    3B {sortConfig.key === 'triples' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('homeruns')}>
+                    HR {sortConfig.key === 'homeruns' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('runs')}>
+                    R {sortConfig.key === 'runs' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('rbi')}>
+                    RBI {sortConfig.key === 'rbi' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('walks')}>
+                    BB {sortConfig.key === 'walks' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('strikeouts')}>
+                    K {sortConfig.key === 'strikeouts' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('avg')}>
+                    AVG {sortConfig.key === 'avg' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('obp')}>
+                    OBP {sortConfig.key === 'obp' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('slg')}>
+                    SLG {sortConfig.key === 'slg' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                  <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('ops')}>
+                    OPS {sortConfig.key === 'ops' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {playerStats.map((player, index) => (
+                  <Tr key={index}>
+                    <Td color="#E7F8E8" px={2} py={2} fontSize="sm">{player.name}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.gamesplayed || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.plateappearances || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.atbats || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.hits || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.singles || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.doubles || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.triples || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.homeruns || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.runs || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.rbi || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.walks || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.strikeouts || 0}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.avg || 0).toFixed(3)}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.obp || 0).toFixed(3)}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.slg || 0).toFixed(3)}</Td>
+                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.ops || 0).toFixed(3)}</Td>
                   </Tr>
-                </Thead>
-                <Tbody>
-                  <Tr>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.gamesPlayed || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.plateAppearances || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.atBats || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.hits || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.singles || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.doubles || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.triples || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.homeRuns || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.runs || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.rbi || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.walks || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{teamStats.strikeouts || 0}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.avg || 0).toFixed(3)}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.obp || 0).toFixed(3)}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.slg || 0).toFixed(3)}</Td>
-                    <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(teamStats.ops || 0).toFixed(3)}</Td>
-                  </Tr>
-                </Tbody>
-              </Table>
-            </Box>
-          </Box>
-
-          {/* Player Stats Card */}
-          <Box 
-            className="card"
-            p={4}
-            bg="#545e46"
-            borderRadius="lg"
-            boxShadow="lg"
-            width="100%"
-            maxW="900px"
-            mx="auto"
-            overflowX="auto"
-          >
-            <Heading size="lg" mb={4} color="#EFF7EC" textAlign="center">
-              Player Statistics
-            </Heading>
-            <Box display="flex" justifyContent="center">
-              <Table variant="simple" size="sm" colorScheme="whiteAlpha">
-                <Thead>
-                  <Tr>
-                    <Th color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('name')}>
-                      Name {sortConfig.key === 'name' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('gamesplayed')}>
-                      G {sortConfig.key === 'gamesplayed' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('plateappearances')}>
-                      PA {sortConfig.key === 'plateappearances' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('atbats')}>
-                      AB {sortConfig.key === 'atbats' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('hits')}>
-                      H {sortConfig.key === 'hits' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('singles')}>
-                      1B {sortConfig.key === 'singles' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('doubles')}>
-                      2B {sortConfig.key === 'doubles' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('triples')}>
-                      3B {sortConfig.key === 'triples' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('homeruns')}>
-                      HR {sortConfig.key === 'homeruns' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('runs')}>
-                      R {sortConfig.key === 'runs' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('rbi')}>
-                      RBI {sortConfig.key === 'rbi' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('walks')}>
-                      BB {sortConfig.key === 'walks' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('strikeouts')}>
-                      K {sortConfig.key === 'strikeouts' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('avg')}>
-                      AVG {sortConfig.key === 'avg' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('obp')}>
-                      OBP {sortConfig.key === 'obp' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('slg')}>
-                      SLG {sortConfig.key === 'slg' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                    <Th textAlign="center" color="#EFF7EC" px={2} py={2} fontSize="xs" cursor="pointer" onClick={() => sortData('ops')}>
-                      OPS {sortConfig.key === 'ops' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                    </Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {playerStats.map((player, index) => (
-                    <Tr key={index}>
-                      <Td color="#E7F8E8" px={2} py={2} fontSize="sm">{player.name}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.gamesplayed || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.plateappearances || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.atbats || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.hits || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.singles || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.doubles || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.triples || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.homeruns || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.runs || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.rbi || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.walks || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{player.strikeouts || 0}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.avg || 0).toFixed(3)}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.obp || 0).toFixed(3)}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.slg || 0).toFixed(3)}</Td>
-                      <Td textAlign="center" color="#E7F8E8" px={2} py={2} fontSize="sm">{(player.ops || 0).toFixed(3)}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </Box>
-          </Box>
-
-          {/* Counting Stats Over Time Card */}
-          <Box 
-            className="card"
-            width="100%"
-            maxW="900px"
-            mx="auto"
-          >
-            <CountingStatsOverTime playerStats={playerStats} />
-          </Box>
-
-          {/* Performance Over Time Card */}
-          <Box 
-            className="card"
-            width="100%"
-            maxW="900px"
-            mx="auto"
-            mt={6}
-          >
-            <PerformanceOverTime playerStats={playerStats} />
+                ))}
+              </Tbody>
+            </Table>
           </Box>
         </Box>
-      </div>
-    </div>
+
+        {/* Counting Stats Over Time Card */}
+        <Box 
+          className="card"
+          width="100%"
+          maxW="900px"
+          mx="auto"
+        >
+          <CountingStatsOverTime playerStats={playerStats} />
+        </Box>
+
+        {/* Performance Over Time Card */}
+        <Box 
+          className="card"
+          width="100%"
+          maxW="900px"
+          mx="auto"
+          mb={8} // Add margin bottom to last card to prevent touching footer
+        >
+          <PerformanceOverTime playerStats={playerStats} />
+        </Box>
+      </VStack>
+    </Box>
   );
 };
 

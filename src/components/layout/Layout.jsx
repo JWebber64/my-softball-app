@@ -1,81 +1,80 @@
-import React, { useState } from 'react';
-import PropTypes from 'prop-types';
-import { Box, Flex, useDisclosure } from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
+import { Box, useBreakpointValue, useDisclosure } from '@chakra-ui/react';
 import Header from './Header';
-import Footer from './Footer';
 import Sidebar from './Sidebar';
-import { useSimpleAuth } from '../../context/SimpleAuthContext';
+import Footer from './Footer';
+import PropTypes from 'prop-types';
 
-/**
- * Main layout component that wraps the entire application
- * Provides consistent structure with header, footer, and optional sidebar
- */
 const Layout = ({ children, showSidebar = true, showFooter = true }) => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isAuthenticated } = useSimpleAuth();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();  // Need isOpen for Sidebar
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
-  // Only show sidebar if user is authenticated
-  const shouldShowSidebar = showSidebar && isAuthenticated;
-  
-  // Handle sidebar collapse toggle
-  const handleToggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const sidebarWidth = isCollapsed ? "60px" : "250px";
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Reset collapse state on mobile/desktop switch
+  useEffect(() => {
+    if (mounted) {
+      if (isMobile) {
+        setIsCollapsed(false);
+        onClose();
+      }
+    }
+  }, [isMobile, mounted, onClose]);
 
   return (
-    <Flex 
-      direction="column" 
-      minH="100vh"
-      bg="brand.background"
-    >
-      {/* Header is now positioned relative to accommodate the sidebar */}
-      <Box
-        ml={{ md: shouldShowSidebar ? (isSidebarCollapsed ? '60px' : '250px') : 0 }}
-        transition="margin-left 0.3s"
-      >
-        <Header onOpenSidebar={onOpen} />
-      </Box>
-      
-      <Flex flex="1">
-        {shouldShowSidebar && (
-          <Sidebar 
-            isOpen={isOpen} 
-            onClose={onClose} 
-            display={{ base: 'none', md: 'block' }}
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={handleToggleSidebar}
-          />
-        )}
-        
-        <Box 
-          as="main"
-          flex="1"
-          p={{ base: 4, md: 6, lg: 8 }}
-          ml={{ md: shouldShowSidebar ? (isSidebarCollapsed ? '60px' : '250px') : 0 }}
-          transition="margin-left 0.3s"
-          pt={{ md: 2 }} // Add some padding at the top
-        >
-          {children}
-        </Box>
-      </Flex>
-      
-      {showFooter && (
+    <Box height="100vh" overflow="hidden">
+      {/* Desktop Sidebar */}
+      {showSidebar && !isMobile && (
         <Box
-          ml={{ md: shouldShowSidebar ? (isSidebarCollapsed ? '60px' : '250px') : 0 }}
-          transition="margin-left 0.3s"
+          position="fixed"
+          left={0}
+          top={0}
+          height="100vh"
+          width={sidebarWidth}
+          bg="brand.primary.base"
+          zIndex={100}
+          transition="all 0.3s ease"
         >
-          <Footer />
+          <Sidebar
+            isOpen={isOpen}  // Pass isOpen here
+            onClose={onClose}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+            variant="desktop"
+          />
         </Box>
       )}
-    </Flex>
+
+      {/* Main Content */}
+      <Box
+        marginLeft={showSidebar && !isMobile ? sidebarWidth : "0"}
+        transition="margin 0.3s ease"
+      >
+        <Header 
+          onOpenSidebar={onOpen} 
+          showSidebar={showSidebar}
+          isCollapsed={isCollapsed}  // Pass isCollapsed to Header
+        />
+        <Box as="main" pt="100px">
+          {children}
+        </Box>
+        {showFooter && <Footer isCollapsed={isCollapsed} />}
+      </Box>
+    </Box>
   );
 };
 
 Layout.propTypes = {
   children: PropTypes.node.isRequired,
   showSidebar: PropTypes.bool,
-  showFooter: PropTypes.bool
+  showFooter: PropTypes.bool,
 };
 
 export default Layout;

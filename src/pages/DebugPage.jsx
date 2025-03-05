@@ -17,7 +17,7 @@ import { supabase } from '../lib/supabaseClient';
 
 const DebugPage = () => {
   const [info, setInfo] = useState({});
-  const { user, isAuthenticated } = useSimpleAuth();
+  const { user, isAuthenticated, signOut } = useSimpleAuth();
   const toast = useToast();
   const [bypassRedirect, setBypassRedirect] = useState(
     localStorage.getItem('bypassRedirect') === 'true'
@@ -38,11 +38,8 @@ const DebugPage = () => {
 
   const forceLogout = async () => {
     try {
-      // Direct call to Supabase to ensure logout
-      await supabase.auth.signOut();
-      
-      // Clear local storage
-      localStorage.removeItem('supabase.auth.token');
+      // Use the context's signOut function instead of direct Supabase call
+      await signOut();
       
       toast({
         title: "Force logout executed",
@@ -51,10 +48,8 @@ const DebugPage = () => {
         duration: 3000,
       });
       
-      // Refresh the page to ensure all state is reset
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
+      // Use replace to prevent back navigation
+      window.location.replace('/');
     } catch (error) {
       console.error('Force logout error:', error);
       toast({

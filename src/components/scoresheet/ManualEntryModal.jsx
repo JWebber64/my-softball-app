@@ -28,17 +28,26 @@ const ManualEntryModal = ({
 }) => {
   const [scoreSheetData, setScoreSheetData] = useState({
     gameNumber: '',
-    gameDate: '',
-    gameTime: '',
-    field: '',
-    opponent: '',
-    isHomeTeam: false,
-    innings: [],
-    lineup: [],
-    final_score: { home: 0, away: 0 }
+    innings: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
+
+  // Remove placeholder validation
+  const validateImage = (image) => {
+    return image && image.type.startsWith('image/');
+  };
+
+  const handleImageUpload = (image) => {
+    if (!validateImage(image)) {
+      toast({
+        title: 'Invalid image format',
+        status: 'error'
+      });
+      return;
+    }
+    // Process image...
+  };
 
   const handleDataChange = (newData) => {
     setScoreSheetData(prevData => ({

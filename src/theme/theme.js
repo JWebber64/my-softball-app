@@ -3,49 +3,61 @@ import { extendTheme } from '@chakra-ui/react';
 const theme = extendTheme({
   colors: {
     brand: {
-      primary: '#545e46',
-      secondary: '#2d3436',
       background: '#7c866b',
-      text: '#FFFFFF',
-      border: 'rgba(255, 255, 255, 0.2)',
-    },
-  },
-  components: {
-    Button: {
-      variants: {
-        primary: {
-          bg: 'brand.primary',
-          color: 'brand.text',
-          _hover: {
-            bg: '#6b7660',
-          },
-        },
-        ghost: {
-          color: 'brand.text',
-          _hover: {
-            bg: 'rgba(255, 255, 255, 0.1)',
-          },
-        },
+      gradients: {
+        dark: {
+          start: '#111613',
+          middle: '#1b2c14',
+          end: '#111613'
+        }
       },
-    },
-    Header: {
-      baseStyle: {
-        bg: 'brand.primary',
-        color: 'brand.text',
-        py: 4,
-        width: '100%',
-        boxShadow: 'md',
+      primary: {
+        base: '#545e46',
+        hover: '#4a5340'
       },
-    },
+      secondary: '#2e3726',
+      text: {
+        primary: '#FFFFFF',
+        secondary: '#E7F8E8',
+        muted: '#c0fad0'
+      },
+      border: 'whiteAlpha.200'
+    }
   },
   styles: {
     global: {
       body: {
         bg: 'brand.background',
-        color: 'brand.text',
-      },
-    },
+        color: 'brand.text.primary',
+      }
+    }
   },
+  components: {
+    Card: {
+      baseStyle: {
+        container: {
+          bg: 'brand.primary.base',
+          color: 'brand.text.primary',
+          borderRadius: 'lg',
+          boxShadow: 'lg',
+          borderWidth: '1px',
+          borderColor: 'brand.border'
+        }
+      }
+    },
+    Box: {
+      variants: {
+        card: {
+          bg: 'brand.primary.base',
+          color: 'brand.text.primary',
+          borderRadius: 'lg',
+          boxShadow: 'lg',
+          borderWidth: '1px',
+          borderColor: 'brand.border'
+        }
+      }
+    }
+  }
 });
 
 export default theme;

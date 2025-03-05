@@ -6,6 +6,19 @@ function cleanText(text) {
   return text.replace(/[^\w\s\-\/|]|_/g, '').trim();
 }
 
+// Remove placeholder-related error handling
+async function processImage(imageData) {
+  try {
+    const worker = await createWorker();
+    const result = await worker.recognize(imageData);
+    await worker.terminate();
+    return result.data.text;
+  } catch (error) {
+    console.error('OCR processing error:', error);
+    throw new Error('Failed to process image');
+  }
+}
+
 function parsePlay(text) {
   const cleanedText = cleanText(text).toUpperCase();
   

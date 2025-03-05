@@ -1,99 +1,149 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase, retryOperation } from '../lib/supabaseClient';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { useToast } from '@chakra-ui/react';
+import debounce from 'lodash/debounce';
+import { validateData } from '../utils/validation';
 
-export const useRealtimeData = (tableName, options = {}) => {
-  const [data, setData] = useState(null);
+export function useRealtimeData(tableName, options = {}) {
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const [pendingUpdates, setPendingUpdates] = useState(new Map());
+  const toast = useToast();
+  const optimisticTimeout = useRef(null);
+
+  // Debounced update function
+  const debouncedUpdate = useCallback(
+    debounce(async (updateData) => {
+      try {
+        const { data: result, error: updateError } = await supabase
+          .from(tableName)
+          .upsert(updateData);
+
+        if (updateError) throw updateError;
+
+        setPendingUpdates(prev => {
+          const next = new Map(prev);
+          next.delete(updateData.id);
+          return next;
+        });
+
+        toast({
+          title: "Changes saved",
+          status: "success",
+          duration: 2000,
+        });
+      } catch (error) {
+        console.error('Update error:', error);
+        toast({
+          title: "Error saving changes",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+        });
+      }
+    }, 1000),
+    [tableName, toast]
+  );
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      let query = supabase.from(tableName).select('*');
 
-      const fetchOperation = async () => {
-        let query = supabase.from(tableName).select('*');
+      if (options.filter) {
+        Object.entries(options.filter).forEach(([column, value]) => {
+          query = query.eq(column, value);
+        });
+      }
 
-        if (options.filter) {
-          Object.entries(options.filter).forEach(([column, value]) => {
-            query = query.eq(column, value);
-          });
-        }
+      if (options.orderBy) {
+        query = query.order(options.orderBy.column, {
+          ascending: options.orderBy.ascending
+        });
+      }
 
-        if (options.orderBy) {
-          query = query.order(options.orderBy.column, {
-            ascending: options.orderBy.ascending
-          });
-        }
-
-        const { data: result, error: queryError } = await query;
-        if (queryError) throw queryError;
-        return result;
-      };
-
-      const result = await retryOperation(fetchOperation);
+      const { data: result, error: queryError } = await query;
+      if (queryError) throw queryError;
       setData(result);
-      setRetryCount(0); // Reset retry count on success
     } catch (err) {
-      console.error(`Error in useRealtimeData for ${tableName}:`, err);
-      setError(err);
-      setRetryCount(prev => prev + 1);
+      setError(err.message);
+      toast({
+        title: "Error fetching data",
+        description: err.message,
+        status: "error",
+        duration: 3000,
+      });
     } finally {
       setLoading(false);
     }
-  }, [tableName, JSON.stringify(options)]);
+  }, [tableName, options, toast]);
 
+  // Subscribe to realtime changes
   useEffect(() => {
     fetchData();
 
-    let subscription;
-    const setupSubscription = async () => {
-      try {
-        subscription = supabase
-          .channel(`${tableName}_changes`)
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: tableName
-          }, () => {
-            console.log(`${tableName} changed, refreshing data...`);
-            fetchData();
-          })
-          .subscribe((status) => {
-            console.log(`Subscription status for ${tableName}:`, status);
-          });
-      } catch (err) {
-        console.error(`Error setting up subscription for ${tableName}:`, err);
-      }
-    };
-
-    setupSubscription();
+    const subscription = supabase
+      .channel(`${tableName}-changes`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: tableName
+      }, payload => {
+        if (payload.eventType === 'INSERT') {
+          setData(prev => [...prev, payload.new]);
+        } else if (payload.eventType === 'DELETE') {
+          setData(prev => prev.filter(item => item.id !== payload.old.id));
+        } else if (payload.eventType === 'UPDATE') {
+          setData(prev => prev.map(item => 
+            item.id === payload.new.id ? payload.new : item
+          ));
+        }
+      })
+      .subscribe();
 
     return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, [tableName, fetchData]);
 
-  // Auto-retry on connection errors
-  useEffect(() => {
-    if (error && retryCount < 3) {
-      const timer = setTimeout(() => {
-        console.log(`Retrying ${tableName} fetch... Attempt ${retryCount + 1}`);
-        fetchData();
-      }, 2000 * (retryCount + 1)); // Exponential backoff
-
-      return () => clearTimeout(timer);
+  const updateItem = async (id, updates, type) => {
+    if (type) {
+      const { isValid, errors } = await validateData(type, updates);
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: Object.values(errors)[0],
+          status: "error",
+          duration: 3000,
+        });
+        return false;
+      }
     }
-  }, [error, retryCount, fetchData, tableName]);
+
+    const originalData = data.find(item => item.id === id);
+    setPendingUpdates(prev => {
+      const next = new Map(prev);
+      next.set(id, { originalData, updates });
+      return next;
+    });
+
+    setData(prevData =>
+      prevData.map(item =>
+        item.id === id ? { ...item, ...updates } : item
+      )
+    );
+
+    debouncedUpdate({ id, ...updates });
+    return true;
+  };
 
   return {
     data,
     loading,
     error,
-    refresh: fetchData,
-    retryCount
+    pendingUpdates,
+    updateItem,
+    refresh: fetchData
   };
-};
+}

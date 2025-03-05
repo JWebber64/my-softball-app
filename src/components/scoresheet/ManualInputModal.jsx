@@ -17,6 +17,7 @@ const ManualInputModal = ({ isOpen, onClose, onSave }) => {
   const [scoreSheetData, setScoreSheetData] = useState({});
 
   const handleDataChange = (newData) => {
+    if (!newData) return;
     setScoreSheetData(newData);
   };
 

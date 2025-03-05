@@ -1,5 +1,1 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Remove any conflicting container/header styles from here */
+/* Empty file - all styles are now managed through Chakra UI or global.css */

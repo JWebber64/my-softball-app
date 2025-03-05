@@ -14,7 +14,6 @@ import {
   DrawerContent,
   DrawerCloseButton,
   useBreakpointValue,
-  Flex,
   IconButton,
   Tooltip
 } from '@chakra-ui/react';
@@ -32,40 +31,28 @@ const Sidebar = ({
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { signOut, clearAuth } = useSimpleAuth();
   
-  // Check if the current route is active
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
+  const isActive = (path) => location.pathname === path;
   
-  // Handle logout
   const handleLogout = async () => {
     const { success } = await signOut();
     if (success) {
-      console.log("Logout successful");
-      // Clear the state when navigating to home
       clearAuth();
       navigate('/');
-    } else {
-      console.error("Logout failed");
     }
     if (isMobile && onClose) onClose();
   };
 
-  // Handle navigation to home page
   const handleHome = () => {
-      console.log("Navigating to HOME with simple route");
-      clearAuth();
-      navigate('/');
-      if (isMobile && onClose) onClose();
-  }
+    clearAuth();
+    navigate('/');
+    if (isMobile && onClose) onClose();
+  };
   
-  // Handle navigation between routes
   const handleNavigation = (path) => {
     navigate(path);
     if (isMobile && onClose) onClose();
   };
   
-  // Button style to apply consistently
   const buttonStyle = {
     width: "100%",
     justifyContent: "center",
@@ -76,19 +63,17 @@ const Sidebar = ({
     _focus: { boxShadow: "none", outline: "none" },
     overflow: "visible",
     fontSize: "sm",
-    height: "40px",  // Fixed height for both modes
+    height: "40px",
     minHeight: "40px",
   };
   
-  // Main navigation content
   const navigationContent = (
     <VStack 
       spacing={0}
       align="stretch" 
       w="full"
-      h="100%"  // Changed from 100vh
+      h="100%"
     >
-      {/* Collapse toggle button */}
       <Box 
         display="flex" 
         justifyContent={isCollapsed ? "center" : "flex-end"}
@@ -107,34 +92,50 @@ const Sidebar = ({
 
       {isCollapsed ? (
         <VStack 
-          spacing={8}  // Increased from 6 to 8
+          spacing={8}
           align="stretch" 
-          pt={4}       // Top padding
-          h="100%"     // Take full height
+          pt={4}
+          h="100%"
         >
-          <Button {...buttonStyle}>H</Button>
-          <Button {...buttonStyle}>SS</Button>
-          <Button {...buttonStyle}>TS</Button>
-          <Button {...buttonStyle}>TI</Button>
-          <Button {...buttonStyle}>TA</Button>
-          <Button {...buttonStyle}>LI</Button>
-          <Button {...buttonStyle}>LA</Button>
-          <Button 
-            {...buttonStyle} 
-            bg="black" 
-            _hover={{ bg: "#333" }} 
-            color="white"
-          >
-            X
-          </Button>
+          <Tooltip label="Home" placement="right">
+            <Button {...buttonStyle} onClick={() => handleHome()}>H</Button>
+          </Tooltip>
+          <Tooltip label="Score Sheets" placement="right">
+            <Button {...buttonStyle} onClick={() => handleNavigation('/scoresheets')}>SS</Button>
+          </Tooltip>
+          <Tooltip label="Team Stats" placement="right">
+            <Button {...buttonStyle} onClick={() => handleNavigation('/team-stats')}>TS</Button>
+          </Tooltip>
+          <Tooltip label="Team Info" placement="right">
+            <Button {...buttonStyle} onClick={() => handleNavigation('/team-info')}>TI</Button>
+          </Tooltip>
+          <Tooltip label="Team Admin" placement="right">
+            <Button {...buttonStyle} onClick={() => handleNavigation('/team-admin')}>TA</Button>
+          </Tooltip>
+          <Tooltip label="League Info" placement="right">
+            <Button {...buttonStyle} onClick={() => handleNavigation('/league-info')}>LI</Button>
+          </Tooltip>
+          <Tooltip label="League Admin" placement="right">
+            <Button {...buttonStyle} onClick={() => handleNavigation('/league-admin')}>LA</Button>
+          </Tooltip>
+          <Tooltip label="Logout" placement="right">
+            <Button 
+              {...buttonStyle} 
+              bg="black" 
+              _hover={{ bg: "#333" }} 
+              color="white"
+              onClick={handleLogout}
+            >
+              X
+            </Button>
+          </Tooltip>
         </VStack>
       ) : (
-        // Expanded view - original layout
-        <VStack spacing={4} flex="1">  // Reduced from 8 to 4
+        <VStack spacing={4} flex="1">
           <VStack spacing={3} align="stretch">
             <Text fontWeight="bold" fontSize="sm" color="brand.text" textAlign="center">Main Menu</Text>
             <Divider borderColor="brand.border" />
-            <Button {...buttonStyle} variant={isActive('/') ? 'primary' : 'ghost'} onClick={() => handleHome()}>
+            <Button {...buttonStyle} variant={isActive('/') ? 'primary' : 'ghost'} onClick={handleHome}>
               Home
             </Button>
           </VStack>
@@ -167,7 +168,7 @@ const Sidebar = ({
             </Button>
           </VStack>
 
-          <VStack spacing={3} align="stretch">  // Removed mt="auto"
+          <VStack spacing={3} align="stretch">
             <Text fontWeight="bold" fontSize="sm" color="brand.text" textAlign="center">Account</Text>
             <Divider borderColor="brand.border" />
             <Button {...buttonStyle} variant="ghost" onClick={handleLogout} bg="black" _hover={{ bg: "#333" }} color="white">
@@ -179,7 +180,6 @@ const Sidebar = ({
     </VStack>
   );
   
-  // For mobile: render in a drawer
   if (isMobile) {
     return (
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
@@ -200,7 +200,6 @@ const Sidebar = ({
     );
   }
   
-  // For desktop: render as a fixed sidebar
   return (
     <Box
       position="fixed"
@@ -209,7 +208,7 @@ const Sidebar = ({
       top={0}
       h="100vh"
       bg="#111613"
-      bgGradient="linear(to-b, #111613, #2e3726, #111613)"
+      bgGradient="linear(to-b, #111613, #1b2c14, #111613)"
       borderRight="1px"
       borderRightColor="brand.border"
       display={{ base: 'none', md: 'block' }}
