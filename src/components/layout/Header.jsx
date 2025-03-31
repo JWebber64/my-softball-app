@@ -1,87 +1,163 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Box, Flex, Image, Text, HStack } from '@chakra-ui/react';
-import { useTeam } from '../../context/TeamContext';
-import { DEFAULT_IMAGES } from '../../constants/assets';
+import { Avatar, Box, Center, Flex, HStack, Image, Text } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
+import { DEFAULT_ASSETS } from '../../config';
+import { useAuth } from '../../hooks/useAuth';
+import { usePlayerProfile } from '../../hooks/usePlayerProfile';
+import { useTeam } from '../../hooks/useTeam';
 
-const Header = ({ isCollapsed = false }) => {
-  const { teamDetails } = useTeam();
-  const sidebarWidth = isCollapsed ? "60px" : "250px";
+const Header = ({ sidebarWidth }) => {
+  const { team } = useTeam();
+  const { user } = useAuth();
+  const { profile, loading } = usePlayerProfile(user?.id);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+
+  useEffect(() => {
+    if (!loading && user?.id && profile?.profile_image_url) {
+      // Add cache-busting query parameter
+      const newUrl = `${profile.profile_image_url}?v=${Date.now()}`;
+      console.log('Setting new avatar URL in Header:', newUrl);
+      setAvatarUrl(newUrl);
+    } else {
+      setAvatarUrl(null);
+    }
+  }, [profile?.profile_image_url, loading, user?.id]);
 
   return (
     <Box
       as="header"
-      bg="#111613"
-      bgGradient="linear(to-r, #111613, #2e3726, #111613)"
-      height="100px"
-      display="flex"
-      alignItems="center"
-      px={4}
-      position="fixed"
-      top="0"
-      left={{ base: 0, md: sidebarWidth }}
-      right="0"
-      zIndex="1000"
-      transition="left 0.3s ease"
+      bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
       borderBottom="1px"
-      borderBottomColor="brand.border"
+      borderColor="var(--app-border)"
+      position="fixed"
+      top={0}
+      right={0}
+      left={sidebarWidth}
+      height="80px"
+      zIndex={999}
+      transition="left 0.2s"
     >
-      {/* Left side - Team info */}
-      {teamDetails && (
-        <HStack spacing={4} flex="1">
-          {teamDetails.logo_url && (
-            <Image
-              src={teamDetails.logo_url || DEFAULT_IMAGES.TEAM_LOGO}
-              alt={`${teamDetails.name} Logo`}
-              height="64px"
-              width="64px"
-              objectFit="contain"
-              borderRadius="full"
-              bg="white"
-              p={1}
-            />
-          )}
-          <Text
-            color="brand.text.primary"
-            fontSize="1.25rem"
-            fontWeight="bold"
-          >
-            {teamDetails.name}
-          </Text>
-        </HStack>
-      )}
-
-      {/* Center - App logo */}
       <Flex 
-        direction="column" 
+        height="100%"
+        maxW="1200px"
+        mx="auto"
+        px={6}
+        position="relative"
         align="center"
-        flex="1"
-        justifyContent="center"
       >
-        <Image
-          src="/logo.svg"
-          alt="Diamond Data Logo"
-          height="64px"
-          width="64px"
-          objectFit="contain"
-          borderRadius="1rem"
-          bg="white"
-          p={1}
-        />
-      </Flex>
+        {/* Team logo and name beside sidebar */}
+        {team?.logo_url && sidebarWidth !== "0" && (
+          <HStack 
+            spacing={4} 
+            position="fixed"
+            left={sidebarWidth === "60px" ? "75px" : "255px"}  // Increased to 15px from sidebar edge
+            top="20px"
+            zIndex={1000}
+            transition="all 0.2s"  // Match the sidebar transition timing
+          >
+            <Image
+              src={team.logo_url}
+              alt={`${team.name} Logo`}
+              h="40px"
+              w="40px"
+              objectFit="contain"
+              borderRadius="md"
+            />
+            <Text 
+              color="var(--app-text)" 
+              fontSize="xl" 
+              fontWeight="bold"
+              transition="opacity 0.2s"  // Smooth text transition
+            >
+              {team.name}
+            </Text>
+          </HStack>
+        )}
 
-      {/* Right side - Empty space to balance the layout */}
-      <Box flex="1" />
+        {/* Diamond Data logo centered */}
+        <Center flex="1">
+          <Image
+            src="/Diamonddata.png"
+            alt="Diamond Data Logo"
+            h="60px"
+            w="60px"
+            objectFit="contain"
+          />
+        </Center>
+
+        {/* Avatar on right */}
+        {sidebarWidth !== "0" && user && (
+          <Box position="absolute" right={6}>
+            <Avatar
+              key={avatarUrl || 'default'}
+              size="md"
+              name={profile?.name}
+              src={avatarUrl}
+              bg="brand.primary.base"
+              color="white"
+              onError={(e) => {
+                console.error('Avatar load error:', e);
+                e.target.src = DEFAULT_ASSETS.IMAGES.PLAYER_PHOTO;
+              }}
+              fallback={
+                <Image 
+                  src={DEFAULT_ASSETS.IMAGES.PLAYER_PHOTO} 
+                  alt="Default profile"
+                />
+              }
+            />
+            {avatarUrl && (
+              <Box
+                position="absolute"
+                bottom="-2px"
+                right="-2px"
+                width="8px"
+                height="8px"
+                borderRadius="full"
+                bg="green.500"
+              />
+            )}
+          </Box>
+        )}
+      </Flex>
     </Box>
   );
 };
 
-Header.propTypes = {
-  isCollapsed: PropTypes.bool
-};
-
-Header.defaultProps = {
-  isCollapsed: false
-};
-
 export default Header;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

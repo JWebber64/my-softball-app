@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, { createContext, useContext, useState } from 'react';
 
 const NotificationContext = createContext();
@@ -9,6 +10,7 @@ export const useNotification = () => {
   }
   return context;
 };
+
 export const NotificationProvider = ({ children }) => {
   const [notification, setNotification] = useState(null);
 
@@ -22,4 +24,8 @@ export const NotificationProvider = ({ children }) => {
       {children}
     </NotificationContext.Provider>
   );
+};
+
+NotificationProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

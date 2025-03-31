@@ -41,7 +41,13 @@ vi.mock('html2canvas', () => ({
   })
 }));
 
+// Add role check mock
+vi.mock('../utils/authCheck', () => ({
+  checkUserRole: vi.fn().mockResolvedValue(true)
+}));
+
 // Reset all mocks after each test
+import { afterEach } from 'vitest';
 afterEach(() => {
   vi.clearAllMocks();
   mockLink.href = '';
@@ -51,3 +57,4 @@ afterEach(() => {
   mockPrintWindow.print.mockClear();
   mockPrintWindow.close.mockClear();
 });
+

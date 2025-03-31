@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Button, Text, Badge, Flex, VStack, useDisclosure, Switch, HStack, UnorderedList, ListItem } from '@chakra-ui/react';
+import { Badge, Box, Button, Flex, Text, VStack, useDisclosure } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React, { useEffect, useRef, useState } from 'react';
 import useVoiceRecognition from '../../hooks/useVoiceRecognition';
 import { parseVoiceCommand } from '../../utils/voiceCommands';
 import CommandHelpDialog from './CommandHelpDialog';
@@ -15,14 +16,19 @@ const VoiceCommandPanel = ({
   const { isListening, transcript, startListening, stopListening } = useVoiceRecognition();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [lastCommand, setLastCommand] = useState('');
+  const prevIsActiveRef = useRef(isActive);
 
+  // Fix potential recursion with isListening state changes
   useEffect(() => {
-    if (isActive && !isListening) {
-      startListening();
-    } else if (!isActive && isListening) {
-      stopListening();
+    if (isActive !== prevIsActiveRef.current) {
+      if (isActive && !isListening) {
+        startListening();
+      } else if (!isActive && isListening) {
+        stopListening();
+      }
+      prevIsActiveRef.current = isActive;
     }
-  }, [isActive, isListening]);
+  }, [isActive, isListening]); // Remove startListening and stopListening from deps
 
   useEffect(() => {
     if (transcript) {
@@ -38,7 +44,7 @@ const VoiceCommandPanel = ({
         });
       }
     }
-  }, [transcript]);
+  }, [currentGame, onGameChange, onScoreUpdate, onToggle, onZoom, transcript]);
 
   const handleToggle = () => {
     onToggle(!isActive);
@@ -90,6 +96,15 @@ const VoiceCommandPanel = ({
       <CommandHelpDialog isOpen={isOpen} onClose={onClose} />
     </Box>
   );
+};
+
+VoiceCommandPanel.propTypes = {
+  isActive: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  onGameChange: PropTypes.func.isRequired,
+  currentGame: PropTypes.object,
+  onScoreUpdate: PropTypes.func.isRequired,
+  onZoom: PropTypes.func.isRequired,
 };
 
 export default VoiceCommandPanel;

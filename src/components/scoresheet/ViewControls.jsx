@@ -1,10 +1,11 @@
-import React from 'react';
 import {
   ButtonGroup,
   IconButton,
   Tooltip,
 } from '@chakra-ui/react';
-import { MdViewSidebar, MdViewDay, MdImage } from 'react-icons/md';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { MdImage, MdViewDay, MdViewSidebar } from 'react-icons/md';
 
 const ViewControls = ({ viewMode, onViewModeChange }) => {
   return (
@@ -47,6 +48,11 @@ const ViewControls = ({ viewMode, onViewModeChange }) => {
       </Tooltip>
     </ButtonGroup>
   );
+};
+
+ViewControls.propTypes = {
+  viewMode: PropTypes.oneOf(['side-by-side', 'overlay', 'image-only']).isRequired,
+  onViewModeChange: PropTypes.func.isRequired,
 };
 
 export default ViewControls;

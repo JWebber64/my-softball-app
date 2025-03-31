@@ -1,34 +1,48 @@
-import React from 'react';
-import { Box, Text, Flex, useBreakpointValue } from '@chakra-ui/react';
+import { Box, Text } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
 
-const Footer = ({ isCollapsed }) => {
-  const isMobile = useBreakpointValue({ base: true, md: false });
-  const sidebarWidth = isCollapsed ? "60px" : "250px";
-
+const Footer = ({ sidebarWidth }) => {
   return (
-    <Box 
-      as="footer" 
-      p={4} 
-      color="white"
-      bg="#111613"
-      bgGradient="linear(to-r, #111613, #1b2c14, #111613)"
+    <Box
+      as="footer"
+      bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
       borderTop="1px"
-      borderTopColor="brand.border"
-      width="100%"
+      borderColor="var(--app-border)"
+      right={0}
+      left={sidebarWidth}
+      height="60px"
+      transition="left 0.2s"
     >
-      <Flex 
-        direction="column" 
-        align="center" 
-        maxW="container.2xl" 
+      <Box
+        height="100%"
+        maxW="1200px"
         mx="auto"
-        py={2}
+        px={6}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
       >
-        <Text fontSize="sm" color="brand.text">
-          &copy; {new Date().getFullYear()} Diamond Data. All rights reserved.
+        <Text
+          color="white"
+          fontSize="sm"
+          textAlign="center"
+        >
+          Copyright © 2025 Diamond Data. All rights reserved.
         </Text>
-      </Flex>
+      </Box>
     </Box>
   );
 };
 
+Footer.propTypes = {
+  sidebarWidth: PropTypes.string.isRequired
+};
+
 export default Footer;
+
+
+
+
+
+
+

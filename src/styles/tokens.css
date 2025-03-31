@@ -1,0 +1,77 @@
+:root {
+  /* Base Colors */
+  --app-surface: #0c2d1c;
+  --app-background: #06170e;
+  --app-text: #dbefdc;
+  --app-border: #081208;
+  
+  /* Status Colors */
+  --status-completed: #4CAF50;
+  --status-cancelled: #F44336;
+  --status-postponed: #FFA726;
+  
+  /* Card Colors */
+  --card-gold: #FFD700;
+  --card-silver: #C0C0C0;
+  --card-bronze: #CD7F32;
+  --card-platinum: #E5E4E2;
+  
+  /* Gradients */
+  --app-gradient-start: #030b07;
+  --app-gradient-middle: #1b663e;
+  --app-gradient-end: #030b07;
+  
+  /* Content Gradients */
+  --content-gradient-start: #081208;
+  --content-gradient-middle: #2e6930;
+  --content-gradient-end: #081208;
+  
+  /* Overlay Colors */
+  --overlay-background: rgba(0, 0, 0, 0.6);
+  
+  /* Switch Colors */
+  --switch-active: #4CAF50;  /* Match status-completed color */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

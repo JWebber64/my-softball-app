@@ -1,15 +1,22 @@
-import React from 'react';
 import { ChakraProvider } from '@chakra-ui/react';
-import { SimpleAuthProvider } from './context/SimpleAuthContext';
-import AppContent from './components/AppContent';
+import AppRoutes from './AppRoutes';
+import AuthProvider from './context/AuthContext';
+import { BaseballCardProvider } from './context/BaseballCardContext';
+import TeamProvider from './context/TeamProvider';
+import './styles/base.css';
+import './styles/tokens.css';
 import theme from './theme/theme';
 
 function App() {
   return (
     <ChakraProvider theme={theme}>
-      <SimpleAuthProvider>
-        <AppContent />
-      </SimpleAuthProvider>
+      <AuthProvider>
+        <TeamProvider>
+          <BaseballCardProvider>
+            <AppRoutes />
+          </BaseballCardProvider>
+        </TeamProvider>
+      </AuthProvider>
     </ChakraProvider>
   );
 }

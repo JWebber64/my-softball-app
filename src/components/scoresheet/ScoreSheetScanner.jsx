@@ -1,31 +1,41 @@
-import React, { useRef, useState, useCallback } from 'react';
-import Webcam from 'react-webcam';
-import { OCRService } from '../../services/ocrService';
-import { scoreSheetOperations } from '../../lib/scoreSheetOperations';
-import { 
-  Box, 
-  Button, 
-  Progress, 
-  useToast,
+import {
+  Box,
+  Button,
   Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
   ModalBody,
-  ModalFooter,
   ModalCloseButton,
-  VStack,
-  HStack,
-  Text
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Progress,
+  Text,
+  useToast,
+  VStack
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React, { useCallback, useRef, useState } from 'react';
+import Webcam from 'react-webcam';
+import { useAuth } from '../../context/AuthContext';
+import { useTeam } from '../../context/TeamContext';
+import { scoreSheetOperations } from '../../lib/scoreSheetOperations';
+import { OCRService } from '../../services/ocrService';
+
+ScoreSheetScanner.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onScanComplete: PropTypes.func,
+  onClose: PropTypes.func.isRequired,
+};
 
 const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
   const webcamRef = useRef(null);
   const [scanning, setScanning] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [progress] = useState(0);
   const [cameraReady, setCameraReady] = useState(false);
   const toast = useToast();
   const ocrService = useRef(new OCRService());
+  const { user, isAuthenticated } = useAuth();
+  const { team } = useTeam();
 
   // Add a callback to detect when the camera is ready
   const handleUserMedia = useCallback(() => {
@@ -39,19 +49,30 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
     onClose();
   };
 
-  const handleCapture = async () => {
-    if (!webcamRef.current) return;
+  const processScoreSheet = async (img) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to process score sheets",
+        status: "error",
+        duration: 3000,
+      });
+      return;
+    }
 
     try {
-      setScanning(true);
-      const imageSrc = webcamRef.current.getScreenshot();
+      // Log team context data
+      console.log('Team context:', team);
       
-      // Create an Image object
-      const img = new Image();
-      img.src = imageSrc;
-      await new Promise((resolve) => { img.onload = resolve; });
+      if (!team?.id) {
+        throw new Error('No active team selected');
+      }
 
-      // Create canvas and process image
+      // Verify team ID format
+      if (typeof team.id !== 'string' || !team.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        throw new Error('Invalid team ID format');
+      }
+
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
       canvas.height = img.height;
@@ -61,8 +82,20 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
       // Process with OCR and get parsed data
       const { parsed: scoreSheetData } = await ocrService.current.recognizeText(canvas);
 
-      // Save to database
-      const savedSheet = await scoreSheetOperations.createScoreSheet(scoreSheetData);
+      // Add user metadata
+      scoreSheetData.metadata = {
+        uploaded_by: user.id,
+        upload_date: new Date().toISOString(),
+      };
+
+      // Log the data being sent to createScoreSheet
+      console.log('Sending to createScoreSheet:', {
+        scoreSheetData,
+        teamId: team.id
+      });
+
+      // Save to database with team_id
+      const savedSheet = await scoreSheetOperations.createScoreSheet(scoreSheetData, team.id);
       
       // Create file from canvas
       canvas.toBlob(async (blob) => {
@@ -82,8 +115,30 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
         status: 'success',
         duration: 5000,
       });
+    } catch (error) {
+      console.error('Score sheet processing error:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
 
-      onClose();
+  const handleCapture = async () => {
+    if (!webcamRef.current) return;
+
+    try {
+      setScanning(true);
+      const imageSrc = webcamRef.current.getScreenshot();
+      
+      // Create an Image object
+      const img = new Image();
+      img.src = imageSrc;
+      await new Promise((resolve) => { img.onload = resolve; });
+
+      processScoreSheet(img);
     } catch (error) {
       console.error('Capture error:', error);
       toast({
@@ -201,3 +256,9 @@ const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
 };
 
 export default ScoreSheetScanner;
+
+
+
+
+
+

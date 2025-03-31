@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
 import {
+  Button,
   Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
   ModalBody,
   ModalCloseButton,
-  Button,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Text,
   VStack,
   useToast
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
+import React, { useEffect, useState } from 'react';
 
 // Use default parameter instead of defaultProps
 const VoiceInputModal = ({ 
@@ -58,7 +58,7 @@ const VoiceInputModal = ({
         recognition.stop();
       }
     };
-  }, []);
+  }, [recognition, toast]);
 
   const toggleListening = () => {
     if (!recognition) {

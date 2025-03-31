@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import React, { useCallback, useEffect } from 'react';
 
 const Toast = ({ message, type = 'error', onClose, duration = 5000 }) => {
   const handleKeyDown = useCallback((e) => {
@@ -20,17 +21,19 @@ const Toast = ({ message, type = 'error', onClose, duration = 5000 }) => {
   }, [handleKeyDown]);
 
   const getStyles = () => {
+    const baseStyles = 'border-l-4';
+    
     switch (type) {
       case 'error':
-        return 'bg-red-500 border-red-700 text-white';
+        return `${baseStyles} bg-[var(--app-error-bg)] border-[var(--app-error)] text-[var(--app-text)]`;
       case 'success':
-        return 'bg-green-500 border-green-700 text-white';
+        return `${baseStyles} bg-[var(--app-success-bg)] border-[var(--app-success)] text-[var(--app-text)]`;
       case 'warning':
-        return 'bg-yellow-500 border-yellow-700 text-white';
+        return `${baseStyles} bg-[var(--app-warning-bg)] border-[var(--app-warning)] text-[var(--app-text)]`;
       case 'info':
-        return 'bg-blue-500 border-blue-700 text-white';
+        return `${baseStyles} bg-[var(--app-info-bg)] border-[var(--app-info)] text-[var(--app-text)]`;
       default:
-        return 'bg-gray-500 border-gray-700 text-white';
+        return `${baseStyles} bg-[var(--app-surface)] border-[var(--app-border)] text-[var(--app-text)]`;
     }
   };
 
@@ -81,4 +84,16 @@ const Toast = ({ message, type = 'error', onClose, duration = 5000 }) => {
   );
 };
 
+Toast.propTypes = {
+  message: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(['success', 'error', 'warning', 'info']).isRequired,
+  onClose: PropTypes.func.isRequired,
+  duration: PropTypes.number
+};
+
+Toast.defaultProps = {
+  duration: 3000
+};
+
 export default Toast;
+

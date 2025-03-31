@@ -1,32 +1,22 @@
-import React, { useState } from 'react';
 import {
   Box,
-  Grid,
-  Table,
-  Thead,
-  Tbody,
-  Tfoot,
-  Tr,
-  Th,
-  Td,
-  Input,
+  Button,
   FormControl,
   FormLabel,
-  Button,
-  useDisclosure,
-  Text,
-  VStack,
+  Grid,
   HStack,
+  Input,
+  Text,
+  useDisclosure,
+  VStack,
 } from '@chakra-ui/react';
-import SubstitutionsModal from './SubstitutionsModal';
+import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 
 const ScoreSheet = ({ gameNumber, teamName = "Your Team" }) => {
   const [showExtraInnings, setShowExtraInnings] = useState(false);
   const [opponent, setOpponent] = useState("");
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const regularInnings = 7;
-  const extraInnings = showExtraInnings ? 3 : 0;
-  const totalInnings = regularInnings + extraInnings;
+  const { onOpen } = useDisclosure();
 
   return (
     <Box
@@ -260,6 +250,11 @@ const ScoreSheet = ({ gameNumber, teamName = "Your Team" }) => {
       </Box>
     </Box>
   );
+};
+
+ScoreSheet.propTypes = {
+  gameNumber: PropTypes.string.isRequired,
+  teamName: PropTypes.string,
 };
 
 export default ScoreSheet;

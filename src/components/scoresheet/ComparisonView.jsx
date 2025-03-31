@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const ComparisonView = ({ originalImage, digitalScoreSheet }) => {
@@ -83,6 +84,11 @@ const ComparisonView = ({ originalImage, digitalScoreSheet }) => {
       </div>
     </div>
   );
+};
+
+ComparisonView.propTypes = {
+  originalImage: PropTypes.string.isRequired,
+  digitalScoreSheet: PropTypes.string.isRequired
 };
 
 export default ComparisonView;

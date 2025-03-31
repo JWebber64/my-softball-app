@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -6,12 +5,15 @@ import {
   FormLabel,
   Input,
   VStack,
-  Text,
   useToast,
 } from '@chakra-ui/react';
-import { supabase } from '../../lib/supabaseClient';
+import PropTypes from 'prop-types';
+import { useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { handleAuthError, handleAuthSuccess } from '../../utils/authErrorHandler';
 
 const SignupForm = ({ onSuccess }) => {
+  const { signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,31 +35,37 @@ const SignupForm = ({ onSuccess }) => {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await signUp({
         email,
         password,
+        options: {
+          data: {
+            firstName,
+            lastName,
+          }
+        }
       });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: 'Sign up successful',
-        description: 'Please check your email for verification.',
-        status: 'success',
-        duration: 5000,
+      
+      if (error) throw error;
+      
+      handleAuthSuccess('signup', (message) => {
+        toast({
+          title: 'Success',
+          description: message,
+          status: 'success',
+          duration: 5000,
+        });
       });
-
-      if (onSuccess) {
-        onSuccess(data);
-      }
+      
+      if (onSuccess) onSuccess();
     } catch (error) {
-      toast({
-        title: 'Sign up failed',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
+      handleAuthError(error, (message) => {
+        toast({
+          title: 'Error',
+          description: message,
+          status: 'error',
+          duration: 5000,
+        });
       });
     } finally {
       setIsLoading(false);
@@ -108,6 +116,10 @@ const SignupForm = ({ onSuccess }) => {
       </VStack>
     </Box>
   );
+};
+
+SignupForm.propTypes = {
+  onSuccess: PropTypes.func
 };
 
 export default SignupForm;

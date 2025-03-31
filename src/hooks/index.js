@@ -1,15 +1,7 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import { ChakraProvider } from '@chakra-ui/react';
-import { theme } from './theme/theme';
+export { useAuth } from './useAuth';
+export { useBaseRealtimeData } from './useBaseRealtimeData';
+export { useEnhancedRealtimeData } from './useEnhancedRealtimeData';
+export { usePlayerProfile } from './usePlayerProfile';
+export { useTeam } from './useTeam';
+export { useTeamData } from './useTeamData';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <ChakraProvider theme={theme}>
-      <App />
-    </ChakraProvider>
-  </React.StrictMode>
-);

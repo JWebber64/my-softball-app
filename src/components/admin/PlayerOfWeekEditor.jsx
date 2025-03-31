@@ -1,317 +1,251 @@
-import React, { useState, useEffect } from 'react';
+// React and PropTypes
+import PropTypes from 'prop-types';
+import { useEffect, useState } from 'react';
+
+// Chakra UI components
 import {
-  VStack,
-  HStack,
-  Button,
-  useToast,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  IconButton,
   Box,
+  Button,
   FormControl,
   FormLabel,
+  Input,
   Select,
   Textarea,
-  Image,
+  useToast,
+  VStack
 } from '@chakra-ui/react';
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import { supabase } from '../../lib/supabaseClient';
 
-const PlayerOfWeekEditor = () => {
-  const [awards, setAwards] = useState([]);
+// Services and utilities
+import { useTeam } from '../../hooks/useTeam';
+import { supabase } from '../../lib/supabaseClient';
+import { teamInfoService } from '../../services/teamInfoService';
+import { formFieldStyles, formLabelStyles } from '../../styles/formFieldStyles';
+
+const cardStyles = {
+  bg: 'brand.surface.base',
+  borderColor: 'brand.border',
+  borderWidth: '1px',
+  borderRadius: 'md',
+  p: 4,
+  mb: 4
+};
+
+const labelStyles = {
+  color: 'brand.text.primary',
+  fontWeight: 'medium'
+};
+
+const PlayerOfWeekEditor = ({ isDisabled }) => {
   const [players, setPlayers] = useState([]);
-  const [formData, setFormData] = useState({
-    playerId: '',
-    weekOf: '',
-    achievement: '',
-    stats: '',
-    featured: false
-  });
-  const [editingId, setEditingId] = useState(null);
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(''); // Add this line
+  const [notes, setNotes] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { team } = useTeam();
   const toast = useToast();
 
   useEffect(() => {
-    fetchAwards();
-    fetchPlayers();
-  }, []);
+    if (team?.id) {
+      fetchRoster().then(() => {
+        fetchCurrentPlayerOfWeek();
+      });
+    }
+  }, [team?.id]);
 
-  const fetchAwards = async () => {
+  const fetchRoster = async () => {
     try {
-      const { data, error } = await supabase
-        .from('player_awards')
-        .select(`
-          *,
-          players (
-            id,
-            firstName,
-            lastName,
-            number,
-            photoUrl
-          )
-        `)
-        .order('weekOf', { ascending: false });
-
-      if (error) throw error;
-      setAwards(data || []);
+      const data = await teamInfoService.getTeamRoster(team.id);
+      setPlayers(data);
     } catch (error) {
       toast({
-        title: "Error fetching awards",
+        title: 'Error fetching roster',
         description: error.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
       });
     }
   };
 
-  const fetchPlayers = async () => {
+  const fetchCurrentPlayerOfWeek = async () => {
+    if (!team?.id) return;
+    
     try {
       const { data, error } = await supabase
-        .from('players')
-        .select('id, firstName, lastName, number')
-        .order('lastName');
+        .from('player_of_week')
+        .select('player_ids, notes')
+        .eq('team_id', team.id)
+        .maybeSingle();
 
-      if (error) throw error;
-      setPlayers(data || []);
-    } catch (error) {
-      toast({
-        title: "Error fetching players",
-        description: error.message,
-        status: "error",
-        duration: 5000,
-      });
-    }
-  };
+      if (error && error.code !== 'PGRST116') throw error;
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingId) {
-        const { error } = await supabase
-          .from('player_awards')
-          .update(formData)
-          .eq('id', editingId);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Award updated",
-          status: "success",
-          duration: 3000,
-        });
+      if (data) {
+        const selectedPlayersList = players.filter(p => 
+          data.player_ids && data.player_ids.includes(p.id)
+        );
+        setSelectedPlayers(selectedPlayersList);
+        setNotes(data.notes || '');
       } else {
-        const { error } = await supabase
-          .from('player_awards')
-          .insert([formData]);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Award added",
-          status: "success",
-          duration: 3000,
-        });
+        setSelectedPlayers([]);
+        setNotes('');
       }
-
-      setFormData({
-        playerId: '',
-        weekOf: '',
-        achievement: '',
-        stats: '',
-        featured: false
-      });
-      setEditingId(null);
-      fetchAwards();
     } catch (error) {
+      console.error('Error fetching current player of week:', error);
       toast({
-        title: "Error saving award",
+        title: 'Error fetching player of week',
         description: error.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
       });
     }
   };
 
-  const handleEdit = (award) => {
-    setFormData({
-      playerId: award.playerId,
-      weekOf: award.weekOf,
-      achievement: award.achievement,
-      stats: award.stats,
-      featured: award.featured
-    });
-    setEditingId(award.id);
+  const handlePlayerSelect = (playerId) => {
+    if (!playerId) return;
+    
+    const player = players.find(p => p.id === playerId);
+    if (player && !selectedPlayers.find(p => p.id === playerId)) {
+      setSelectedPlayers([...selectedPlayers, player]);
+      setSelectedPlayer(''); // Reset selected player after adding
+    }
   };
 
-  const handleDelete = async (id) => {
+  const removePlayer = (playerId) => {
+    setSelectedPlayers(selectedPlayers.filter(p => p.id !== playerId));
+  };
+
+  const handleUpdate = async () => {
+    if (selectedPlayers.length === 0 || !team?.id) return;
+
+    setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('player_awards')
-        .delete()
-        .eq('id', id);
+        .from('player_of_week')
+        .upsert({
+          team_id: team.id,
+          player_ids: selectedPlayers.map(p => p.id),
+          notes: notes.trim(),
+          date: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString()
+        });
 
       if (error) throw error;
 
       toast({
-        title: "Award deleted",
-        status: "success",
+        title: 'Success',
+        description: 'Players of the week updated',
+        status: 'success',
         duration: 3000,
       });
-
-      fetchAwards();
     } catch (error) {
       toast({
-        title: "Error deleting award",
+        title: 'Error',
         description: error.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <VStack spacing={6} align="stretch">
-      <Box as="form" onSubmit={handleSubmit}>
-        <VStack spacing={4}>
-          <HStack spacing={4}>
-            <FormControl>
-              <FormLabel>Player</FormLabel>
-              <Select
-                name="playerId"
-                value={formData.playerId}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select Player</option>
-                {players.map(player => (
-                  <option key={player.id} value={player.id}>
-                    {`${player.lastName}, ${player.firstName} (#${player.number})`}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
+    <Box>
+      <VStack spacing={4} align="stretch">
+        <FormControl>
+          <FormLabel {...formLabelStyles}>Select Player</FormLabel>
+          <Select
+            {...formFieldStyles}
+            value={selectedPlayer}
+            onChange={(e) => setSelectedPlayer(e.target.value)}
+          >
+            {players.map(player => (
+              <option key={player.id} value={player.id}>
+                {player.name}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
 
-            <FormControl>
-              <FormLabel>Week Of</FormLabel>
-              <Input
-                type="date"
-                name="weekOf"
-                value={formData.weekOf}
-                onChange={handleInputChange}
-                required
-              />
-            </FormControl>
-          </HStack>
+        <FormControl>
+          <FormLabel {...formLabelStyles}>Achievement Description</FormLabel>
+          <Textarea
+            {...formFieldStyles}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Describe the player's outstanding performance..."
+          />
+        </FormControl>
 
-          <FormControl>
-            <FormLabel>Achievement</FormLabel>
-            <Textarea
-              name="achievement"
-              value={formData.achievement}
-              onChange={handleInputChange}
-              required
-            />
-          </FormControl>
+        <FormControl>
+          <FormLabel {...formLabelStyles}>Week Starting</FormLabel>
+          <Input
+            {...formFieldStyles}
+            type="date"
+            value={weekStart}
+            onChange={(e) => setWeekStart(e.target.value)}
+          />
+        </FormControl>
 
-          <FormControl>
-            <FormLabel>Stats</FormLabel>
-            <Textarea
-              name="stats"
-              value={formData.stats}
-              onChange={handleInputChange}
-              required
-            />
-          </FormControl>
+        <FormControl>
+          <FormLabel {...formLabelStyles}>Highlight Stats</FormLabel>
+          <Input
+            {...formFieldStyles}
+            value={stats}
+            onChange={(e) => setStats(e.target.value)}
+            placeholder="e.g., 3 HR, .500 BA, 8 RBI"
+          />
+        </FormControl>
 
-          <FormControl>
-            <FormLabel>Featured</FormLabel>
-            <Select
-              name="featured"
-              value={formData.featured}
-              onChange={handleInputChange}
-            >
-              <option value={false}>No</option>
-              <option value={true}>Yes</option>
-            </Select>
-          </FormControl>
-
-          <Button type="submit" colorScheme="green" alignSelf="flex-start">
-            {editingId ? 'Update Award' : 'Add Award'}
-          </Button>
-        </VStack>
-      </Box>
-
-      <Table variant="simple">
-        <Thead>
-          <Tr>
-            <Th>Player</Th>
-            <Th>Week Of</Th>
-            <Th>Achievement</Th>
-            <Th>Stats</Th>
-            <Th>Featured</Th>
-            <Th>Actions</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {awards.map((award) => (
-            <Tr key={award.id}>
-              <Td>
-                <HStack>
-                  {award.players.photoUrl && (
-                    <Image
-                      src={award.players.photoUrl}
-                      alt={`${award.players.firstName} ${award.players.lastName}`}
-                      boxSize="40px"
-                      objectFit="cover"
-                      borderRadius="full"
-                    />
-                  )}
-                  <Box>
-                    {`${award.players.firstName} ${award.players.lastName}`}
-                    <Text fontSize="sm" color="gray.500">
-                      #{award.players.number}
-                    </Text>
-                  </Box>
-                </HStack>
-              </Td>
-              <Td>{award.weekOf}</Td>
-              <Td>{award.achievement}</Td>
-              <Td>{award.stats}</Td>
-              <Td>{award.featured ? 'Yes' : 'No'}</Td>
-              <Td>
-                <HStack spacing={2}>
-                  <IconButton
-                    icon={<EditIcon />}
-                    onClick={() => handleEdit(award)}
-                    aria-label="Edit award"
-                    size="sm"
-                  />
-                  <IconButton
-                    icon={<DeleteIcon />}
-                    onClick={() => handleDelete(award.id)}
-                    aria-label="Delete award"
-                    size="sm"
-                    colorScheme="red"
-                  />
-                </HStack>
-              </Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </VStack>
+        <Button
+          onClick={handleUpdate}
+          isLoading={isLoading}
+          isDisabled={isDisabled || selectedPlayers.length === 0}
+        >
+          Update Players of the Week
+        </Button>
+      </VStack>
+    </Box>
   );
 };
 
+PlayerOfWeekEditor.propTypes = {
+  isDisabled: PropTypes.bool
+};
+
 export default PlayerOfWeekEditor;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

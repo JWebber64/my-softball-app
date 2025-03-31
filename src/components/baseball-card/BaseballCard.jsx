@@ -1,193 +1,309 @@
-import React, { useRef, useState } from 'react';
-import { Box, Image, Text, VStack, HStack, Grid, GridItem, IconButton, useTheme } from '@chakra-ui/react';
-import { FaSync } from 'react-icons/fa';
-import html2canvas from 'html2canvas';
+import { Box, HStack, Image, Text, VStack, useTheme } from '@chakra-ui/react';
+import { motion } from 'framer-motion';
 import PropTypes from 'prop-types';
-import { DEFAULT_IMAGES } from '../../constants/assets';
+import React, { useMemo } from 'react';
+import { STAT_DISPLAY_CONFIG } from '../../config/baseballCardPresets';
 
-const BaseballCard = ({ player, stats, onExport }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  const [exportError, setExportError] = useState(false);
-  const cardRef = useRef();
+// Utility functions defined before the component
+const getBorderColor = (color) => {
+  const colors = {
+    gold: 'var(--app-card-gold)',
+    silver: 'var(--app-card-silver)',
+    bronze: 'var(--app-card-bronze)',
+    platinum: 'var(--app-card-platinum)',
+    default: 'var(--app-card-default)'
+  };
+  return colors[color] || colors.default;
+};
+
+const getBackgroundStyle = (style) => {
+  const { pattern, texture } = style;
+  
+  if (pattern === 'gradient') {
+    return 'var(--app-card-gradient)';
+  } 
+  
+  if (pattern === 'textured') {
+    return texture === 'clean' ? 'var(--app-card-clean)' : 'var(--app-card-textured)';
+  }
+  
+  return 'var(--app-card-default-bg)';
+};
+
+const getRarityColor = (rarity) => {
+  const colors = {
+    common: 'var(--app-rarity-common)',
+    uncommon: 'var(--app-rarity-uncommon)',
+    rare: 'var(--app-rarity-rare)',
+    legendary: 'var(--app-rarity-legendary)',
+    mythic: 'var(--app-rarity-mythic)',
+    default: 'var(--app-rarity-common)'
+  };
+  return colors[rarity] || colors.default;
+};
+
+const defaultStyle = {
+  borderStyle: {
+    type: 'rounded',
+    effect: 'none',
+    color: 'silver'
+  },
+  backgroundStyle: {
+    pattern: 'solid',
+    texture: 'clean',
+    effect: 'none'
+  },
+  photoStyle: {
+    frame: 'standard',
+    effect: 'none',
+    filter: 'none'
+  },
+  statsLayout: {
+    type: 'modern',
+    showDividers: true
+  }
+};
+
+const BaseballCard = ({
+  frontImage,
+  backImage,
+  isFlipped,
+  onFlip,
+  customStyle = defaultStyle,
+  playerStats,
+  teamLogo,
+  playerName,
+  position,
+  teamName,
+  jerseyNumber,
+  season,
+  cardNumber,
+  isParallel = false,
+  rarityLevel = 'common'
+}) => {
   const theme = useTheme();
+  const MotionBox = motion(Box);
+  
+  const { borderStyle, backgroundStyle, photoStyle, statsLayout } = customStyle;
 
-  const handleImageError = () => {
-    setImageError(true);
-    console.error('Failed to load player image');
+  const getPhotoFilter = (style) => {
+    const filters = {
+      sepia: "sepia(1)",
+      grayscale: "grayscale(1)",
+      vintage: "sepia(0.5) contrast(1.1)",
+      sharp: "contrast(1.2) brightness(1.1)",
+      none: "none"
+    };
+    return filters[style.filter] || filters.none;
   };
 
-  const handleExport = async () => {
-    try {
-      setExportError(false);
-      if (!cardRef.current) return;
-      
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null
-      });
-      
-      const image = canvas.toDataURL('image/png');
-      onExport?.(image);
-    } catch (error) {
-      setExportError(true);
-      console.error('Export failed:', error);
+  const cardStyles = useMemo(() => ({
+    wrapper: {
+      perspective: "1000px",
+      width: "350px",
+      height: "500px",
+      position: "relative",
+    },
+    container: {
+      width: "100%",
+      height: "100%",
+      position: "relative",
+      transformStyle: "preserve-3d",
+      transition: "transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+      transform: isFlipped ? "rotateY(180deg)" : "rotateY(0)",
+      cursor: "pointer",
+    },
+    side: {
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+      backfaceVisibility: "hidden",
+      borderRadius: borderStyle.type === 'rounded' ? "15px" : "0",
+      border: `8px solid var(--app-border)`,
+      backgroundColor: "var(--app-surface)",
+      overflow: "hidden",
+      padding: "20px",
+      boxShadow: isParallel ? "0 0 20px rgba(255,255,255,0.5)" : "0 4px 12px rgba(0,0,0,0.1)",
+    },
+    image: {
+      width: "100%",
+      height: "60%",
+      objectFit: "cover",
+      filter: getPhotoFilter(photoStyle),
+      borderRadius: "8px",
+      transition: "transform 0.3s ease",
+    },
+    teamLogo: {
+      position: "absolute",
+      top: "10px",
+      right: "10px",
+      width: "50px",
+      height: "50px",
+      opacity: 0.8,
+      filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
+    },
+    statsContainer: {
+      width: "100%",
+      marginTop: "20px",
+      display: statsLayout.type === 'modern' ? 'flex' : 'grid',
+      gridTemplateColumns: statsLayout.type === 'compact' ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+      gap: "10px",
+      flexWrap: "wrap",
+      justifyContent: "center",
+    },
+    statItem: {
+      textAlign: "center",
+      borderBottom: statsLayout.showDividers ? "1px solid var(--app-text)" : "none",
+      padding: "5px",
+      transition: "transform 0.2s ease",
+      _hover: {
+        transform: "scale(1.05)",
+      },
+    },
+    cardInfo: {
+      position: "absolute",
+      bottom: "10px",
+      left: "10px",
+      fontSize: "xs",
+      color: "gray.500",
+      fontStyle: "italic",
+    },
+    rarityBadge: {
+      position: "absolute",
+      top: "10px",
+      left: "10px",
+      padding: "4px 8px",
+      borderRadius: "full",
+      fontSize: "xs",
+      fontWeight: "bold",
+      background: getRarityColor(rarityLevel),
+      color: "white",
+      textTransform: "uppercase",
     }
+  }), [borderStyle, backgroundStyle, photoStyle, statsLayout, isFlipped, isParallel]);
+
+  const renderStats = () => {
+    if (!playerStats) return null;
+    
+    return (
+      <VStack spacing={2} mt={4}>
+        {Object.entries(playerStats).map(([key, value]) => {
+          const statConfig = STAT_DISPLAY_CONFIG[key] || { label: key, format: 'text' };
+          // Extract the label from the config object
+          const label = typeof statConfig === 'string' ? statConfig : statConfig.label;
+          
+          return (
+            <HStack key={key} sx={cardStyles.statItem}>
+              <Text fontWeight="bold">{label}:</Text>
+              <Text>{value}</Text>
+            </HStack>
+          );
+        })}
+      </VStack>
+    );
   };
 
   return (
-    <Box
-      position="relative"
-      w="63.5mm"
-      h="88.9mm"
-      cursor="pointer"
-      perspective="1000px"
-    >
-      <Box
-        ref={cardRef}
-        position="relative"
-        w="100%"
-        h="100%"
-        transition="transform 0.8s"
-        transformStyle="preserve-3d"
-        transform={isFlipped ? 'rotateY(180deg)' : 'rotateY(0)'}
-        onClick={() => setIsFlipped(!isFlipped)}
+    <Box sx={cardStyles.wrapper}>
+      <MotionBox
+        sx={cardStyles.container}
+        onClick={onFlip}
       >
         {/* Front of card */}
         <Box
-          position="absolute"
-          w="100%"
-          h="100%"
-          backfaceVisibility="hidden"
-          bg={theme.colors.brand.primary}
-          borderRadius="lg"
-          overflow="hidden"
-          boxShadow="lg"
+          sx={cardStyles.side}
+          className={borderStyle.effect === 'holographic' ? 'card-holographic' : ''}
         >
-          {/* Team banner */}
-          <Box
-            position="absolute"
-            top={0}
-            left={0}
-            right={0}
-            h="20%"
-            bg={theme.colors.brand.secondary}
-            p={2}
-          >
-            <Text color={theme.colors.brand.text} fontSize="xl" fontWeight="bold">
-              Team Name
-            </Text>
-          </Box>
+          {rarityLevel !== 'common' && (
+            <Box sx={cardStyles.rarityBadge}>{rarityLevel}</Box>
+          )}
+          
+          {teamLogo && (
+            <Image
+              src={teamLogo}
+              alt="Team Logo"
+              sx={cardStyles.teamLogo}
+            />
+          )}
+          
+          {frontImage && (
+            <Image
+              src={frontImage}
+              alt="Player"
+              sx={cardStyles.image}
+            />
+          )}
 
-          {/* Player photo */}
-          <Image
-            src={imageError ? DEFAULT_IMAGES.PLAYER_PHOTO : (player.photoUrl || DEFAULT_IMAGES.PLAYER_PHOTO)}
-            alt={player.player_name}
-            w="100%"
-            h="60%"
-            objectFit="cover"
-            mt="20%"
-            onError={handleImageError}
-          />
-
-          {/* Player info */}
-          <VStack
-            position="absolute"
-            bottom={0}
-            left={0}
-            right={0}
-            bg="rgba(84, 94, 70, 0.9)"
-            p={2}
-            spacing={0}
-            color="white"
-          >
-            <Text fontSize="lg" fontWeight="bold">{player.player_name}</Text>
-            <Text>#{player.jersey_number} · {player.position}</Text>
+          <VStack spacing={2} mt={4}>
+            <HStack spacing={2}>
+              <Text fontSize="2xl" fontWeight="bold">{playerName}</Text>
+              {jerseyNumber && (
+                <Text fontSize="xl" color="gray.500">#{jerseyNumber}</Text>
+              )}
+            </HStack>
+            <HStack spacing={2}>
+              <Text>{position}</Text>
+              <Text>•</Text>
+              <Text>{teamName}</Text>
+            </HStack>
           </VStack>
+
+          {renderStats()}
+
+          <Text sx={cardStyles.cardInfo}>
+            {season} • Card #{cardNumber}
+          </Text>
         </Box>
 
         {/* Back of card */}
         <Box
-          position="absolute"
-          w="100%"
-          h="100%"
-          backfaceVisibility="hidden"
-          bg="white"
-          borderRadius="lg"
-          overflow="hidden"
-          boxShadow="lg"
-          transform="rotateY(180deg)"
-          p={4}
+          sx={{
+            ...cardStyles.side,
+            transform: "rotateY(180deg)",
+          }}
+          className={borderStyle.effect === 'holographic' ? 'card-holographic' : ''}
         >
-          <VStack align="stretch" spacing={2}>
-            <Text fontSize="sm" fontWeight="bold" textAlign="center">
-              {new Date().getFullYear()} Statistics
-            </Text>
-            
-            <Grid templateColumns="repeat(2, 1fr)" gap={2} fontSize="xs">
-              <GridItem>AVG</GridItem>
-              <GridItem textAlign="right">{stats?.avg || '.000'}</GridItem>
-              
-              <GridItem>Games</GridItem>
-              <GridItem textAlign="right">{stats?.games || '0'}</GridItem>
-              
-              <GridItem>At Bats</GridItem>
-              <GridItem textAlign="right">{stats?.at_bats || '0'}</GridItem>
-              
-              <GridItem>Hits</GridItem>
-              <GridItem textAlign="right">{stats?.hits || '0'}</GridItem>
-              
-              <GridItem>RBI</GridItem>
-              <GridItem textAlign="right">{stats?.rbi || '0'}</GridItem>
-              
-              <GridItem>Runs</GridItem>
-              <GridItem textAlign="right">{stats?.runs || '0'}</GridItem>
-              
-              <GridItem>HR</GridItem>
-              <GridItem textAlign="right">{stats?.home_runs || '0'}</GridItem>
-            </Grid>
-          </VStack>
+          {backImage && (
+            <Image
+              src={backImage}
+              alt="Card Back"
+              sx={cardStyles.image}
+            />
+          )}
         </Box>
-      </Box>
-
-      {/* Flip indicator */}
-      <IconButton
-        icon={<FaSync />}
-        size="sm"
-        position="absolute"
-        bottom={2}
-        right={2}
-        zIndex={2}
-        opacity={0.7}
-        _hover={{ opacity: 1 }}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsFlipped(!isFlipped);
-        }}
-        aria-label="Flip card"
-      />
+      </MotionBox>
     </Box>
   );
 };
 
 BaseballCard.propTypes = {
-  player: PropTypes.shape({
-    player_name: PropTypes.string.isRequired,
-    jersey_number: PropTypes.string,
-    position: PropTypes.string,
-    photoUrl: PropTypes.string
-  }).isRequired,
-  stats: PropTypes.shape({
-    avg: PropTypes.string,
-    games: PropTypes.number,
-    at_bats: PropTypes.number,
-    hits: PropTypes.number,
-    rbi: PropTypes.number,
-    runs: PropTypes.number,
-    home_runs: PropTypes.number
-  }),
-  onExport: PropTypes.func
+  frontImage: PropTypes.string,
+  backImage: PropTypes.string,
+  isFlipped: PropTypes.bool,
+  onFlip: PropTypes.func,
+  customStyle: PropTypes.object,
+  playerStats: PropTypes.object,
+  teamLogo: PropTypes.string,
+  playerName: PropTypes.string.isRequired,
+  position: PropTypes.string.isRequired,
+  teamName: PropTypes.string.isRequired,
+  jerseyNumber: PropTypes.string,
+  season: PropTypes.string.isRequired,
+  cardNumber: PropTypes.string.isRequired,
+  isParallel: PropTypes.bool,
+  rarityLevel: PropTypes.string
 };
 
 export default BaseballCard;
+
+
+
+
+
+
+
+
+
+
+
+

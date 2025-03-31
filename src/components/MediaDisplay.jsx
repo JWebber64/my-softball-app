@@ -1,5 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import { Box, Image } from '@chakra-ui/react';
+// Remove unused 'Box' import
+import { Image } from '@chakra-ui/react';
 import { DEFAULT_IMAGES } from '../constants/assets';
 
 const MediaDisplay = ({ url, type, title, handleError }) => {
@@ -21,6 +23,13 @@ const MediaDisplay = ({ url, type, title, handleError }) => {
       borderRadius="md"
     />
   );
+};
+
+MediaDisplay.propTypes = {
+  url: PropTypes.string.isRequired,
+  type: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  handleError: PropTypes.func.isRequired
 };
 
 export default MediaDisplay;

@@ -1,29 +1,23 @@
-import React, { useEffect } from 'react';
-import { NotificationProvider } from '../context/NotificationContext';
-import { AuthProvider } from '../context/AuthContext';
-import { TeamProvider } from '../context/TeamContext';
+import React from 'react';
 import AppRoutes from '../AppRoutes';
-import { useSimpleAuth } from '../context/SimpleAuthContext';
-import { clearAuthState } from '../utils/authUtils';
+import { BaseballCardProvider } from '../context/BaseballCardContext';
+import { NotificationProvider } from '../context/NotificationContext';
+import TeamProvider from '../context/TeamProvider';
 
-function AppContent() {
-  const { isAuthenticated } = useSimpleAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      clearAuthState();
-    }
-  }, [isAuthenticated]);
-
+const AppContent = () => {
   return (
     <TeamProvider>
       <NotificationProvider>
-        <AuthProvider>
+        <BaseballCardProvider>
           <AppRoutes />
-        </AuthProvider>
+        </BaseballCardProvider>
       </NotificationProvider>
     </TeamProvider>
   );
-}
+};
 
 export default AppContent;
+
+
+
+

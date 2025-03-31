@@ -1,39 +1,44 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useContext } from 'react';
-import PropTypes from 'prop-types';
-import { AuthContext } from '../context/AuthContext';
-import { Box, Progress, Text } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { ROUTER_CONFIG } from '../config';
+import { checkTeamAdminAccess } from '../lib/roles';
 
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useContext(AuthContext);
-  const location = useLocation();
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const [isAuthorized, setIsAuthorized] = useState(null);
 
-  console.log('ProtectedRoute:', {
-    path: location.pathname,
-    hasUser: !!user,
-    loading,
-  });
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (requiredRole === 'team-admin') {
+        const hasAccess = await checkTeamAdminAccess();
+        console.log('Team admin role check:', hasAccess);
+        setIsAuthorized(hasAccess);
+      }
+      // Add other role checks as needed
+    };
 
-  if (loading) {
-    return (
-      <Box p={4}>
-        <Progress size="xs" isIndeterminate />
-        <Text mt={2}>Checking authentication...</Text>
-      </Box>
-    );
+    checkAccess();
+  }, [requiredRole]);
+
+  if (isAuthorized === null) {
+    return <div>Loading...</div>;
   }
 
-  if (!user) {
-    console.log('User not authenticated, redirecting to home');
-    return <Navigate to="/" replace state={{ from: location }} />;
-  }
-
-  return children;
-};
-
-ProtectedRoute.propTypes = {
-  children: PropTypes.node.isRequired
+  return isAuthorized ? children : <Navigate to={ROUTER_CONFIG.ROUTES.SIGNIN} />;
 };
 
 export default ProtectedRoute;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

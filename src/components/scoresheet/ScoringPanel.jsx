@@ -1,36 +1,66 @@
-import React, { useState } from 'react';
 import {
-  VStack,
-  HStack,
+  Box,
   Button,
-  Text,
+  HStack,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
   NumberInput,
   NumberInputField,
   NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-  Textarea,
-  useToast,
   Select,
-  Box,
   SimpleGrid,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
-  FormControl,
-  FormLabel,
-  Input,
+  Text,
+  useToast,
+  VStack,
 } from '@chakra-ui/react';
-import { scoreSheetOperations } from '../../lib/scoreSheetOperations';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRole } from '../../hooks/useRole';
 
-const ScoringPanel = ({ onPlayRecorded }) => {
-  const [currentInning, setCurrentInning] = useState(1);
+const ScoringPanel = ({ onScoreUpdate }) => {
   const [loading, setLoading] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [selectedPlayer, setSelectedPlayer] = useState('');
+  const mounted = useRef(true);
+  const updateTimeoutRef = useRef(null);
   const toast = useToast();
+  const { role } = useRole();
+
+  const canEditScore = role === 'team-admin' || role === 'league-admin';
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleScoreUpdate = useCallback(async (play) => {
+    if (loading || !mounted.current || !canEditScore) return;
+    
+    try {
+      setLoading(true);
+      await onScoreUpdate(play);
+    } catch (error) {
+      console.error('Error recording play:', error);
+      toast({
+        title: "Error recording play",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      if (mounted.current) {
+        updateTimeoutRef.current = setTimeout(() => {
+          setLoading(false);
+        }, 300);
+      }
+    }
+  }, [loading, onScoreUpdate, canEditScore, toast]);
+
+  if (!canEditScore) {
+    return <Text>You don't have permission to edit scores</Text>;
+  }
 
   // Simulated player list - replace with actual player data
   const players = [
@@ -118,17 +148,12 @@ const ScoringPanel = ({ onPlayRecorded }) => {
             size="lg"
           >
             <NumberInputField 
-              bg="#2e3726"
-              border="none"
-              color="#E7F8E8"
+              variant="filled"
               textAlign="center"
               fontSize="xl"
               fontWeight="bold"
               h="48px"
-              pl="8px"
-              pr="8px"
-              _hover={{ bg: "#3e4736" }}
-              _focus={{ bg: "#3e4736", boxShadow: "none" }}
+              px="8px"
             />
             <NumberInputStepper 
               borderColor="transparent" 
@@ -139,7 +164,6 @@ const ScoringPanel = ({ onPlayRecorded }) => {
                 borderColor="transparent"
                 _hover={{ bg: "#3e4736" }}
                 h="24px"
-                children="+"
                 fontSize="lg"
               />
               <NumberDecrementStepper 
@@ -147,7 +171,6 @@ const ScoringPanel = ({ onPlayRecorded }) => {
                 borderColor="transparent"
                 _hover={{ bg: "#3e4736" }}
                 h="24px"
-                children="-"
                 fontSize="lg"
               />
             </NumberInputStepper>
@@ -315,7 +338,7 @@ const ScoringPanel = ({ onPlayRecorded }) => {
                 colorScheme="blue"
                 size="sm"
               >
-                Fielder's Choice (FC)
+                Fielder&apos;s Choice (FC)
               </Button>
               <Button
                 onClick={() => handleRecordPlay('error')}
@@ -345,4 +368,9 @@ const ScoringPanel = ({ onPlayRecorded }) => {
   );
 };
 
+ScoringPanel.propTypes = {
+  onPlayRecorded: PropTypes.func.isRequired,
+};
+
 export default ScoringPanel;
+

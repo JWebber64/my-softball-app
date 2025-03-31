@@ -1,16 +1,16 @@
-import React from 'react';
 import {
-  VStack,
-  Box,
-  Text,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
   Badge,
+  Box,
+  Table,
+  Tbody,
+  Td,
+  Text,
+  Th,
+  Thead,
+  Tr,
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React from 'react';
 
 const PlayByPlayPanel = ({ scoreSheet }) => {
   const getPlayColor = (playType) => {
@@ -86,6 +86,10 @@ const PlayByPlayPanel = ({ scoreSheet }) => {
       )}
     </Box>
   );
+};
+
+PlayByPlayPanel.propTypes = {
+  scoreSheet: PropTypes.object.isRequired,
 };
 
 export default PlayByPlayPanel;

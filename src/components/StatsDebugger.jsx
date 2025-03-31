@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  useReactTable, 
-  createColumnHelper, 
-  getCoreRowModel, 
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
   getSortedRowModel,
-  flexRender
+  useReactTable
 } from '@tanstack/react-table';
+import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const StatsDebugger = () => {
@@ -38,7 +38,7 @@ const StatsDebugger = () => {
         cell: info => (info.getValue() || 0).toFixed(3),
       }),
     ],
-    []
+    [columnHelper]
   );
 
   const table = useReactTable({

@@ -1,628 +1,473 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { CloseIcon, DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import {
-  VStack,
-  HStack,
   Button,
-  Input,
-  useToast,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  IconButton,
-  Box,
   FormControl,
   FormLabel,
+  HStack,
+  IconButton,
+  Input,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   NumberInput,
   NumberInputField,
   Select,
-  Image,
-  Spinner,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-  Checkbox,
-  SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  Heading,
-  Text,
+  Table,
+  Tag,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+  VStack,
+  useToast
 } from '@chakra-ui/react';
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import { supabase } from '../../lib/supabaseClient';
-import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
-import { useEnhancedRealtimeData } from '../../hooks/useEnhancedRealtimeData';
+import React, { useEffect, useState } from 'react';
+import { useTeam } from '../../hooks/useTeam';
+import { teamInfoService } from '../../services/teamInfoService';
+import { formFieldStyles } from '../../styles/formFieldStyles';
 
-const RosterEditor = () => {
-  const { 
-    data: players, 
-    loading, 
-    updateItem, 
-    addItem, 
-    deleteItem, 
-    pendingUpdates 
-  } = useEnhancedRealtimeData('players');
+const POSITIONS = [
+  'Pitcher',
+  'Catcher',
+  'First Base',
+  'Second Base',
+  'Third Base',
+  'Shortstop',
+  'Left Field',
+  'Center Field',
+  'Right Field',
+  'Designated Hitter'
+];
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    number: '',
-    position: '',
-    battingOrder: '',
-    status: 'active',
-    photoUrl: ''
-  });
-  const [editingId, setEditingId] = useState(null);
-  const [photoFile, setPhotoFile] = useState(null);
+const RosterEditor = ({ isDisabled }) => {
+  const [players, setPlayers] = useState([]);
   const toast = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
-  const cancelRef = useRef();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortField, setSortField] = useState('lastName');
-  const [sortDirection, setSortDirection] = useState('asc');
-  const [selectedPlayers, setSelectedPlayers] = useState([]);
-
-  const filteredPlayers = players.filter(player => {
-    const matchesSearch = (
-      player.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      player.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      player.number.toString().includes(searchTerm)
-    );
-    const matchesStatus = filterStatus === 'all' || player.status === filterStatus;
-    return matchesSearch && matchesStatus;
+  const { team } = useTeam();
+  const [newPlayer, setNewPlayer] = useState({
+    name: '',
+    number: '',
+    positions: []  // Changed to array for multiple positions
   });
+  const [editingPlayer, setEditingPlayer] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
-    const aValue = a[sortField];
-    const bValue = b[sortField];
-    return sortDirection === 'asc' 
-      ? aValue.localeCompare(bValue)
-      : bValue.localeCompare(aValue);
-  });
+  useEffect(() => {
+    if (team?.id) {
+      fetchRoster();
+    }
+  }, [team?.id]);
 
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+  const fetchRoster = async () => {
+    try {
+      const data = await teamInfoService.getTeamRoster(team.id);
+      setPlayers(data);
+    } catch (error) {
+      toast({
+        title: 'Error fetching roster',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
     }
   };
 
-  const handleInputChange = (e) => {
+  const handlePositionAdd = (position) => {
+    if (!newPlayer.positions.includes(position)) {
+      setNewPlayer(prev => ({
+        ...prev,
+        positions: [...prev.positions, position]
+      }));
+    }
+  };
+
+  const handlePositionRemove = (positionToRemove) => {
+    setNewPlayer(prev => ({
+      ...prev,
+      positions: prev.positions.filter(pos => pos !== positionToRemove)
+    }));
+  };
+
+  const handleNewPlayerChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setNewPlayer(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handlePhotoUpload = async (file) => {
+  const handleAddPlayer = async (e) => {
+    e.preventDefault();
+
+    if (!team?.id) {
+      toast({
+        title: 'Error',
+        description: 'No team selected',
+        status: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!newPlayer.name || newPlayer.positions.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Name and at least one position are required',
+        status: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `player-photos/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
+      await teamInfoService.addPlayerToRoster(team.id, {
+        name: newPlayer.name.trim(),
+        number: newPlayer.number ? newPlayer.number.trim() : null,
+        positions: newPlayer.positions  // Send array of positions
+      });
+      
+      await fetchRoster();
+      setNewPlayer({ name: '', number: '', positions: [] });
+      toast({
+        title: 'Success',
+        description: 'Player added successfully',
+        status: 'success',
+        duration: 3000,
+      });
     } catch (error) {
-      throw error;
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to add player',
+        status: 'error',
+        duration: 5000,
+      });
     }
   };
 
-  const validateForm = () => {
-    if (!formData.number) {
-      toast({
-        title: "Invalid number",
-        description: "Player number is required",
-        status: "error",
-        duration: 3000,
-      });
-      return false;
-    }
-    
-    // Check for duplicate numbers
-    const duplicateNumber = players.find(
-      p => p.number === formData.number && p.id !== editingId
-    );
-    if (duplicateNumber) {
-      toast({
-        title: "Duplicate number",
-        description: "This player number is already in use",
-        status: "error",
-        duration: 3000,
-      });
-      return false;
-    }
+  const handleDeletePlayer = async (playerId) => {
+    if (!window.confirm('Are you sure you want to delete this player?')) return;
 
-    return true;
+    try {
+      await teamInfoService.deleteRosterPlayer(team.id, playerId);
+      await fetchRoster();
+      toast({
+        title: 'Player deleted successfully',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error deleting player',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
   };
 
-  const handleSubmit = async (e) => {
+  const handleEditClick = (player) => {
+    setEditingPlayer({
+      id: player.id,
+      name: player.name,
+      number: player.number || '',
+      positions: player.positions || []
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     
-    const success = editingId ? 
-      await updateItem(editingId, formData, 'player') :
-      await addItem(formData, 'player');
-
-    if (success) {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        number: '',
-        position: '',
-        status: 'active'
+    try {
+      await teamInfoService.updateRosterPlayer(team.id, editingPlayer.id, {
+        name: editingPlayer.name,
+        number: editingPlayer.number,
+        positions: editingPlayer.positions
       });
-      setEditingId(null);
-    }
-  };
-
-  const handleEdit = (player) => {
-    setFormData({
-      firstName: player.firstName,
-      lastName: player.lastName,
-      number: player.number,
-      position: player.position,
-      battingOrder: player.battingOrder,
-      status: player.status,
-      photoUrl: player.photoUrl
-    });
-    setEditingId(player.id);
-  };
-
-  const handleDeleteClick = (id) => {
-    setDeleteId(id);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    
-    try {
-      await handleDelete(deleteId);
-    } finally {
-      setDeleteId(null);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    await deleteItem(id);
-  };
-
-  const handleBulkAction = async (action) => {
-    try {
-      switch (action) {
-        case 'delete':
-          await supabase
-            .from('players')
-            .delete()
-            .in('id', selectedPlayers);
-          break;
-        case 'updateStatus':
-          await supabase
-            .from('players')
-            .update({ status: 'inactive' })
-            .in('id', selectedPlayers);
-          break;
-      }
-      setSelectedPlayers([]);
-      fetchPlayers();
+      
+      await fetchRoster();
+      setIsEditModalOpen(false);
+      setEditingPlayer(null);
+      
+      toast({
+        title: 'Player updated successfully',
+        status: 'success',
+        duration: 3000,
+      });
     } catch (error) {
       toast({
-        title: "Error performing bulk action",
+        title: 'Error updating player',
         description: error.message,
-        status: "error",
+        status: 'error',
+        duration: 5000,
       });
     }
   };
 
-  const handleExport = () => {
-    const csv = players.map(player => 
-      Object.values(player).join(',')
-    ).join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'roster.csv';
-    a.click();
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditingPlayer(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleImport = async (file) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target.result;
-      const rows = text.split('\n');
-      const newPlayers = rows.map(row => {
-        const [firstName, lastName, number, position] = row.split(',');
-        return { firstName, lastName, number, position };
-      });
-
-      try {
-        await supabase.from('players').insert(newPlayers);
-        fetchPlayers();
-      } catch (error) {
-        toast({
-          title: "Import failed",
-          description: error.message,
-          status: "error",
-        });
-      }
-    };
-    reader.readAsText(file);
+  const handleEditPositionAdd = (position) => {
+    if (!editingPlayer.positions.includes(position)) {
+      setEditingPlayer(prev => ({
+        ...prev,
+        positions: [...prev.positions, position]
+      }));
+    }
   };
 
-  const RosterStats = () => {
-    const stats = {
-      totalPlayers: players.length,
-      activePlayers: players.filter(p => p.status === 'active').length,
-      injuredPlayers: players.filter(p => p.status === 'injured').length,
-      positionBreakdown: players.reduce((acc, p) => {
-        acc[p.position] = (acc[p.position] || 0) + 1;
-        return acc;
-      }, {})
-    };
-
-    return (
-      <SimpleGrid columns={4} spacing={4} mb={6}>
-        <Stat>
-          <StatLabel>Total Players</StatLabel>
-          <StatNumber>{stats.totalPlayers}</StatNumber>
-        </Stat>
-        <Stat>
-          <StatLabel>Active Players</StatLabel>
-          <StatNumber>{stats.activePlayers}</StatNumber>
-        </Stat>
-        <Stat>
-          <StatLabel>Injured Players</StatLabel>
-          <StatNumber>{stats.injuredPlayers}</StatNumber>
-        </Stat>
-        <Box>
-          <Heading size="sm">Position Breakdown</Heading>
-          {Object.entries(stats.positionBreakdown).map(([pos, count]) => (
-            <Text key={pos}>{pos}: {count}</Text>
-          ))}
-        </Box>
-      </SimpleGrid>
-    );
+  const handleEditPositionRemove = (positionToRemove) => {
+    setEditingPlayer(prev => ({
+      ...prev,
+      positions: prev.positions.filter(pos => pos !== positionToRemove)
+    }));
   };
 
   return (
-    <>
-      <VStack spacing={6} align="stretch">
-        <Box as="form" onSubmit={handleSubmit}>
-          <VStack spacing={4}>
-            <HStack spacing={4}>
-              <FormControl>
-                <FormLabel>First Name</FormLabel>
-                <Input
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </FormControl>
+    <VStack spacing={4} align="stretch" opacity={isDisabled ? 0.6 : 1}>
+      <VStack as="form" onSubmit={handleAddPlayer} spacing={4} align="stretch">
+        <FormControl isDisabled={isDisabled}>
+          <FormLabel color="brand.text.primary">Player Name</FormLabel>
+          <Input
+            {...formFieldStyles}
+            type="text"
+            value={newPlayer.name}
+            onChange={handleNewPlayerChange}
+          />
+        </FormControl>
 
-              <FormControl>
-                <FormLabel>Last Name</FormLabel>
-                <Input
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </FormControl>
-            </HStack>
-
-            <HStack spacing={4}>
-              <FormControl>
-                <FormLabel>Number</FormLabel>
-                <NumberInput min={0} max={99}>
-                  <NumberInputField
-                    name="number"
-                    value={formData.number}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Position</FormLabel>
-                <Select
-                  name="position"
-                  value={formData.position}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Position</option>
-                  <option value="P">Pitcher</option>
-                  <option value="C">Catcher</option>
-                  <option value="1B">First Base</option>
-                  <option value="2B">Second Base</option>
-                  <option value="3B">Third Base</option>
-                  <option value="SS">Shortstop</option>
-                  <option value="LF">Left Field</option>
-                  <option value="CF">Center Field</option>
-                  <option value="RF">Right Field</option>
-                  <option value="DH">Designated Hitter</option>
-                </Select>
-              </FormControl>
-            </HStack>
-
-            <HStack spacing={4}>
-              <FormControl>
-                <FormLabel>Batting Order</FormLabel>
-                <NumberInput min={1} max={9}>
-                  <NumberInputField
-                    name="battingOrder"
-                    value={formData.battingOrder}
-                    onChange={handleInputChange}
-                  />
-                </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Status</FormLabel>
-                <Select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                >
-                  <option value="active">Active</option>
-                  <option value="injured">Injured</option>
-                  <option value="inactive">Inactive</option>
-                </Select>
-              </FormControl>
-            </HStack>
-
-            <FormControl>
-              <FormLabel>Photo</FormLabel>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPhotoFile(e.target.files[0])}
-              />
-            </FormControl>
-
-            <Button 
-              type="submit" 
-              colorScheme="blue"
-              isLoading={isSubmitting}
-              loadingText="Saving..."
+        <FormControl isDisabled={isDisabled}>
+          <FormLabel color="brand.text.primary">Positions</FormLabel>
+          <VStack align="stretch" spacing={2}>
+            <Select
+              {...formFieldStyles}
+              placeholder="Select position"
+              onChange={(e) => handlePositionAdd(e.target.value)}
+              value=""
             >
-              {editingId ? 'Update Player' : 'Add Player'}
-            </Button>
-          </VStack>
-        </Box>
-
-        {loading ? (
-          <Spinner size="xl" />
-        ) : (
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>
-                  <Checkbox
-                    isChecked={selectedPlayers.length === players.length}
-                    onChange={(e) => {
-                      setSelectedPlayers(
-                        e.target.checked 
-                          ? players.map(p => p.id)
-                          : []
-                      );
-                    }}
-                  />
-                </Th>
-                <Th
-                  cursor="pointer"
-                  onClick={() => handleSort('photoUrl')}
-                >
-                  Photo
-                  {sortField === 'photoUrl' && (
-                    <Icon 
-                      ml={2}
-                      as={sortDirection === 'asc' ? FaArrowUp : FaArrowDown}
-                    />
-                  )}
-                </Th>
-                <Th
-                  cursor="pointer"
-                  onClick={() => handleSort('firstName')}
-                >
-                  First Name
-                  {sortField === 'firstName' && (
-                    <Icon 
-                      ml={2}
-                      as={sortDirection === 'asc' ? FaArrowUp : FaArrowDown}
-                    />
-                  )}
-                </Th>
-                <Th
-                  cursor="pointer"
-                  onClick={() => handleSort('lastName')}
-                >
-                  Last Name
-                  {sortField === 'lastName' && (
-                    <Icon 
-                      ml={2}
-                      as={sortDirection === 'asc' ? FaArrowUp : FaArrowDown}
-                    />
-                  )}
-                </Th>
-                <Th
-                  cursor="pointer"
-                  onClick={() => handleSort('number')}
-                >
-                  Number
-                  {sortField === 'number' && (
-                    <Icon 
-                      ml={2}
-                      as={sortDirection === 'asc' ? FaArrowUp : FaArrowDown}
-                    />
-                  )}
-                </Th>
-                <Th
-                  cursor="pointer"
-                  onClick={() => handleSort('position')}
-                >
-                  Position
-                  {sortField === 'position' && (
-                    <Icon 
-                      ml={2}
-                      as={sortDirection === 'asc' ? FaArrowUp : FaArrowDown}
-                    />
-                  )}
-                </Th>
-                <Th
-                  cursor="pointer"
-                  onClick={() => handleSort('battingOrder')}
-                >
-                  Batting Order
-                  {sortField === 'battingOrder' && (
-                    <Icon 
-                      ml={2}
-                      as={sortDirection === 'asc' ? FaArrowUp : FaArrowDown}
-                    />
-                  )}
-                </Th>
-                <Th
-                  cursor="pointer"
-                  onClick={() => handleSort('status')}
-                >
-                  Status
-                  {sortField === 'status' && (
-                    <Icon 
-                      ml={2}
-                      as={sortDirection === 'asc' ? FaArrowUp : FaArrowDown}
-                    />
-                  )}
-                </Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {sortedPlayers.map((player) => (
-                <Tr key={player.id}>
-                  <Td>
-                    <Checkbox
-                      isChecked={selectedPlayers.includes(player.id)}
-                      onChange={(e) => {
-                        setSelectedPlayers(prev => 
-                          e.target.checked 
-                            ? [...prev, player.id]
-                            : prev.filter(id => id !== player.id)
-                        );
-                      }}
-                    />
-                  </Td>
-                  <Td>
-                    {player.photoUrl && (
-                      <Image
-                        src={player.photoUrl}
-                        alt={`${player.firstName} ${player.lastName}`}
-                        boxSize="50px"
-                        objectFit="cover"
-                        borderRadius="md"
-                      />
-                    )}
-                  </Td>
-                  <Td>{player.firstName}</Td>
-                  <Td>{player.lastName}</Td>
-                  <Td>{player.number}</Td>
-                  <Td>{player.position}</Td>
-                  <Td>{player.battingOrder}</Td>
-                  <Td>{player.status}</Td>
-                  <Td>
-                    <HStack spacing={2}>
-                      <IconButton
-                        icon={<EditIcon />}
-                        onClick={() => handleEdit(player)}
-                        aria-label="Edit player"
-                        size="sm"
-                      />
-                      <IconButton
-                        icon={<DeleteIcon />}
-                        onClick={() => handleDeleteClick(player.id)}
-                        aria-label="Delete player"
-                        size="sm"
-                        colorScheme="red"
-                      />
-                    </HStack>
-                  </Td>
-                </Tr>
+              {POSITIONS.map(pos => (
+                <option key={pos} value={pos}>
+                  {pos}
+                </option>
               ))}
-            </Tbody>
-          </Table>
-        )}
+            </Select>
+            <HStack spacing={2} wrap="wrap">
+              {newPlayer.positions.map(position => (
+                <Tag
+                  key={position}
+                  size="md"
+                  borderRadius="full"
+                  variant="solid"
+                  colorScheme="green"
+                >
+                  {position}
+                  <IconButton
+                    size="xs"
+                    ml={1}
+                    icon={<CloseIcon />}
+                    onClick={() => handlePositionRemove(position)}
+                    variant="ghost"
+                    colorScheme="green"
+                    aria-label={`Remove ${position}`}
+                  />
+                </Tag>
+              ))}
+            </HStack>
+          </VStack>
+        </FormControl>
+
+        <FormControl isDisabled={isDisabled}>
+          <FormLabel color="brand.text.primary">Jersey Number</FormLabel>
+          <NumberInput min={0} max={99} isDisabled={isDisabled}>
+            <NumberInputField
+              {...formFieldStyles}
+              name="number"
+              value={newPlayer.number}
+              onChange={(e) => handleNewPlayerChange({
+                target: { name: 'number', value: e.target.value }
+              })}
+            />
+          </NumberInput>
+        </FormControl>
+
+        <Button
+          type="submit"
+          // Remove the hardcoded gradient
+          // bgGradient="linear(to-r, #111613, #1b2c14, #111613)"
+          // color="brand.text.primary"
+          // _hover={{ opacity: 0.9 }}
+          isDisabled={isDisabled}
+        >
+          Add Player
+        </Button>
       </VStack>
-      {selectedPlayers.length > 0 && (
-        <HStack>
-          <Button
-            onClick={() => handleBulkAction('updateStatus')}
-            colorScheme="blue"
-          >
-            Update Status
-          </Button>
-          <Button
-            onClick={() => handleBulkAction('delete')}
-            colorScheme="red"
-          >
-            Delete Selected
-          </Button>
-        </HStack>
-      )}
-      <AlertDialog
-        isOpen={!!deleteId}
-        leastDestructiveRef={cancelRef}
-        onClose={() => setDeleteId(null)}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader>Delete Player</AlertDialogHeader>
-            <AlertDialogBody>
-              Are you sure? This action cannot be undone.
-            </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setDeleteId(null)}>
+
+      <Table variant="simple">
+        <Thead>
+          <Tr>
+            <Th color="brand.text.primary">#</Th>
+            <Th color="brand.text.primary">Name</Th>
+            <Th color="brand.text.primary">Positions</Th>
+            <Th color="brand.text.primary">Actions</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {players.map((player) => (
+            <Tr key={player.id}>
+              <Td color="brand.text.primary">{player.number}</Td>
+              <Td color="brand.text.primary">{player.name}</Td>
+              <Td color="brand.text.primary">
+                <HStack spacing={1}>
+                  {(player.positions || []).map(pos => (
+                    <Tag key={pos} size="sm" colorScheme="green">
+                      {pos}
+                    </Tag>
+                  ))}
+                </HStack>
+              </Td>
+              <Td>
+                <HStack spacing={2}>
+                  <IconButton
+                    icon={<EditIcon />}
+                    colorScheme="blue"
+                    size="sm"
+                    aria-label="Edit player"
+                    onClick={() => handleEditClick(player)}
+                    isDisabled={isDisabled}
+                  />
+                  <IconButton
+                    icon={<DeleteIcon />}
+                    variant="danger"
+                    size="sm"
+                    aria-label="Delete player"
+                    onClick={() => handleDeletePlayer(player.id)}
+                    isDisabled={isDisabled}
+                  />
+                </HStack>
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <form onSubmit={handleEditSubmit}>
+            <ModalHeader>Edit Player</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <VStack spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel color="brand.text.primary">Player Name</FormLabel>
+                  <Input
+                    {...formFieldStyles}
+                    type="text"
+                    value={editingPlayer?.name || ''}
+                    onChange={handleEditChange}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color="brand.text.primary">Jersey Number</FormLabel>
+                  <NumberInput min={0} max={99}>
+                    <NumberInputField
+                      {...formFieldStyles}
+                      name="number"
+                      value={editingPlayer?.number || ''}
+                      onChange={(e) => handleEditChange({
+                        target: { name: 'number', value: e.target.value }
+                      })}
+                    />
+                  </NumberInput>
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel color="brand.text.primary">Positions</FormLabel>
+                  <HStack spacing={2} wrap="wrap">
+                    {editingPlayer?.positions.map(pos => (
+                      <Tag 
+                        key={pos} 
+                        size="md" 
+                        colorScheme="green"
+                        cursor="pointer"
+                        onClick={() => handleEditPositionRemove(pos)}
+                      >
+                        {pos} ✕
+                      </Tag>
+                    ))}
+                  </HStack>
+                  <Menu>
+                    <MenuButton as={Button} mt={2}>
+                      Add Position
+                    </MenuButton>
+                    <MenuList>
+                      {POSITIONS.map(pos => (
+                        <MenuItem
+                          key={pos}
+                          onClick={() => handleEditPositionAdd(pos)}
+                        >
+                          {pos}
+                        </MenuItem>
+                      ))}
+                    </MenuList>
+                  </Menu>
+                </FormControl>
+              </VStack>
+            </ModalBody>
+
+            <ModalFooter>
+              <Button variant="ghost" mr={3} onClick={() => setIsEditModalOpen(false)}>
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
-                Delete
+              <Button 
+                type="submit"
+                // Remove the hardcoded gradient
+                // bgGradient="linear(to-r, #111613, #1b2c14, #111613)"
+                // color="brand.text.primary"
+                // _hover={{ opacity: 0.9 }}
+              >
+                Save Changes
               </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
-      <HStack>
-        <Button onClick={handleExport}>
-          Export CSV
-        </Button>
-        <Input
-          type="file"
-          accept=".csv"
-          onChange={(e) => handleImport(e.target.files[0])}
-        />
-      </HStack>
-    </>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+    </VStack>
   );
 };
 
 export default RosterEditor;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

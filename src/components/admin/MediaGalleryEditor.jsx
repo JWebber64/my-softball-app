@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { DeleteIcon } from '@chakra-ui/icons';
 import {
-  VStack,
+  Box,
+  Button,
   FormControl,
   FormLabel,
-  Input,
-  Button,
-  Select,
   Grid,
-  Box,
-  Image,
   IconButton,
-  useToast,
+  Image,
+  Input,
+  Select,
   Text,
+  useToast,
+  VStack,
 } from '@chakra-ui/react';
-import { DeleteIcon } from '@chakra-ui/icons';
-import { supabase } from '../../lib/supabaseClient';
+import React, { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_IMAGES } from '../../constants/assets';
+import { supabase } from '../../lib/supabaseClient';
 
 const MediaGalleryEditor = () => {
   const [media, setMedia] = useState([]);
@@ -30,9 +30,10 @@ const MediaGalleryEditor = () => {
 
   useEffect(() => {
     fetchMedia();
-  }, []);
+  }, [fetchMedia]); // Add fetchMedia to dependency array
 
-  const fetchMedia = async () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fetchMedia = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('team_media')
@@ -49,7 +50,7 @@ const MediaGalleryEditor = () => {
         duration: 3000,
       });
     }
-  };
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,7 +63,7 @@ const MediaGalleryEditor = () => {
       }
 
       // Basic URL validation
-      const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
+      const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
       if (!urlPattern.test(formData.url)) {
         throw new Error('Please enter a valid URL');
       }
@@ -165,7 +166,6 @@ const MediaGalleryEditor = () => {
 
           <Button
             type="submit"
-            colorScheme="green"
             isLoading={loading}
             loadingText="Adding..."
           >
@@ -223,7 +223,7 @@ const MediaGalleryEditor = () => {
                 top={2}
                 right={2}
                 onClick={() => handleDelete(item.id)}
-                colorScheme="red"
+                variant="danger"
                 aria-label="Delete media"
               />
             </Box>
@@ -235,3 +235,4 @@ const MediaGalleryEditor = () => {
 };
 
 export default MediaGalleryEditor;
+

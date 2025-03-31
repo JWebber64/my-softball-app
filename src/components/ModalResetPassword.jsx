@@ -1,8 +1,8 @@
-// src/components/ModalResetPassword.jsx
-import React, { useState } from "react";
+import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 import { supabase } from "../lib/supabaseClient";
 
-function ModalResetPassword({ onClose }) {
+const ModalResetPassword = ({ onClose }) => {
   const [email, setEmail] = useState("");
 
   const handleReset = async () => {
@@ -35,5 +35,9 @@ function ModalResetPassword({ onClose }) {
     </div>
   );
 }
+
+ModalResetPassword.propTypes = {
+  onClose: PropTypes.func.isRequired
+};
 
 export default ModalResetPassword;  // Ensure default export

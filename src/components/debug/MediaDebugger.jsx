@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { } from 'react';
 
 const MediaDebugger = () => {
   // Remove placeholder checking since we're not using them anymore

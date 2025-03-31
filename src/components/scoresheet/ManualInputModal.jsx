@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
   Box,
+  Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Text,
-  Heading,
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 import DigitalScoreSheet from './DigitalScoreSheet';
 
 const ManualInputModal = ({ isOpen, onClose, onSave }) => {
@@ -124,6 +124,11 @@ const ManualInputModal = ({ isOpen, onClose, onSave }) => {
       </ModalContent>
     </Modal>
   );
+};
+ManualInputModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func,
 };
 
 export default ManualInputModal;

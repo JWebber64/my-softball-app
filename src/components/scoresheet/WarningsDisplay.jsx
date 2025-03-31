@@ -1,9 +1,16 @@
+import { Box, Button, CloseButton, HStack, Text, VStack } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
 import React from 'react';
-import { Box, Text, Button, VStack, HStack, CloseButton } from '@chakra-ui/react';
 
 const WarningsDisplay = ({ warnings, onDismiss }) => {
   if (!warnings.length) return null;
 
+  WarningsDisplay.propTypes = {
+    warnings: PropTypes.arrayOf(PropTypes.object).isRequired,
+    onDismiss: PropTypes.func.isRequired,
+  };
+
+  
   return (
     <Box mb={4}>
       <HStack mb={2} justify="space-between">
@@ -11,6 +18,7 @@ const WarningsDisplay = ({ warnings, onDismiss }) => {
         <Button
           size="sm"
           onClick={() => onDismiss('all')}
+          variant="secondary"
         >
           Clear All
         </Button>
@@ -22,9 +30,9 @@ const WarningsDisplay = ({ warnings, onDismiss }) => {
             key={warning.id}
             p={2}
             borderRadius="md"
-            bg={warning.isCritical ? "red.100" : "yellow.100"}
+            bg={warning.isCritical ? "var(--app-error-bg)" : "var(--app-warning-bg)"}
             borderLeft="4px solid"
-            borderLeftColor={warning.isCritical ? "red.500" : "yellow.500"}
+            borderLeftColor={warning.isCritical ? "var(--app-error)" : "var(--app-warning)"}
           >
             <HStack justify="space-between">
               <Text fontSize="sm">{warning.message}</Text>
@@ -41,3 +49,4 @@ const WarningsDisplay = ({ warnings, onDismiss }) => {
 };
 
 export default WarningsDisplay;
+

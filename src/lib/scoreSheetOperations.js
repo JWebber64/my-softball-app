@@ -1,20 +1,47 @@
 import { supabase } from './supabaseClient';
 
 export const scoreSheetOperations = {
-  async createScoreSheet(parsedData) {
+  async createScoreSheet(parsedData, teamId) {
+    if (!teamId) {
+      throw new Error('Team ID is required to create a score sheet');
+    }
+
+    // No need to check roles manually - RLS policies will handle it
     const { data, error } = await supabase
       .from('score_sheets')
-      .insert([{
-        ...parsedData.gameInfo,
-        innings: parsedData.innings,
-        lineup: parsedData.players,
-        substitutions: [],
-        final_score: parsedData.finalScore,
-      }])
+      .insert([
+        {
+          team_id: teamId,
+          ...parsedData
+        }
+      ]);
+
+    if (error) {
+      throw new Error('Not authorized to create score sheets for this team');
+    }
+
+    return data;
+  },
+
+  async uploadScoreSheetImage(file, scoreSheetId) {
+    const fileName = `${scoreSheetId}-${Date.now()}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKETS.SCORESHEETS)
+      .upload(fileName, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: updateData, error: updateError } = await supabase
+      .from('score_sheets')
+      .update({ 
+        original_image_url: uploadData.path,
+        processing_status: 'pending'
+      })
+      .eq('id', scoreSheetId)
       .select();
 
-    if (error) throw error;
-    return data;
+    if (updateError) throw updateError;
+    return updateData;
   },
 
   async getScoreSheet(id) {
@@ -53,3 +80,11 @@ export const scoreSheetOperations = {
     return innings.reduce((sum, inning) => sum + (inning.runs || 0), 0);
   }
 };
+
+
+
+
+
+
+
+

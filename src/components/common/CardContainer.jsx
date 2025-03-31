@@ -1,21 +1,30 @@
 import { Box } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
 
-const CardContainer = ({ children }) => (
-  <Box
-    height="500px"
-    width="100%"
-    position="relative"
-    bg="brand.primary.base"
-    borderRadius="lg"
-    overflow="hidden"
-    transition="all 0.2s"
-    boxShadow="lg"
-    borderWidth="1px"
-    borderColor="brand.border"
-    mb={4}
-  >
-    {children}
-  </Box>
-);
+const CardContainer = ({ children, ...props }) => {
+  return (
+    <Box
+      bg="brand.primary.base"  // Correct usage
+      p={6}
+      borderRadius="lg"
+      boxShadow="md"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      width="100%"
+      {...props}
+    >
+      {children}
+    </Box>
+  );
+};
+
+CardContainer.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 export default CardContainer;
+
+
+
+

@@ -1,210 +1,242 @@
-import React, { useState, useEffect } from 'react';
+import { AddIcon, EditIcon } from '@chakra-ui/icons';
 import {
-  VStack,
+  Box,
+  Button,
   FormControl,
   FormLabel,
   Input,
-  Button,
   Select,
   Table,
-  Thead,
   Tbody,
-  Tr,
-  Th,
   Td,
-  IconButton,
-  useToast,
+  Th,
+  Thead,
+  Tr,
+  VStack,
+  useToast
 } from '@chakra-ui/react';
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
+import PropTypes from 'prop-types';
+import React, { useEffect, useState } from 'react';
+import { useTeam } from '../../hooks/useTeam';
 import { supabase } from '../../lib/supabaseClient';
+import { formFieldStyles } from '../../styles/formFieldStyles';
 
-const SocialMediaEditor = () => {
-  const [links, setLinks] = useState([]);
+const PLATFORMS = {
+  INSTAGRAM: 'Instagram',
+  FACEBOOK: 'Facebook',
+  YOUTUBE: 'YouTube',
+  X: 'X',
+  TIKTOK: 'TikTok'
+};
+
+const PLATFORM_PATTERNS = {
+  [PLATFORMS.INSTAGRAM]: /^https:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/,
+  [PLATFORMS.FACEBOOK]: /^https:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9_.]+\/?$/,
+  [PLATFORMS.YOUTUBE]: /^https:\/\/(www\.)?youtube\.com\/(c\/|channel\/|user\/)?[a-zA-Z0-9_-]+\/?$/,
+  [PLATFORMS.X]: /^https:\/\/(www\.)?twitter\.com\/[a-zA-Z0-9_]+\/?$/,
+  [PLATFORMS.TIKTOK]: /^https:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9_.]+\/?$/
+};
+
+const SocialMediaEditor = ({ teamId, isDisabled }) => {
+  const { team } = useTeam();
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [editingLink, setEditingLink] = useState(null);
   const [formData, setFormData] = useState({
-    platform: '',
-    url: '',
-    username: '',
+    platform: PLATFORMS.INSTAGRAM,
+    link: ''
   });
-  const [editingId, setEditingId] = useState(null);
-  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
-    fetchLinks();
-  }, []);
+    if (teamId) {
+      fetchSocialLinks();
+    }
+  }, [teamId]);
 
-  const fetchLinks = async () => {
+  const fetchSocialLinks = async () => {
+    if (!teamId) return;
+
     try {
       const { data, error } = await supabase
-        .from('team_social_media')
-        .select('*')
-        .order('platform');
+        .from('team_social_config')
+        .select('social_links')
+        .eq('team_id', teamId)
+        .maybeSingle();
 
-      if (error) throw error;
-      setLinks(data || []);
+      if (error && error.code !== 'PGRST116') throw error;
+      setSocialLinks(data?.social_links || []);
     } catch (error) {
       toast({
-        title: 'Error fetching social media links',
+        title: 'Error fetching social links',
         description: error.message,
         status: 'error',
-        duration: 3000,
+        duration: 3000
       });
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const validateLink = (platform, link) => {
+    const pattern = PLATFORM_PATTERNS[platform];
+    if (!pattern.test(link)) {
+      throw new Error(`Invalid ${platform} URL format`);
+    }
+  };
 
+  const handleSubmit = async () => {
     try {
-      if (editingId) {
-        const { error } = await supabase
-          .from('team_social_media')
-          .update(formData)
-          .eq('id', editingId);
+      validateLink(formData.platform, formData.link);
 
-        if (error) throw error;
+      const newLink = {
+        id: editingLink?.id || Date.now(),
+        platform: formData.platform,
+        link: formData.link
+      };
+
+      let updatedLinks;
+      if (editingLink) {
+        updatedLinks = socialLinks.map(link => 
+          link.id === editingLink.id ? newLink : link
+        );
       } else {
-        const { error } = await supabase
-          .from('team_social_media')
-          .insert([formData]);
-
-        if (error) throw error;
+        updatedLinks = [...socialLinks, newLink];
       }
 
-      setFormData({ platform: '', url: '', username: '' });
-      setEditingId(null);
-      fetchLinks();
+      const { error } = await supabase
+        .from('team_social_config')
+        .upsert({
+          team_id: teamId,
+          social_links: updatedLinks
+        }, {
+          onConflict: 'team_id'
+        });
+
+      if (error) throw error;
+
+      setSocialLinks(updatedLinks);
+      setFormData({ platform: PLATFORMS.INSTAGRAM, link: '' });
+      setEditingLink(null);
+
       toast({
-        title: `Social media link ${editingId ? 'updated' : 'added'} successfully`,
+        title: `Social link ${editingLink ? 'updated' : 'added'} successfully`,
         status: 'success',
-        duration: 3000,
+        duration: 2000
       });
     } catch (error) {
       toast({
-        title: 'Error saving social media link',
+        title: 'Error saving social link',
         description: error.message,
         status: 'error',
-        duration: 3000,
+        duration: 3000
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleEdit = (link) => {
-    setFormData(link);
-    setEditingId(link.id);
+    setEditingLink(link);
+    setFormData({
+      platform: link.platform,
+      link: link.link
+    });
   };
 
   const handleDelete = async (id) => {
     try {
+      const updatedLinks = socialLinks.filter(link => link.id !== id);
+
       const { error } = await supabase
-        .from('team_social_media')
-        .delete()
-        .eq('id', id);
+        .from('team_social_config')
+        .upsert({
+          team_id: teamId,
+          social_links: updatedLinks
+        }, {
+          onConflict: 'team_id'
+        });
 
       if (error) throw error;
 
-      fetchLinks();
+      setSocialLinks(updatedLinks);
       toast({
-        title: 'Social media link deleted successfully',
+        title: 'Social link deleted successfully',
         status: 'success',
-        duration: 3000,
+        duration: 2000
       });
     } catch (error) {
       toast({
-        title: 'Error deleting social media link',
+        title: 'Error deleting social link',
         description: error.message,
         status: 'error',
-        duration: 3000,
+        duration: 3000
       });
     }
   };
 
   return (
-    <VStack spacing={6} align="stretch">
-      <form onSubmit={handleSubmit}>
-        <VStack spacing={4}>
-          <FormControl isRequired>
-            <FormLabel>Platform</FormLabel>
-            <Select
-              value={formData.platform}
-              onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-            >
-              <option value="">Select Platform</option>
-              <option value="instagram">Instagram</option>
-              <option value="facebook">Facebook</option>
-              <option value="twitter">Twitter</option>
-              <option value="youtube">YouTube</option>
-              <option value="tiktok">TikTok</option>
-            </Select>
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>URL</FormLabel>
-            <Input
-              value={formData.url}
-              onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-              placeholder="https://"
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Username</FormLabel>
-            <Input
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              placeholder="@username"
-            />
-          </FormControl>
-
-          <Button
-            type="submit"
-            colorScheme="green"
-            isLoading={loading}
-            loadingText="Saving..."
+    <Box>
+      <VStack spacing={4} align="stretch">
+        <FormControl>
+          <FormLabel>Platform</FormLabel>
+          <Select
+            {...formFieldStyles}
+            value={formData.platform}
+            onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
           >
-            {editingId ? 'Update Link' : 'Add Link'}
-          </Button>
-        </VStack>
-      </form>
+            {Object.values(PLATFORMS).map(platform => (
+              <option key={platform} value={platform}>
+                {platform}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
 
-      <Table variant="simple">
-        <Thead>
-          <Tr>
-            <Th>Platform</Th>
-            <Th>Username</Th>
-            <Th>URL</Th>
-            <Th>Actions</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {links.map((link) => (
-            <Tr key={link.id}>
-              <Td>{link.platform}</Td>
-              <Td>{link.username}</Td>
-              <Td>{link.url}</Td>
-              <Td>
-                <IconButton
-                  icon={<EditIcon />}
-                  onClick={() => handleEdit(link)}
-                  mr={2}
-                  aria-label="Edit"
-                />
-                <IconButton
-                  icon={<DeleteIcon />}
-                  onClick={() => handleDelete(link.id)}
-                  aria-label="Delete"
-                  colorScheme="red"
-                />
-              </Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </VStack>
+        <FormControl>
+          <FormLabel>Link</FormLabel>
+          <Input
+            {...formFieldStyles}
+            type="url"
+            value={formData.link}
+            onChange={(e) => setFormData(prev => ({ ...prev, link: e.target.value }))}
+            placeholder={`Enter ${formData.platform} profile URL`}
+          />
+        </FormControl>
+
+        <Button
+          leftIcon={editingLink ? <EditIcon /> : <AddIcon />}
+          onClick={handleSubmit}
+          colorScheme="brand"
+        >
+          {editingLink ? 'Update' : 'Add'} Social Link
+        </Button>
+        
+        <Box overflowX="auto">
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>Platform</Th>
+                <Th>Link</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {socialLinks.map((link) => (
+                <Tr key={link.id}>
+                  <Td>{link.platform}</Td>
+                  <Td>{link.link}</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
+      </VStack>
+    </Box>
   );
 };
 
+SocialMediaEditor.propTypes = {
+  teamId: PropTypes.string.isRequired,
+  isDisabled: PropTypes.bool
+};
+
 export default SocialMediaEditor;
+
+
+
+

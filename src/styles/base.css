@@ -1,0 +1,24 @@
+/* Reset everything */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Force the background color everywhere */
+html,
+body,
+#root,
+.page-container,
+[data-testid*="-page"] {
+  background-color: var(--app-background);
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Stop any other elements from setting backgrounds */
+.chakra-container,
+.chakra-box,
+.chakra-stack {
+  background: none;
+}

@@ -1,24 +1,25 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {
   FormControl,
+  FormErrorMessage,
   FormLabel,
   Input,
-  FormErrorMessage,
   VStack,
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { ROLES } from '../../constants/roles';
 
 const RoleSpecificFields = ({ role, values, errors, handleChange }) => {
   const fields = {
-    'user': [
+    [ROLES.PLAYER]: [
       { name: 'first_name', label: 'First Name', type: 'text' },
       { name: 'last_name', label: 'Last Name', type: 'text' },
     ],
-    'team-admin': [
+    [ROLES.TEAM_ADMIN]: [
       { name: 'team_name', label: 'Team Name', type: 'text' },
       { name: 'phone_number', label: 'Phone Number', type: 'tel' },
     ],
-    'league-admin': [
+    [ROLES.LEAGUE_ADMIN]: [
       { name: 'league_name', label: 'League Name', type: 'text' },
       { name: 'organization', label: 'Organization', type: 'text' },
       { name: 'phone_number', label: 'Phone Number', type: 'tel' },
@@ -35,6 +36,7 @@ const RoleSpecificFields = ({ role, values, errors, handleChange }) => {
         >
           <FormLabel>{field.label}</FormLabel>
           <Input
+            {...formFieldStyles}
             type={field.type}
             name={field.name}
             value={values[field.name] || ''}
@@ -49,10 +51,11 @@ const RoleSpecificFields = ({ role, values, errors, handleChange }) => {
 };
 
 RoleSpecificFields.propTypes = {
-  role: PropTypes.oneOf(['user', 'team-admin', 'league-admin']).isRequired,
+  role: PropTypes.oneOf(Object.values(ROLES)).isRequired,
   values: PropTypes.object.isRequired,
   errors: PropTypes.object.isRequired,
   handleChange: PropTypes.func.isRequired,
 };
 
 export default RoleSpecificFields;
+

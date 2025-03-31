@@ -1,25 +1,27 @@
 export const dialogStyles = {
   overlay: {
-    bg: 'rgba(0, 0, 0, 0.6)',
+    bg: 'var(--overlay-background)',
   },
   content: {
-    bg: 'white',
-    color: 'gray.800',
+    bg: 'brand.primary.base',
+    color: 'brand.text.primary',
     boxShadow: 'xl',
     borderRadius: 'md',
     mx: 4,
   },
   header: {
-    color: 'gray.800',
+    color: 'brand.text.primary',
     fontWeight: 'bold',
     borderBottomWidth: '1px',
-    borderColor: 'gray.200',
+    borderColor: 'brand.border',
   },
   body: {
-    color: 'gray.800',
+    color: 'brand.text.primary',
   },
   footer: {
     borderTopWidth: '1px',
-    borderColor: 'gray.200',
+    borderColor: 'brand.border',
   },
 };
+
+

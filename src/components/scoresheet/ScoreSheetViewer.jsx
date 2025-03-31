@@ -1,25 +1,31 @@
-import React from 'react';
-import { 
-  Box, 
-  SimpleGrid, 
-  Card, 
-  CardBody, 
-  Icon, 
+import {
+  Box,
+  Card,
+  CardBody,
+  Icon,
+  SimpleGrid,
   Text,
   VStack
 } from '@chakra-ui/react';
-import { FaCamera, FaFileUpload, FaMicrophone, FaKeyboard } from 'react-icons/fa';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { FaCamera, FaFileUpload, FaKeyboard, FaMicrophone } from 'react-icons/fa';
 
 const ScoreSheetViewer = ({ onSelectMethod }) => {
   return (
-    <Box width="100%" mb={4}>
-      <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+    <Box width="100%" mb={4} minHeight="200px">
+      <SimpleGrid 
+        columns={{ base: 2, md: 4 }} 
+        spacing={4}
+        height="100%"
+      >
         <Card 
           cursor="pointer" 
           onClick={() => onSelectMethod('scan')}
           _hover={{ transform: 'scale(1.02)', shadow: "md" }}
           bg="#545e46"
-          height="180px"  // Increased height to accommodate description
+          height="180px"
+          minHeight="180px"
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
             <Icon as={FaCamera} boxSize={8} mb={3} color="#2e3726" />
@@ -36,6 +42,7 @@ const ScoreSheetViewer = ({ onSelectMethod }) => {
           _hover={{ transform: 'scale(1.02)', shadow: "md" }}
           bg="#545e46"
           height="180px"
+          minHeight="180px"
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
             <Icon as={FaFileUpload} boxSize={8} mb={3} color="#2e3726" />
@@ -52,6 +59,7 @@ const ScoreSheetViewer = ({ onSelectMethod }) => {
           _hover={{ transform: 'scale(1.02)', shadow: "md" }}
           bg="#545e46"
           height="180px"
+          minHeight="180px"
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
             <Icon as={FaMicrophone} boxSize={8} mb={3} color="#2e3726" />
@@ -68,6 +76,7 @@ const ScoreSheetViewer = ({ onSelectMethod }) => {
           _hover={{ transform: 'scale(1.02)', shadow: "md" }}
           bg="#545e46"
           height="180px"
+          minHeight="180px"
         >
           <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={3}>
             <Icon as={FaKeyboard} boxSize={8} mb={3} color="#2e3726" />
@@ -80,6 +89,10 @@ const ScoreSheetViewer = ({ onSelectMethod }) => {
       </SimpleGrid>
     </Box>
   );
+};
+
+ScoreSheetViewer.propTypes = {
+  onSelectMethod: PropTypes.func.isRequired,
 };
 
 export default ScoreSheetViewer;

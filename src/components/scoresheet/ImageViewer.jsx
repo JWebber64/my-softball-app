@@ -1,10 +1,9 @@
+import { Box } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
 import React, { useState } from 'react';
-import { Box, IconButton, Tooltip } from '@chakra-ui/react';
-
-const ImageViewer = ({ settings, onSettingsChange }) => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  const [fileSize, setFileSize] = useState(0);
+const ImageViewer = () => {
+  const [imageDimensions] = useState({ width: 0, height: 0 });
+  const [fileSize] = useState(0);
 
   // Enhancement controls component will be floating over the image
   const EnhancementControls = () => (
@@ -61,6 +60,9 @@ const ImageViewer = ({ settings, onSettingsChange }) => {
       </Box>
     </Box>
   );
+};
+ImageViewer.propTypes = {
+  settings: PropTypes.object,
 };
 
 export default ImageViewer;

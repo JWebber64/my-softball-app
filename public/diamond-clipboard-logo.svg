@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Definitions for metallic gradients -->
+  <defs>
+    <linearGradient id="metalicGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D8A64"/>
+      <stop offset="50%" style="stop-color:#1A5F43"/>
+      <stop offset="100%" style="stop-color:#0D3B28"/>
+    </linearGradient>
+    <linearGradient id="metalicHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff" stop-opacity="0.6"/>
+      <stop offset="100%" style="stop-color:#ffffff" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Clipboard base -->
+  <path d="M128 32h256c17.7 0 32 14.3 32 32v384c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32z" 
+        fill="url(#metalicGreen)"/>
+  
+  <!-- Clipboard top clip -->
+  <path d="M192 16h128c8.8 0 16 7.2 16 16v32h-160V32c0-8.8 7.2-16 16-16z" 
+        fill="url(#metalicGreen)"/>
+  
+  <!-- Metallic highlight on clipboard -->
+  <path d="M128 32h256c17.7 0 32 14.3 32 32v384c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32z" 
+        fill="url(#metalicHighlight)" 
+        opacity="0.3"/>
+
+  <!-- Baseball Diamond -->
+  <g transform="translate(156, 156) scale(0.8)">
+    <!-- Diamond outline -->
+    <path d="M250 100 L400 250 L250 400 L100 250 Z" 
+          stroke="#2D8A64" 
+          stroke-width="12" 
+          fill="none"/>
+    
+    <!-- Base lines -->
+    <path d="M250 100 L250 400 M100 250 L400 250" 
+          stroke="#2D8A64" 
+          stroke-width="8" 
+          fill="none"/>
+    
+    <!-- Bases -->
+    <rect x="240" y="90" width="20" height="20" fill="#2D8A64"/> <!-- Home -->
+    <rect x="390" y="240" width="20" height="20" fill="#2D8A64"/> <!-- First -->
+    <rect x="240" y="390" width="20" height="20" fill="#2D8A64"/> <!-- Second -->
+    <rect x="90" y="240" width="20" height="20" fill="#2D8A64"/> <!-- Third -->
+    
+    <!-- Pitcher's mound -->
+    <circle cx="250" cy="250" r="10" fill="#2D8A64"/>
+  </g>
+</svg>

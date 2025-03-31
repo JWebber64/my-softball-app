@@ -1,76 +1,43 @@
-import { Box, VStack, HStack, Heading, Icon, Spinner, Text } from '@chakra-ui/react';
-import { WarningIcon, RepeatIcon } from '@chakra-ui/icons';
+import { Box, Flex, Heading, Icon } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
-const SectionCard = ({
-  title,
-  children,
-  icon,
-  loading = false,
-  error = null,
-  isEmpty = false,
-  onRefresh = null,
-  ...props
-}) => (
-  <Box
-    bg="white"
-    borderRadius="lg"
-    boxShadow="md"
-    height="100%"
-    width="100%"
-    p={4}
-    position="relative"
-    {...props}
-  >
-    <VStack height="100%" spacing={4} align="stretch">
-      <HStack justify="space-between" align="center">
-        <HStack spacing={2}>
-          {icon && <Icon as={icon} boxSize={5} />}
-          <Heading size="md">{title}</Heading>
-        </HStack>
-        {onRefresh && (
-          <Icon
-            as={RepeatIcon}
-            cursor="pointer"
-            onClick={onRefresh}
-            _hover={{ transform: 'rotate(180deg)' }}
-            transition="transform 0.3s ease"
-          />
-        )}
-      </HStack>
-
-      {loading ? (
-        <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-          <Spinner size="xl" />
-        </Box>
-      ) : error ? (
-        <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-          <VStack spacing={2}>
-            <WarningIcon boxSize={8} color="red.500" />
-            <Text>{error.message || 'An error occurred'}</Text>
-          </VStack>
-        </Box>
-      ) : isEmpty ? (
-        <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-          <Text color="brand.text.muted">No data available</Text>
-        </Box>
-      ) : (
-        <Box flex="1" overflow="hidden">
-          {children}
-        </Box>
-      )}
-    </VStack>
-  </Box>
-);
+const SectionCard = ({ title, icon, children }) => {
+  return (
+    <Box
+      bg="brand.primary.base"
+      color="brand.text.primary"
+      borderRadius="lg"
+      boxShadow="sm"
+      minH={{ base: "400px", xl: "500px" }}
+      overflow="auto"
+      border="1px"
+      borderColor="brand.border"
+      _hover={{ boxShadow: 'md' }}
+      transition="all 0.2s"
+    >
+      <Flex
+        align="center"
+        p={4}
+        borderBottom="1px"
+        borderColor="brand.border"
+      >
+        {icon && <Icon as={icon} mr={2} color="brand.text.primary" />}
+        <Heading size="md" color="brand.text.primary">{title}</Heading>
+      </Flex>
+      <Box p={4}>
+        {children}
+      </Box>
+    </Box>
+  );
+};
 
 SectionCard.propTypes = {
-  title: PropTypes.string,
-  children: PropTypes.node,
+  title: PropTypes.string.isRequired,
   icon: PropTypes.elementType,
-  loading: PropTypes.bool,
-  error: PropTypes.object,
-  isEmpty: PropTypes.bool,
-  onRefresh: PropTypes.func
+  children: PropTypes.node.isRequired
 };
 
 export default SectionCard;
+
+

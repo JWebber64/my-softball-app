@@ -21,9 +21,20 @@
       "version": "detect"
     }
   },
+  "plugins": [
+    "react",
+    "react-hooks",
+    "custom-rules"
+  ],
   "rules": {
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "error",
-    "no-unused-vars": "warn"
+    "no-unused-vars": "warn",
+    "custom-rules/no-undefined-imports": "error",
+    "custom-rules/enforce-hook-imports": "error",
+    "custom-rules/enforce-context-usage": "error",
+    "import/no-default-export": "error",
+    "import/prefer-default-export": "off",
+    "import/named": "error"
   }
 }

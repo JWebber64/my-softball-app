@@ -3,61 +3,68 @@ import { extendTheme } from '@chakra-ui/react';
 const theme = extendTheme({
   colors: {
     brand: {
-      background: '#7c866b',
-      gradients: {
-        dark: {
-          start: '#111613',
-          middle: '#1b2c14',
-          end: '#111613'
-        }
+      background: 'var(--app-background)',
+      surface: {
+        base: 'var(--app-surface)',
+        hover: 'var(--app-gradient-middle)',
       },
-      primary: {
-        base: '#545e46',
-        hover: '#4a5340'
-      },
-      secondary: '#2e3726',
       text: {
-        primary: '#FFFFFF',
-        secondary: '#E7F8E8',
-        muted: '#c0fad0'
+        primary: 'var(--app-text)',
       },
-      border: 'whiteAlpha.200'
-    }
-  },
-  styles: {
-    global: {
-      body: {
-        bg: 'brand.background',
-        color: 'brand.text.primary',
+      border: 'var(--app-border)',
+      primary: {
+        base: 'var(--app-gradient-middle)',
+        hover: 'var(--content-gradient-middle)',
+      },
+      status: {
+        completed: 'var(--status-completed)',
+        cancelled: 'var(--status-cancelled)',
+        postponed: 'var(--status-postponed)'
       }
     }
   },
   components: {
-    Card: {
-      baseStyle: {
-        container: {
-          bg: 'brand.primary.base',
-          color: 'brand.text.primary',
-          borderRadius: 'lg',
-          boxShadow: 'lg',
-          borderWidth: '1px',
-          borderColor: 'brand.border'
-        }
-      }
-    },
-    Box: {
+    Button: {
       variants: {
-        card: {
+        primary: {
           bg: 'brand.primary.base',
           color: 'brand.text.primary',
-          borderRadius: 'lg',
-          boxShadow: 'lg',
-          borderWidth: '1px',
-          borderColor: 'brand.border'
+          _hover: {
+            bg: 'brand.primary.hover',
+            opacity: 0.8
+          }
+        },
+        secondary: {
+          bg: 'brand.surface.base',
+          color: 'brand.text.primary',
+          _hover: {
+            opacity: 0.8
+          }
+        },
+        danger: {
+          bg: 'red.500',
+          color: 'brand.text.primary',
+          _hover: {
+            bg: 'red.600',
+            opacity: 0.8
+          }
         }
+      },
+      defaultProps: {
+        variant: 'primary'
       }
     }
+  },
+  config: {
+    initialColorMode: 'dark',
+    useSystemColorMode: false,
   }
 });
 
 export default theme;
+
+
+
+
+
+

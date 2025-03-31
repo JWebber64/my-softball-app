@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { EventMapper } from '../../utils/eventMapper';
+import React, { useEffect, useState } from 'react';
+import { useRole } from '../../hooks/useRole';
 
 const DEFAULT_PLAYERS = [
   { name: '', sub: { name: '' } },
@@ -19,7 +19,10 @@ const DEFAULT_PLAYERS = [
 const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
   const [players, setPlayers] = useState(DEFAULT_PLAYERS);
   const [showExtraInnings, setShowExtraInnings] = useState(false);
-  const [innings, setInnings] = useState(Array(DEFAULT_PLAYERS.length).fill(Array(10).fill(null))); // Expanded to 10 innings
+  const [innings, setInnings] = useState(Array(DEFAULT_PLAYERS.length).fill(Array(10).fill(null)));
+  const { role } = useRole();
+
+  const canEdit = editable && (role === 'team-admin' || role === 'league-admin');
 
   useEffect(() => {
     if (data) {
@@ -29,6 +32,8 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
   }, [data]);
 
   const handlePlayerChange = (index, updatedPlayer) => {
+    if (!canEdit) return;
+    
     const newPlayers = [...players];
     newPlayers[index] = updatedPlayer;
     setPlayers(newPlayers);
@@ -102,7 +107,7 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
                   <PlayerCell 
                     player={player}
                     onChange={(updatedPlayer) => handlePlayerChange(playerIndex, updatedPlayer)}
-                    editable={editable}
+                    editable={canEdit}
                   />
                 </td>
                 {/* Regular Innings */}
@@ -111,7 +116,7 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
                     <InningCell
                       data={innings[playerIndex]?.[inningIndex]}
                       onChange={(inningData) => handleInningChange(playerIndex, inningIndex, inningData)}
-                      editable={editable}
+                      editable={canEdit}
                     />
                   </td>
                 ))}
@@ -121,7 +126,7 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
                     <InningCell
                       data={innings[playerIndex]?.[inningIndex]}
                       onChange={(inningData) => handleInningChange(playerIndex, inningIndex, inningData)}
-                      editable={editable}
+                      editable={canEdit}
                     />
                   </td>
                 ))}
@@ -135,6 +140,11 @@ const DigitalScoreSheet = ({ data, onDataChange, editable = true }) => {
 };
 
 const PlayerCell = ({ player, onChange, editable }) => {
+  PlayerCell.propTypes = {
+    player: PropTypes.object.isRequired,
+    onChange: PropTypes.func.isRequired,
+    editable: PropTypes.bool.isRequired,
+  };
   return (
     <div className="flex flex-col space-y-1">
       <input
@@ -160,7 +170,12 @@ const PlayerCell = ({ player, onChange, editable }) => {
   );
 };
 
-const InningCell = ({ data, onDataChange, editable }) => {
+const InningCell = ({ onDataChange, editable }) => {
+  InningCell.propTypes = {
+    data: PropTypes.object,
+    onDataChange: PropTypes.func.isRequired,
+    editable: PropTypes.bool.isRequired,
+  };
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRBI, setSelectedRBI] = useState('');
   const [outDetails, setOutDetails] = useState('');
@@ -318,10 +333,6 @@ const InningCell = ({ data, onDataChange, editable }) => {
 
   const displayText = `${selectedRBI ? selectedRBI + ' ' : ''}${selectedEvent || ''}`;
   const hasContent = selectedEvent || selectedRBI;
-  const isHomeRun = selectedEvent === 'HR';
-  const isSingle = selectedEvent === '1B';
-  const isDouble = selectedEvent === '2B';
-  const isTriple = selectedEvent === '3B';
 
   return (
     <div className="flex w-full h-full items-center" style={{ gap: "0.75rem" }}>
@@ -740,7 +751,7 @@ DigitalScoreSheet.propTypes = {
     players: PropTypes.array,
     innings: PropTypes.array
   }),
-  onChange: PropTypes.func,
+  onDataChange: PropTypes.func,
   editable: PropTypes.bool
 };
 

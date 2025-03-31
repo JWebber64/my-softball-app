@@ -1,30 +1,53 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Button, Image, Text } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import { useState } from 'react';
 import { useNotification } from '../context/NotificationContext';
-import { signInWithGoogle } from '../Auth/googleSignIn';
-import { Button, Image, HStack, Text } from '@chakra-ui/react';
+import { supabase } from '../lib/supabaseClient';
 
-const GoogleSignInButton = ({ role }) => {
+const GoogleSignInButton = ({ onSuccess, onError, role }) => {
   const { showNotification } = useNotification();
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
     try {
-      const { data, error } = await signInWithGoogle(role);
+      setIsLoading(true);
+      console.log('Initiating Google sign-in with role:', role);
       
-      if (error) throw error;
-
-      if (data?.user) {
-        if (role === 'team-admin') {
-          navigate('/team-admin', { replace: true });
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          data: {
+            requested_role: role,
+            active_role: role,
+            login_role: role
+          }
         }
-        showNotification(`Successfully signed in as ${role}`, 'success');
-      }
+      });
+
+      if (error) throw error;
+      
+      // Store role in localStorage as fallback
+      localStorage.setItem('requested_role', role);
+      
+      console.log('Google sign-in successful:', {
+        data,
+        requestedRole: role
+      });
+
+      onSuccess?.(role);
     } catch (error) {
-      console.error('Sign in error:', error);
-      showNotification('Failed to sign in with Google: ' + error.message, 'error');
+      console.error('Google sign-in error:', error);
+      onError?.(error);
+      showNotification({
+        title: 'Sign-in Error',
+        description: error.message || 'Failed to sign in with Google',
+        status: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -33,29 +56,58 @@ const GoogleSignInButton = ({ role }) => {
   return (
     <Button
       onClick={handleGoogleSignIn}
-      width="100%"
-      height="40px"
-      backgroundColor="black"
-      color="white"
-      borderRadius="0.5rem"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
       isLoading={isLoading}
-      loadingText="Signing in..."
-      _hover={{ backgroundColor: "#333" }}
-    >
-      <HStack spacing={2}>
+      w="full"
+      variant="outline"
+      leftIcon={
         <Image
-          src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-          alt="Google Logo"
-          width="18px"
-          height="18px"
+          src="/google-icon.svg"
+          alt="Google"
+          boxSize="20px"
         />
-        <Text>Sign in with Google</Text>
-      </HStack>
+      }
+      bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
+      color="brand.text.primary"
+      _hover={{
+        bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
+        opacity: 0.9
+      }}
+      _active={{
+        bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
+        opacity: 0.8
+      }}
+      border="none"
+    >
+      <Text>Continue with Google</Text>
     </Button>
   );
 };
 
+GoogleSignInButton.propTypes = {
+  onSuccess: PropTypes.func,
+  onError: PropTypes.func,
+  role: PropTypes.string.isRequired
+};
+
 export default GoogleSignInButton;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,33 +1,20 @@
-import React from 'react';
 import { Box, Button, Text } from '@chakra-ui/react';
+import React from 'react';
 
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+  state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
-    console.error('Section Error:', error, errorInfo);
-  }
-
   render() {
     if (this.state.hasError) {
       return (
-        <Box p={4} bg="red.50" borderRadius="md">
-          <Text color="red.500" mb={2}>Something went wrong loading this section.</Text>
-          <Button
-            size="sm"
-            onClick={() => {
-              this.setState({ hasError: false });
-              if (this.props.onRetry) this.props.onRetry();
-            }}
-          >
-            Try again
+        <Box p={4} textAlign="center">
+          <Text mb={4}>Something went wrong loading this content.</Text>
+          <Button onClick={() => window.location.reload()}>
+            Refresh Page
           </Button>
         </Box>
       );
@@ -38,3 +25,4 @@ class ErrorBoundary extends React.Component {
 }
 
 export default ErrorBoundary;
+

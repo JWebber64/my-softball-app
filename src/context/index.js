@@ -1,1 +1,4 @@
-// This is a request to see if there are any context providers
+export { AuthContext, default as AuthProvider } from './AuthContext';
+export { TeamContext } from './TeamContext';
+export { default as TeamProvider } from './TeamProvider';
+

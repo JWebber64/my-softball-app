@@ -1,102 +1,100 @@
-import React, { useState, useEffect } from 'react';
+// React and PropTypes
+import PropTypes from 'prop-types';
+import { useCallback, useEffect, useState } from 'react';
+import 'react-quill/dist/quill.snow.css';
+
+// Chakra UI components
 import {
-  VStack,
-  HStack,
+  Box,
   Button,
+  FormControl,
+  FormLabel,
   Input,
   Textarea,
-  useToast,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  IconButton,
-  Box,
+  VStack,
+  useToast
 } from '@chakra-ui/react';
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import { supabase } from '../../lib/supabaseClient';
 
-const NewsEditor = () => {
-  const [news, setNews] = useState([]);
+// Services and utilities
+import { supabase } from '../../lib/supabaseClient';
+import { formFieldStyles } from '../../styles/formFieldStyles';
+
+const NewsEditor = ({ teamId = null, isDisabled = false }) => {
+  const [newsData, setNewsData] = useState([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [editingId, setEditingId] = useState(null);
+  const [image_url, setImageUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
-  useEffect(() => {
-    fetchNews();
-  }, []);
+  // If no teamId is provided, treat as disabled
+  const effectivelyDisabled = isDisabled || !teamId;
 
-  const fetchNews = async () => {
+  const handlePublish = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('news')
+        .insert({
+          team_id: teamId,
+          title: title,
+          content: content,
+          image_url: image_url,
+          published_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setNewsData([data, ...newsData]);
+      setTitle('');
+      setContent('');
+      setImageUrl('');
+      
+      toast({
+        title: 'News published successfully',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error publishing news',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
+  const fetchNews = useCallback(async () => {
+    if (!teamId) return;
+
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('team_news')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('team_id', teamId)
+        .order('publish_date', { ascending: false });
 
       if (error) throw error;
-      setNews(data || []);
+      setNewsData(data || []);
     } catch (error) {
       toast({
-        title: "Error fetching news",
+        title: 'Error fetching news',
         description: error.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
+        isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [teamId, toast]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingId) {
-        const { error } = await supabase
-          .from('team_news')
-          .update({ title, content })
-          .eq('id', editingId);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "News updated",
-          status: "success",
-          duration: 3000,
-        });
-      } else {
-        const { error } = await supabase
-          .from('team_news')
-          .insert([{ title, content }]);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "News added",
-          status: "success",
-          duration: 3000,
-        });
-      }
-
-      setTitle('');
-      setContent('');
-      setEditingId(null);
-      fetchNews();
-    } catch (error) {
-      toast({
-        title: "Error saving news",
-        description: error.message,
-        status: "error",
-        duration: 5000,
-      });
-    }
-  };
-
-  const handleEdit = (item) => {
-    setTitle(item.title);
-    setContent(item.content);
-    setEditingId(item.id);
-  };
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
 
   const handleDelete = async (id) => {
     try {
@@ -107,82 +105,85 @@ const NewsEditor = () => {
 
       if (error) throw error;
 
+      setNewsData(newsData.filter(item => item.id !== id));
+      
       toast({
-        title: "News deleted",
-        status: "success",
+        title: 'News deleted successfully',
+        status: 'success',
         duration: 3000,
       });
-
-      fetchNews();
     } catch (error) {
       toast({
-        title: "Error deleting news",
+        title: 'Error deleting news',
         description: error.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
       });
     }
   };
 
-  return (
-    <VStack spacing={6} align="stretch">
-      <Box as="form" onSubmit={handleSubmit}>
-        <VStack spacing={4}>
-          <Input
-            placeholder="News Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-          <Textarea
-            placeholder="News Content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={4}
-          />
-          <Button type="submit" colorScheme="green">
-            {editingId ? 'Update News' : 'Add News'}
-          </Button>
-        </VStack>
+  if (effectivelyDisabled) {
+    return (
+      <Box p={4} textAlign="center" color="gray.500">
+        Please select a team to manage news articles
       </Box>
+    );
+  }
 
-      <Table variant="simple">
-        <Thead>
-          <Tr>
-            <Th>Title</Th>
-            <Th>Content</Th>
-            <Th>Actions</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {news.map((item) => (
-            <Tr key={item.id}>
-              <Td>{item.title}</Td>
-              <Td>{item.content}</Td>
-              <Td>
-                <HStack spacing={2}>
-                  <IconButton
-                    icon={<EditIcon />}
-                    onClick={() => handleEdit(item)}
-                    aria-label="Edit news"
-                    size="sm"
-                  />
-                  <IconButton
-                    icon={<DeleteIcon />}
-                    onClick={() => handleDelete(item.id)}
-                    aria-label="Delete news"
-                    size="sm"
-                    colorScheme="red"
-                  />
-                </HStack>
-              </Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
+  return (
+    <VStack spacing={4} align="stretch">
+      <FormControl>
+        <FormLabel>Title</FormLabel>
+        <Input
+          {...formFieldStyles}
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </FormControl>
+      <FormControl>
+        <FormLabel>Content</FormLabel>
+        <Textarea
+          {...formFieldStyles}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+      </FormControl>
+      <FormControl>
+        <FormLabel>Image URL (optional)</FormLabel>
+        <Input
+          {...formFieldStyles}
+          placeholder="Image URL (optional)"
+          value={image_url}
+          onChange={(e) => setImageUrl(e.target.value)}
+        />
+      </FormControl>
+      <Button
+        isDisabled={effectivelyDisabled || !title || !content}
+        onClick={handlePublish}
+      >
+        Publish
+      </Button>
     </VStack>
   );
 };
 
+NewsEditor.propTypes = {
+  teamId: PropTypes.string,
+  isDisabled: PropTypes.bool
+};
+
 export default NewsEditor;
+
+
+
+
+
+
+
+
+
+
+
+
+

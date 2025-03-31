@@ -1,9 +1,18 @@
-import { Link } from 'react-router-dom';
+import { Button, HStack } from '@chakra-ui/react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-function Navigation() {
+const Navigation = () => {
+  const navigate = useNavigate();
+
   return (
-    <nav>
-      <Link to="/scoresheets">Score Sheets</Link>
-    </nav>
+    <HStack spacing={4} p={4}>
+      <Button onClick={() => navigate('/')}>Home</Button>
+      <Button onClick={() => navigate('/scoresheets')}>Scoresheets</Button>
+      <Button onClick={() => navigate('/stats')}>Stats</Button>
+      <Button onClick={() => navigate('/admin')}>Admin</Button>
+    </HStack>
   );
-}
+};
+
+export default Navigation;

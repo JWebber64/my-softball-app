@@ -1,4 +1,3 @@
-import { supabase } from '../lib/supabaseClient';
 
 export async function findPlaceholderData() {
   // Just return empty results since we don't use placeholders
@@ -9,7 +8,7 @@ export async function findPlaceholderData() {
   };
 }
 
-export function debugProps(props, componentName) {
+export function debugProps() {
   // No need to search for placeholders anymore
   return;
 }

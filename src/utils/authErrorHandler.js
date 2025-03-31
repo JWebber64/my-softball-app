@@ -1,78 +1,99 @@
 export const getAuthErrorMessage = (error) => {
-  if (!error) return null;
+  const errorCode = typeof error === 'string' ? error : error?.message?.toLowerCase() || '';
 
-  // Supabase specific error codes
-  const errorCode = error?.message?.toLowerCase() || '';
+  const errorMap = {
+    'invalid_credentials': 'Invalid email or password',
+    'user_not_found': 'No account found with this email',
+    'email_taken': 'An account with this email already exists',
+    'weak_password': 'Password must be at least 8 characters with numbers and symbols',
+    'invalid_email': 'Please enter a valid email address',
+    'expired_token': 'Your session has expired. Please sign in again',
+    'network_error': 'Network error. Please check your connection',
+    'rate_limit': 'Too many attempts. Please try again later',
+    'server_error': 'Server error. Please try again later',
+    'unauthorized': 'You are not authorized to perform this action',
+    'validation_error': 'Please check your input and try again',
+    'role_required': 'Please select a role to continue',
+    'profile_error': 'Error updating profile information',
+    'auth/popup-closed-by-user': 'Sign-in window was closed. Please try again.',
+    'auth/cancelled-popup-request': 'Sign-in cancelled. Please try again.',
+    'auth/popup-blocked': 'Sign-in popup was blocked. Please allow popups and try again.',
+    'captcha verification process failed': 'Sign-in verification failed. Please try again or use email sign-in.',
+    'auth/captcha-check-failed': 'Sign-in verification failed. Please try again or use email sign-in.',
+    'auth/network-request-failed': 'Network error. Please check your connection and try again.'
+  };
+
+  return errorMap[errorCode] || 'An unexpected error occurred. Please try again.';
+};
+
+export const clearAuthState = () => {
+  const authItems = [
+    'supabase.auth.token',
+    'bypassRedirect',
+    'bypassTimestamp',
+    'activeTeamId',
+    'supabase.auth.refreshToken',
+    'supabase.auth.accessToken',
+    'supabase.auth.expires_at',
+    'supabase.auth.provider',
+    'last_auth_role'
+  ];
   
-  if (errorCode.includes('invalid login credentials')) {
-    return 'Invalid email or password. Please try again.';
-  }
-  if (errorCode.includes('email not confirmed')) {
-    return 'Please verify your email address before logging in.';
-  }
-  if (errorCode.includes('user already registered')) {
-    return 'An account with this email already exists.';
-  }
-  if (errorCode.includes('password should be')) {
-    return 'Password must be at least 6 characters long.';
-  }
-  if (errorCode.includes('rate limit exceeded')) {
-    return 'Too many attempts. Please try again in a few minutes.';
-  }
-  if (errorCode.includes('invalid oauth')) {
-    return 'There was a problem with Google sign-in. Please try again.';
-  }
-  if (errorCode.includes('access token')) {
-    return 'Your session has expired. Please sign in again.';
-  }
-  if (errorCode.includes('network')) {
-    return 'Network error. Please check your internet connection.';
-  }
-
-  // Default error message
-  return error.message || 'An unexpected error occurred. Please try again.';
+  authItems.forEach(item => localStorage.removeItem(item));
+  
+  // Clear all cookies
+  document.cookie.split(";").forEach(cookie => {
+    document.cookie = cookie
+      .replace(/^ +/, "")
+      .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+  });
 };
 
 export const handleAuthError = (error, showNotification) => {
   const message = getAuthErrorMessage(error);
-  showNotification(message, 'error', 7000); // Show error messages longer
+  
+  if (showNotification) {
+    // Call showNotification with the message string and type
+    showNotification(message, 'error');
+  }
+  
   return message;
 };
 
 export const handleAuthSuccess = (action, showNotification) => {
-  let message;
-  let duration = 5000;
+  if (!showNotification) return;
 
-  switch (action) {
-    case 'signin':
-      message = 'Successfully signed in! Welcome back! 👋';
-      break;
-    case 'signup':
-      message = 'Account created successfully! Please check your email for verification. ✉️';
-      duration = 8000; // Show verification messages longer
-      break;
-    case 'signout':
-      message = 'Successfully signed out. See you soon! 👋';
-      break;
-    case 'reset':
-      message = 'Password reset email sent. Please check your inbox. ✉️';
-      duration = 8000;
-      break;
-    case 'update':
-      message = 'Your profile has been updated successfully! ✅';
-      break;
-    case 'verify':
-      message = 'Email verified successfully! You can now sign in. ✅';
-      break;
-    default:
-      message = 'Operation completed successfully! ✅';
-  }
+  const messages = {
+    signin: 'Successfully signed in! Welcome back! 👋',
+    signup: 'Account created successfully! Please check your email for verification. ✉️',
+    signout: 'Successfully signed out. See you soon! 👋',
+    reset: 'Password reset email sent. Please check your inbox. ✉️',
+    verify: 'Email verification successful! You can now sign in.',
+    update: 'Account updated successfully.',
+    delete: 'Account deleted successfully.',
+    refresh: 'Session refreshed successfully.'
+  };
+
+  const message = messages[action] || 'Operation completed successfully.';
   
-  showNotification(message, 'success', duration);
+  // Call showNotification with the message string and type
+  showNotification(message, 'success');
+  
   return message;
 };
 
-export const handleAuthWarning = (message, showNotification) => {
-  showNotification(message, 'warning', 6000);
-  return message;
+export const handleAuthEvent = (event, showNotification) => {
+  const eventMap = {
+    SIGNED_IN: () => handleAuthSuccess('signin', showNotification),
+    SIGNED_OUT: () => handleAuthSuccess('signout', showNotification),
+    USER_UPDATED: () => handleAuthSuccess('update', showNotification),
+    USER_DELETED: () => handleAuthSuccess('delete', showNotification),
+    PASSWORD_RECOVERY: () => handleAuthSuccess('reset', showNotification),
+    TOKEN_REFRESHED: () => handleAuthSuccess('refresh', showNotification)
+  };
+
+  const handler = eventMap[event];
+  if (handler) {
+    handler();
+  }
 };

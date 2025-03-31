@@ -1,28 +1,28 @@
-import React, { useState, useMemo } from 'react';
 import {
   Box,
+  Button,
   Heading,
   HStack,
-  Button,
   VStack,
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React, { useMemo, useState } from 'react';
 import {
-  LineChart,
+  Legend,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
 
-// More distinct colors using primary colors
 const COLORS = [
-  '#2196F3', // Bright Blue
-  '#F44336', // Bright Red
-  '#4CAF50', // Bright Green
-  '#9C27B0', // Bright Purple
-  '#FF9800', // Bright Orange
+  '#2196F3',
+  '#F44336',
+  '#4CAF50',
+  '#9C27B0',
+  '#FF9800',
 ];
 
 const CountingStatsOverTime = ({ playerStats }) => {
@@ -37,25 +37,6 @@ const CountingStatsOverTime = ({ playerStats }) => {
     setStatType(type);
   };
 
-  const buttonStyles = {
-    bg: '#2e3726',
-    color: '#EFF7EC',
-    borderRadius: '1rem',
-    padding: '0.5rem 1rem',
-    transition: 'all 0.2s',
-    _hover: {
-      bg: '#3a4531',
-      transform: 'scale(1.05)',
-    },
-    _active: {
-      transform: 'scale(0.95)',
-    },
-    _selected: {
-      bg: '#7c866b',
-      boxShadow: '0 0 0 2px #7c866b',
-    }
-  };
-
   const topPlayers = useMemo(() => {
     return [...playerStats]
       .sort((a, b) => (b[statType] || 0) - (a[statType] || 0))
@@ -68,10 +49,15 @@ const CountingStatsOverTime = ({ playerStats }) => {
     return games.map(gameNum => {
       const dataPoint = { game: gameNum };
       topPlayers.forEach(player => {
+        // Get the correct stat value based on statType
         const baseValue = player[statType] || 0;
+        // Use gamesplayed if available, otherwise fallback to gameRange
         const gamesPlayed = player.gamesplayed || gameRange;
+        // Calculate average per game
         const avgPerGame = baseValue / gamesPlayed;
-        const randomVariation = (Math.random() * 0.4 - 0.2);
+        // Add some random variation
+        const randomVariation = (Math.random() * 0.4 - 0.2) * avgPerGame;
+        // Calculate cumulative value up to this game
         dataPoint[player.name] = Math.max(0, Math.round(avgPerGame * gameNum + randomVariation));
       });
       return dataPoint;
@@ -80,82 +66,65 @@ const CountingStatsOverTime = ({ playerStats }) => {
 
   return (
     <Box
-      bg="#545e46"
+      bg="var(--app-surface)"
       borderRadius="lg"
       p={6}
       width="100%"
+      borderColor="border"
+      borderWidth="1px"
     >
-      <VStack spacing={6} width="100%" align="stretch">
+      <VStack spacing={4} width="100%" align="stretch">
         <Heading size="md" color="#EFF7EC" textAlign="center">
           Top 5 Players - {statType.toUpperCase()} Trends
         </Heading>
         
+        {/* Game Range Buttons */}
         <HStack spacing={4} justify="center">
           <Button
-            {...buttonStyles}
-            bg={gameRange === 5 ? '#7c866b' : '#2e3726'}
-            color="#EFF7EC"
+            bgGradient="linear(to-r, brand.header.start, brand.header.middle, brand.header.end)"
+            isActive={gameRange === 5}
             onClick={() => handleGameRangeChange(5)}
-            size="md"
           >
             Last 5 Games
           </Button>
           <Button
-            {...buttonStyles}
-            bg={gameRange === 10 ? '#7c866b' : '#2e3726'}
-            color="#EFF7EC"
+            bgGradient="linear(to-r, brand.header.start, brand.header.middle, brand.header.end)"
+            isActive={gameRange === 10}
             onClick={() => handleGameRangeChange(10)}
-            size="md"
           >
             Last 10 Games
           </Button>
         </HStack>
 
+        {/* Stat Type Buttons */}
         <HStack spacing={4} justify="center">
           <Button
-            {...buttonStyles}
-            bg={statType === 'hits' ? '#7c866b' : '#2e3726'}
-            color="#EFF7EC"
+            bgGradient="linear(to-r, brand.header.start, brand.header.middle, brand.header.end)"
+            isActive={statType === 'hits'}
             onClick={() => handleStatTypeChange('hits')}
-            size="md"
           >
             HITS
           </Button>
           <Button
-            {...buttonStyles}
-            bg={statType === 'rbi' ? '#7c866b' : '#2e3726'}
-            color="#EFF7EC"
-            onClick={() => handleStatTypeChange('rbi')}
-            size="md"
+            bgGradient="linear(to-r, brand.header.start, brand.header.middle, brand.header.end)"
+            isActive={statType === 'rbis'}
+            onClick={() => handleStatTypeChange('rbis')}
           >
-            RBI
+            RBIS
           </Button>
           <Button
-            {...buttonStyles}
-            bg={statType === 'runs' ? '#7c866b' : '#2e3726'}
-            color="#EFF7EC"
+            bgGradient="linear(to-r, brand.header.start, brand.header.middle, brand.header.end)"
+            isActive={statType === 'runs'}
             onClick={() => handleStatTypeChange('runs')}
-            size="md"
           >
             RUNS
           </Button>
           <Button
-            {...buttonStyles}
-            bg={statType === 'walks' ? '#7c866b' : '#2e3726'}
-            color="#EFF7EC"
+            bgGradient="linear(to-r, brand.header.start, brand.header.middle, brand.header.end)"
+            isActive={statType === 'walks'}
             onClick={() => handleStatTypeChange('walks')}
-            size="md"
           >
-            BB
-          </Button>
-          <Button
-            {...buttonStyles}
-            bg={statType === 'strikeouts' ? '#7c866b' : '#2e3726'}
-            color="#EFF7EC"
-            onClick={() => handleStatTypeChange('strikeouts')}
-            size="md"
-          >
-            K
+            WALKS
           </Button>
         </HStack>
 
@@ -214,4 +183,27 @@ const CountingStatsOverTime = ({ playerStats }) => {
   );
 };
 
+CountingStatsOverTime.propTypes = {
+  playerStats: PropTypes.arrayOf(
+    PropTypes.shape({
+      name: PropTypes.string.isRequired,
+      hits: PropTypes.number,
+      rbi: PropTypes.number,
+      runs: PropTypes.number,
+      walks: PropTypes.number,
+      gamesplayed: PropTypes.number,
+    })
+  ).isRequired,
+};
+
 export default CountingStatsOverTime;
+
+
+
+
+
+
+
+
+
+

@@ -1,18 +1,18 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {
+  Box,
+  Heading,
   Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
   ModalBody,
   ModalCloseButton,
-  Box,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
   Text,
-  VStack,
-  Heading,
   useColorModeValue,
+  VStack,
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { COMMAND_TYPES, getGroupedCommands } from '../../utils/voiceCommands';
 
 /**
@@ -54,7 +54,7 @@ const CommandHelpDialog = ({ isOpen, onClose }) => {
                     bg={cardBgColor}
                     boxShadow="sm"
                   >
-                    <Text fontWeight="bold">"{command.phrase}"</Text>
+                    <Text fontWeight="bold">&quot;{command.phrase}&quot;</Text>
                     <Text fontSize="sm" color={descriptionColor}>{command.description}</Text>
                   </Box>
                 ))}

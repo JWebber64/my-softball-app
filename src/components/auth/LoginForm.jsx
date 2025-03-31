@@ -1,84 +1,214 @@
-import React, { useState } from 'react';
 import {
-  Box,
   Button,
+  Divider,
   FormControl,
   FormLabel,
   Input,
-  VStack,
   useToast,
+  VStack
 } from '@chakra-ui/react';
-import { useSimpleAuth } from '../../context/SimpleAuthContext';
+import PropTypes from 'prop-types';
+import { useState } from 'react';
+import { ROLES } from '../../constants/roles';
+import { useAuth } from '../../hooks/useAuth';
+import { handleAuthError } from '../../utils/authErrorHandler';
+import GoogleSignInButton from '../GoogleSignInButton';
 
-const LoginForm = ({ role }) => {
+const formFieldStyles = {
+  bg: 'brand.background',
+  color: 'brand.text.primary'
+};
+
+const LoginForm = ({
+  role: initialRole,
+  onSuccess,
+  onError,
+  showGoogleSignIn = true,
+  mode = 'page'
+}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
-  const { signInWithEmail } = useSimpleAuth();
+  const { signIn, supabase } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const handleEmailSignIn = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { success, error } = await signInWithEmail(email, password);
+      const { data, error: signInError } = await signIn(email, password);
+      if (signInError) throw signInError;
+
+      const { user } = data;
+      if (!user) throw new Error('No user returned from sign in');
+
+      // Use the initial role or existing role from metadata
+      const roleToUse = initialRole || user.user_metadata?.active_role;
+      console.log('Role being set:', roleToUse); // Add logging
       
-      if (!success) {
-        throw error;
+      if (roleToUse) {
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { 
+            active_role: roleToUse,
+            login_role: roleToUse
+          }
+        });
+        if (updateError) throw updateError;
+        console.log('User metadata updated with role:', roleToUse); // Add logging
       }
 
-      toast({
-        title: 'Login successful',
-        status: 'success',
-        duration: 3000,
-      });
+      onSuccess?.();
+      
     } catch (error) {
-      toast({
-        title: 'Login failed',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
+      console.error('Login error:', error);
+      onError?.(error);
+      handleAuthError(error, (message) => {
+        toast({
+          title: 'Error',
+          description: message,
+          status: 'error',
+          duration: 5000,
+        });
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleGoogleSuccess = async (response) => {
+    try {
+      if (response?.user) {
+        onSuccess?.();
+      }
+    } catch (error) {
+      console.error('Google sign-in success handler error:', error);
+      onError?.(error);
+      handleAuthError(error, (message) => {
+        toast({
+          title: 'Error',
+          description: message,
+          status: 'error',
+          duration: 5000,
+        });
+      });
+    }
+  };
+
+  const handleRoleSelect = async (selectedRole) => {
+    try {
+      await supabase.auth.updateUser({
+        data: { 
+          active_role: selectedRole,
+          login_role: selectedRole
+        }
+      });
+
+      const { error: activeRoleError } = await supabase
+        .from('active_role')
+        .upsert({
+          active_role_user_id: user.id,
+          role: selectedRole,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'active_role_user_id' });
+
+      if (activeRoleError) throw activeRoleError;
+
+      onSuccess?.();
+    } catch (error) {
+      console.error('Role selection error:', error);
+      onError?.(error);
+      handleAuthError(error, (message) => {
+        toast({
+          title: 'Error',
+          description: message,
+          status: 'error',
+          duration: 5000,
+        });
+      });
+    }
+  };
+
   return (
-    <Box as="form" onSubmit={handleSubmit}>
-      <VStack spacing={4}>
-        <FormControl isRequired>
-          <FormLabel>Email</FormLabel>
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={`Enter ${role} email`}
+    <VStack spacing={6} w="100%">
+      {showGoogleSignIn && (
+        <>
+          <GoogleSignInButton
+            role={initialRole}
+            onSuccess={handleGoogleSuccess}
+            onError={(error) => {
+              console.error('Google sign-in error:', error);
+              onError?.(error);
+            }}
           />
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel>Password</FormLabel>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-          />
-        </FormControl>
-
-        <Button
-          type="submit"
-          colorScheme="green"
-          width="100%"
-          isLoading={isLoading}
-        >
-          Login as {role}
-        </Button>
-      </VStack>
-    </Box>
+          <Divider />
+        </>
+      )}
+      <FormControl>
+        <FormLabel color="brand.text.primary">Email</FormLabel>
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          {...formFieldStyles}
+        />
+      </FormControl>
+      <FormControl>
+        <FormLabel color="brand.text.primary">Password</FormLabel>
+        <Input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          {...formFieldStyles}
+        />
+      </FormControl>
+      <Button
+        w="100%"
+        onClick={handleEmailSignIn}
+        isLoading={isLoading}
+        bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
+        color="brand.text.primary"
+        _hover={{
+          bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
+          opacity: 0.9
+        }}
+        _active={{
+          bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
+          opacity: 0.8
+        }}
+        border="none"
+      >
+        Sign In
+      </Button>
+    </VStack>
   );
 };
 
+LoginForm.propTypes = {
+  role: PropTypes.oneOf(Object.values(ROLES)),
+  onSuccess: PropTypes.func,
+  onError: PropTypes.func,
+  showGoogleSignIn: PropTypes.bool,
+  mode: PropTypes.oneOf(['page', 'modal'])
+};
+
 export default LoginForm;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,13 +1,21 @@
-import React from 'react';
 import {
-  VStack,
   Button,
   ButtonGroup,
-  Heading,
   Divider,
+  Heading,
+  VStack,
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React, { useCallback, useRef } from 'react';
 
 const ScoreControls = ({ onScoreUpdate, currentGame, onGameChange }) => {
+  const prevGameRef = useRef(currentGame);
+  const handleGameChange = useCallback((newGame) => {
+    if (newGame === prevGameRef.current) return;
+    prevGameRef.current = newGame;
+    onGameChange(newGame);
+  }, [onGameChange]);
+
   return (
     <VStack spacing={4} align="stretch" w="100%">
       <Heading size="md" color="#E7F8E8">Controls</Heading>
@@ -16,7 +24,7 @@ const ScoreControls = ({ onScoreUpdate, currentGame, onGameChange }) => {
       <VStack spacing={4}>
         <ButtonGroup size="sm" w="100%">
           <Button
-            onClick={() => onGameChange(currentGame - 1)}
+            onClick={() => handleGameChange(currentGame - 1)}
             isDisabled={currentGame <= 1}
             flex="1"
             colorScheme="green"
@@ -26,7 +34,8 @@ const ScoreControls = ({ onScoreUpdate, currentGame, onGameChange }) => {
             Previous Game
           </Button>
           <Button
-            onClick={() => onGameChange(currentGame + 1)}
+            onClick={() => handleGameChange(currentGame + 1)}
+            isDisabled={currentGame >= 7}
             flex="1"
             colorScheme="green"
             variant="outline"
@@ -57,6 +66,12 @@ const ScoreControls = ({ onScoreUpdate, currentGame, onGameChange }) => {
       </VStack>
     </VStack>
   );
+};
+
+ScoreControls.propTypes = {
+  onScoreUpdate: PropTypes.func.isRequired,
+  currentGame: PropTypes.number.isRequired,
+  onGameChange: PropTypes.func.isRequired,
 };
 
 export default ScoreControls;

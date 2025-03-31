@@ -61,9 +61,11 @@ const validationSchemas = {
 
   game: yup.object({
     date: yup.date().required('Game date is required'),
-    opponent: yup.string().required('Opponent is required'),
-    location: yup.string().required('Location is required'),
     time: yup.string().required('Game time is required'),
+    opponent: yup.string().nullable(),
+    location: yup.string().nullable(),
+    type: yup.string().oneOf(['regular', 'playoff', 'tournament']).default('regular'),
+    status: yup.string().oneOf(['scheduled', 'completed', 'cancelled', 'postponed']).default('scheduled')
   }),
 };
 
@@ -86,3 +88,4 @@ export const validateData = async (type, data) => {
     return { isValid: false, errors };
   }
 };
+

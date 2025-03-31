@@ -1,55 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { STORAGE_BUCKETS } from '../config';
 import { supabase } from '../lib/supabaseClient';
-import { getPlayerPhotoUrl } from '../utils/supabaseStorage';
 
 export const usePlayerCardData = (playerId) => {
+  const [cardData, setCardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [playerData, setPlayerData] = useState(null);
-  const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    const fetchPlayerData = async () => {
+    const fetchPlayerCard = async () => {
       try {
-        setLoading(true);
-        
-        // Fetch player info
-        const { data: player, error: playerError } = await supabase
-          .from('players')
-          .select('*')
-          .eq('id', playerId)
-          .single();
-
-        if (playerError) throw playerError;
-
-        // Fetch player stats
-        const { data: playerStats, error: statsError } = await supabase
-          .from('player_stats')
-          .select('*')
+        const { data, error: cardError } = await supabase
+          .from('baseball_cards')
+          .select(`
+            *,
+            players:player_id (
+              first_name,
+              last_name,
+              jersey_number,
+              position,
+              photo_url
+            ),
+            teams:team_id (
+              name,
+              logo_url
+            ),
+            stats (*)
+          `)
           .eq('player_id', playerId)
           .single();
 
-        if (statsError) throw statsError;
+        if (cardError) throw cardError;
 
         // Get photo URL if exists
-        if (player.photo_path) {
-          player.photoUrl = getPlayerPhotoUrl(player.photo_path);
+        if (data.players.photo_url) {
+          const { data: photoUrl } = supabase
+            .storage
+            .from(STORAGE_BUCKETS.PLAYER_PHOTOS)
+            .getPublicUrl(data.players.photo_url);
+          
+          data.players.photo_url = photoUrl.publicUrl;
         }
 
-        setPlayerData(player);
-        setStats(playerStats);
+        setCardData(data);
       } catch (err) {
         setError(err);
-        console.error('Error fetching player data:', err);
       } finally {
         setLoading(false);
       }
     };
 
     if (playerId) {
-      fetchPlayerData();
+      fetchPlayerCard();
     }
   }, [playerId]);
 
-  return { loading, error, playerData, stats };
+  return { cardData, loading, error };
 };

@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
   Button,
   FormControl,
   FormLabel,
-  Input,
-  VStack,
   HStack,
-  Select
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Select,
+  VStack
 } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React, { useState } from 'react';
+
+SubstitutionsModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+};
 
 const SubstitutionsModal = ({ isOpen, onClose, onSubmit }) => {
   const [substitution, setSubstitution] = useState({

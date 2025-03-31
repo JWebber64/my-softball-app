@@ -1,7 +1,11 @@
+import { Box, FormControl, FormLabel, Input, Textarea, VStack } from '@chakra-ui/react';
 import React from 'react';
-import { Box, VStack, FormControl, FormLabel, Input, Textarea } from '@chakra-ui/react';
 
-const MetadataPanel = ({ gameIndex, onWarning }) => {
+const MetadataPanel = () => {
+  
+  
+
+
   return (
     <Box p={4} bg="white" borderRadius="md" shadow="sm">
       <VStack spacing={4} align="stretch">
@@ -28,5 +32,7 @@ const MetadataPanel = ({ gameIndex, onWarning }) => {
     </Box>
   );
 };
+
+// Remove unused propTypes
 
 export default MetadataPanel;

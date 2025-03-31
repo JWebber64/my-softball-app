@@ -1,46 +1,104 @@
-// src/components/ModalSignup.jsx
-import React, { useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import {
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
+  VStack
+} from '@chakra-ui/react';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
+import PropTypes from 'prop-types';
+import React, { useRef, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
-function ModalSignup({ onClose, role }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const ModalSignup = ({ isOpen, onClose, role }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const captchaRef = useRef(null);
 
-  const handleSignup = async () => {
-    const { user, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      alert(error.message);
-    } else {
-      alert(`Signed up as ${role}, check your email for confirmation.`);
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const token = await captchaRef.current.execute();
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: role || 'user'
+          },
+          captchaToken: token
+        }
+      });
+
+      if (error) throw error;
       onClose();
+    } catch (error) {
+      console.error('Error signing up:', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-[#545e46] p-4 rounded-md shadow-md w-80">
-        <h2 className="text-[#dbe0da] text-xl mb-2">{role} Signup</h2>
-        <input
-          className="w-full mb-2 p-2 rounded-md"
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className="w-full mb-2 p-2 rounded-md"
-          type="password"
-          placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          className="nav-button w-full"
-          onClick={handleSignup}
-        >
-          Sign Up
-        </button>
-        <button className="nav-button w-full mt-2" onClick={onClose}>Close</button>
-      </div>
-    </div>
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Sign Up</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <form onSubmit={handleSignup}>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Email</FormLabel>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>Password</FormLabel>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </FormControl>
+              <HCaptcha
+                ref={captchaRef}
+                sitekey={import.meta.env.VITE_HCAPTCHA_SITE_KEY}
+                size="invisible"
+              />
+              <Button
+                type="submit"
+                colorScheme="green"
+                width="full"
+                isLoading={loading}
+              >
+                Sign Up
+              </Button>
+            </VStack>
+          </form>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
-}
+};
+
+ModalSignup.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  role: PropTypes.string
+};
 
 export default ModalSignup;  // Ensure default export

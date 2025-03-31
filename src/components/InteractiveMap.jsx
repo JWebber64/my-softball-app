@@ -1,323 +1,323 @@
-import React, { useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { supabase } from '../lib/supabaseClient';
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  VStack,
-  useToast,
-  Text,
-} from "@chakra-ui/react";
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import PropTypes from 'prop-types';
+import React, { useEffect, useRef } from 'react';
+import '../styles/map.css';
 
-// Add this CSS to override Leaflet's cursor styles
-const mapStyles = `
-  .leaflet-container,
-  .leaflet-grab,
-  .leaflet-interactive,
-  .leaflet-dragging .leaflet-grab {
-    cursor: none !important;
-  }
-
-  .leaflet-tile-pane {
-    mix-blend-mode: multiply;
-  }
-
-  .leaflet-control-container {
-    z-index: 1000;
-  }
-`;
-
-const InteractiveMap = ({ onLocationSelect, selectedLocation, selectionMode = false }) => {
-  const mapContainerRef = useRef(null);
+const InteractiveMap = ({ 
+  defaultMarkers = [], 
+  showCrosshair = true,
+  showPopups = true,
+  onMarkerClick,
+  onLocationSelect,
+  selectionMode = false
+}) => {
   const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const crosshairRef = useRef(null);
+  const markersRef = useRef([]);
   const panIntervalRef = useRef(null);
-  const markersRef = useRef({});
-  const [teams, setTeams] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const toast = useToast();
+  const mousePositionRef = useRef({ x: 0, y: 0 });
 
-  // Constants
-  const EDGE_THRESHOLD = 50;
-  const BASE_PAN_SPEED = 2; // Increased base speed
-  const PAN_INTERVAL = 16;
-
-  // Load team locations
-  useEffect(() => {
-    const loadTeamLocations = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('teams')
-          .select('id, name, latitude, longitude, location_name')
-          .not('latitude', 'is', null);
-
-        if (error) throw error;
-
-        setTeams(data);
-
-        // Add markers for each team
-        data.forEach(team => {
-          if (mapRef.current && team.latitude && team.longitude) {
-            const marker = L.marker([team.latitude, team.longitude])
-              .addTo(mapRef.current)
-              .bindPopup(team.name);
-            markersRef.current[team.id] = marker;
-          }
-        });
-      } catch (error) {
-        console.error("Error loading team locations:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load team locations",
-          status: "error",
-          duration: 5000,
-        });
-      }
-    };
-
-    loadTeamLocations();
-
-    return () => {
-      // Cleanup markers
-      Object.values(markersRef.current).forEach(marker => {
-        marker.remove();
-      });
-      markersRef.current = {};
-    };
-  }, [toast]);
-
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setMousePosition({ x, y });
-
-    // Calculate distances to edges
-    const distanceToRight = rect.width - x;
-    const distanceToLeft = x;
-    const distanceToTop = y;
-    const distanceToBottom = rect.height - y;
-
-    // Clear any existing pan interval
-    if (panIntervalRef.current) {
-      clearInterval(panIntervalRef.current);
-      panIntervalRef.current = null;
-    }
-
-    // Simple pan direction determination
-    let panX = 0;
-    let panY = 0;
-
-    if (distanceToRight < EDGE_THRESHOLD) panX = 1;
-    else if (distanceToLeft < EDGE_THRESHOLD) panX = -1;
-    if (distanceToBottom < EDGE_THRESHOLD) panY = 1;
-    else if (distanceToTop < EDGE_THRESHOLD) panY = -1;
-
-    // If we need to pan, start the interval
-    if (panX !== 0 || panY !== 0) {
-      panIntervalRef.current = setInterval(() => {
-        if (mapRef.current) {
-          const zoom = mapRef.current.getZoom();
-          const center = mapRef.current.getCenter();
-          
-          // Adjust speed based on zoom level
-          const zoomFactor = Math.pow(0.5, zoom - 2); // Exponential scaling
-          const currentSpeed = BASE_PAN_SPEED * zoomFactor;
-          
-          const newLat = center.lat - (panY * currentSpeed);
-          const newLng = center.lng + (panX * currentSpeed);
-
-          mapRef.current.panTo([newLat, newLng], { animate: false });
-        }
-      }, PAN_INTERVAL);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (panIntervalRef.current) {
-      clearInterval(panIntervalRef.current);
-      panIntervalRef.current = null;
-    }
-  };
-
+  // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    try {
-      mapRef.current = L.map(mapContainerRef.current, {
-        center: [20, 0],
-        zoom: 2,
-        dragging: true,
-        zoomControl: true,
-        scrollWheelZoom: true,
-        doubleClickZoom: false,
-      });
+    // Initialize map with a zoomed out view of the world
+    mapRef.current = L.map(mapContainerRef.current).setView([20, 0], 2);
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapRef.current);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(mapRef.current);
-
-      if (selectionMode) {
-        mapRef.current.on('dblclick', async (e) => {
-          try {
-            const response = await fetch(
-              `https://api.opencagedata.com/geocode/v1/json?q=${e.latlng.lat}+${e.latlng.lng}&key=${import.meta.env.VITE_OPENCAGE_API_KEY}`
-            );
-            const data = await response.json();
-            
-            const locationName = data.results?.[0]?.formatted || null;
-            
-            onLocationSelect({
-              lat: e.latlng.lat,
-              lng: e.latlng.lng,
-              name: locationName
-            });
-          } catch (error) {
-            console.error("Error getting location name:", error);
-            onLocationSelect({
-              lat: e.latlng.lat,
-              lng: e.latlng.lng
-            });
-          }
+    // Add click handler for location selection
+    const handleMapClick = (e) => {
+      if (selectionMode && onLocationSelect) {
+        onLocationSelect({
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          name: 'New Location'
         });
       }
-    } catch (error) {
-      console.error("Error initializing map:", error);
-      toast({
-        title: "Error",
-        description: "Failed to initialize map",
-        status: "error",
-        duration: 5000,
-      });
-    }
+    };
+
+    mapRef.current.on('click', handleMapClick);
 
     return () => {
-      if (panIntervalRef.current) {
-        clearInterval(panIntervalRef.current);
-      }
       if (mapRef.current) {
+        mapRef.current.off('click', handleMapClick);
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, [toast, selectionMode, onLocationSelect]);
+  }, [selectionMode, onLocationSelect]);
+
+  // Handle crosshair and map panning
+  useEffect(() => {
+    if (!mapRef.current || !showCrosshair) return;
+
+    // Create root element for crosshair overlay
+    const crosshairElement = document.createElement('div');
+    crosshairElement.className = 'crosshair-container';
+    
+    const verticalLine = document.createElement('div');
+    verticalLine.className = 'crosshair-vertical';
+    verticalLine.style.height = '100%';
+    
+    const horizontalLine = document.createElement('div');
+    horizontalLine.className = 'crosshair-horizontal';
+    horizontalLine.style.width = '100%';
+    
+    const centerDot = document.createElement('div');
+    centerDot.className = 'crosshair-center';
+    
+    crosshairElement.appendChild(verticalLine);
+    crosshairElement.appendChild(horizontalLine);
+    crosshairElement.appendChild(centerDot);
+    
+    crosshairRef.current = crosshairElement;
+
+    const mapContainerElement = mapRef.current.getContainer();
+    if (!mapContainerElement) return;
+
+    mapContainerElement.appendChild(crosshairElement);
+    mapContainerElement.classList.add('map-with-crosshair');
+
+    const handlePanStop = () => {
+      if (panIntervalRef.current) {
+        clearInterval(panIntervalRef.current);
+        panIntervalRef.current = null;
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      const rect = mapContainerElement.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      mousePositionRef.current = { x, y };
+
+      // Update crosshair position
+      verticalLine.style.left = `${x}px`;
+      horizontalLine.style.top = `${y}px`;
+      centerDot.style.left = `${x}px`;
+      centerDot.style.top = `${y}px`;
+
+      // Check if we need to start/stop panning
+      handleAutoPanning(x, y, rect.width, rect.height);
+    };
+
+    const handleAutoPanning = (x, y, width, height) => {
+      const edgeThreshold = 50; // Keep the same threshold
+      const panSpeed = 3; // Reduced from 10 to 3 for smoother movement
+      const updateInterval = 16; // ~60fps for smooth animation
+
+      if (panIntervalRef.current) {
+        clearInterval(panIntervalRef.current);
+        panIntervalRef.current = null;
+      }
+
+      const panLeft = x < edgeThreshold;
+      const panRight = x > width - edgeThreshold;
+      const panUp = y < edgeThreshold;
+      const panDown = y > height - edgeThreshold;
+
+      if (panLeft || panRight || panUp || panDown) {
+        panIntervalRef.current = setInterval(() => {
+          const center = mapRef.current.getCenter();
+          const zoom = mapRef.current.getZoom();
+          
+          // Adjust the multiplier based on zoom level for consistent speed
+          const pixelsToLatLng = (pixels) => {
+            return pixels * 0.00002 * Math.pow(2, (18 - zoom));
+          };
+
+          let lat = center.lat;
+          let lng = center.lng;
+
+          // Calculate distance from edge for smooth acceleration
+          const getSpeedMultiplier = (position, threshold) => {
+            const distance = Math.min(position, threshold);
+            return (threshold - distance) / threshold; // 0 to 1 based on proximity to edge
+          };
+
+          if (panUp) {
+            const multiplier = getSpeedMultiplier(y, edgeThreshold);
+            lat += pixelsToLatLng(panSpeed * multiplier);
+          }
+          if (panDown) {
+            const multiplier = getSpeedMultiplier(height - y, edgeThreshold);
+            lat -= pixelsToLatLng(panSpeed * multiplier);
+          }
+          if (panLeft) {
+            const multiplier = getSpeedMultiplier(x, edgeThreshold);
+            lng -= pixelsToLatLng(panSpeed * multiplier);
+          }
+          if (panRight) {
+            const multiplier = getSpeedMultiplier(width - x, edgeThreshold);
+            lng += pixelsToLatLng(panSpeed * multiplier);
+          }
+
+          mapRef.current.panTo([lat, lng], { 
+            animate: false,
+            duration: 0 // Ensure smooth continuous movement
+          });
+        }, updateInterval);
+      }
+    };
+
+    mapContainerElement.addEventListener('mousemove', handleMouseMove);
+    mapContainerElement.addEventListener('mouseleave', handlePanStop);
+
+    return () => {
+      // Store reference to map before cleanup
+      const map = mapRef.current;
+      
+      if (mapContainerElement) {
+        mapContainerElement.removeEventListener('mousemove', handleMouseMove);
+        mapContainerElement.removeEventListener('mouseleave', handlePanStop);
+        mapContainerElement.classList.remove('map-with-crosshair');
+      }
+      
+      if (crosshairRef.current) {
+        crosshairRef.current.remove();
+        crosshairRef.current = null;
+      }
+      
+      if (panIntervalRef.current) {
+        clearInterval(panIntervalRef.current);
+        panIntervalRef.current = null;
+      }
+      
+      // Only try to remove click handler if map still exists
+      if (map && selectionMode && onLocationSelect) {
+        map.off('click');
+      }
+    };
+  }, [showCrosshair, selectionMode, onLocationSelect]);
+
+  // Handle markers
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    defaultMarkers.forEach(marker => {
+      const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `
+          <div class="marker-container">
+            <div class="marker-pin"></div>
+          </div>
+        `,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+      });
+
+      const newMarker = L.marker([marker.lat, marker.lng], {
+        icon: customIcon
+      }).addTo(mapRef.current);
+      
+      if (showPopups) {
+        const popup = L.popup({
+          closeButton: false,
+          className: 'custom-popup-container'
+        }).setContent(marker.popupContent || `Location: ${marker.lat}, ${marker.lng}`);
+        
+        newMarker.bindPopup(popup);
+        
+        // Add hover handlers with delay for popup close
+        let closeTimeout;
+        
+        newMarker.on('mouseover', function() {
+          if (closeTimeout) {
+            clearTimeout(closeTimeout);
+          }
+          this.openPopup();
+        });
+        
+        // Handle mouse leaving marker
+        newMarker.on('mouseout', function(e) {
+          // Check if mouse is over the popup
+          const popupElement = document.querySelector('.custom-popup-container');
+          if (popupElement && popupElement.matches(':hover')) {
+            return;
+          }
+          
+          closeTimeout = setTimeout(() => {
+            if (!document.querySelector('.custom-popup-container:hover')) {
+              this.closePopup();
+            }
+          }, 300);
+        });
+        
+        // Add listener for popup element
+        popup.on('add', function() {
+          const popupElement = document.querySelector('.custom-popup-container');
+          if (popupElement) {
+            popupElement.addEventListener('mouseleave', function() {
+              closeTimeout = setTimeout(() => {
+                newMarker.closePopup();
+              }, 300);
+            });
+            
+            popupElement.addEventListener('mouseenter', function() {
+              if (closeTimeout) {
+                clearTimeout(closeTimeout);
+              }
+            });
+          }
+        });
+      }
+      
+      if (onMarkerClick) {
+        newMarker.on('click', () => onMarkerClick(marker.id));
+      }
+      
+      markersRef.current.push(newMarker);
+    });
+  }, [defaultMarkers, showPopups, onMarkerClick]);
 
   return (
-    <>
-      <style>{mapStyles}</style>
-      <div 
-        className="relative"
-        style={{ 
-          cursor: "none", 
-          position: "relative",
-          height: "100%",
-          width: "100%",
-          overflow: "hidden"
-        }}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      >
-        {/* Crosshairs Container */}
-        <div 
-          style={{
-            position: "absolute",
-            left: `${mousePosition.x}px`,
-            top: `${mousePosition.y}px`,
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-            zIndex: 10000
-          }}
-        >
-          {/* Vertical line - full height */}
-          <div style={{
-            position: "absolute",
-            width: "1px",
-            height: "2000px",
-            backgroundColor: "#2e3726",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)"
-          }} />
-          
-          {/* Horizontal line - full width */}
-          <div style={{
-            position: "absolute",
-            width: "2000px",
-            height: "1px",
-            backgroundColor: "#2e3726",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)"
-          }} />
-
-          {/* Circle around center */}
-          <div 
-            style={{
-              position: "absolute",
-              width: "20px",
-              height: "20px",
-              border: "2px solid #2e3726",
-              borderRadius: "50%",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "transparent"
-            }}
-          />
-
-          {/* Center dot */}
-          <div 
-            style={{
-              position: "absolute",
-              width: "4px",
-              height: "4px",
-              backgroundColor: "#2e3726",
-              borderRadius: "50%",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)"
-            }}
-          />
-        </div>
-        
-        <div 
-          ref={mapContainerRef} 
-          style={{ 
-            height: "100%", 
-            width: "100%",
-            position: "relative",
-            zIndex: 1
-          }}
-        />
-      </div>
-
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Selected Location</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <VStack spacing={4} pb={4}>
-              {selectedLocation && (
-                <Text>
-                  Latitude: {selectedLocation.lat.toFixed(6)}
-                  <br />
-                  Longitude: {selectedLocation.lng.toFixed(6)}
-                </Text>
-              )}
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    </>
+    <div 
+      ref={mapContainerRef} 
+      style={{ width: '100%', height: '100%', position: 'relative' }}
+      className={showCrosshair ? 'map-with-crosshair' : ''}
+    />
   );
 };
 
+InteractiveMap.propTypes = {
+  defaultMarkers: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      lat: PropTypes.number.isRequired,
+      lng: PropTypes.number.isRequired,
+      popupContent: PropTypes.string,
+      name: PropTypes.string
+    })
+  ),
+  showCrosshair: PropTypes.bool,
+  showPopups: PropTypes.bool,
+  onMarkerClick: PropTypes.func,
+  onLocationSelect: PropTypes.func,
+  selectionMode: PropTypes.bool
+};
+
 export default InteractiveMap;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

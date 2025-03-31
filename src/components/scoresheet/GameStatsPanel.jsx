@@ -1,20 +1,7 @@
-import React, { useMemo } from 'react';
-import {
-  Box,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Text,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatGroup,
-  Divider,
-} from '@chakra-ui/react';
-
+import { } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import React from 'react';
+ 
 const GameStatsPanel = ({ playerData }) => {
   return (
     <div className="stats-panel">
@@ -31,6 +18,22 @@ const GameStatsPanel = ({ playerData }) => {
       </div>
     </div>
   );
+};
+
+GameStatsPanel.propTypes = {
+  playerData: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    stats: PropTypes.shape({
+      atBats: PropTypes.number.isRequired,
+      hits: PropTypes.number.isRequired,
+      singles: PropTypes.number.isRequired,
+      doubles: PropTypes.number.isRequired,
+      triples: PropTypes.number.isRequired,
+      homeRuns: PropTypes.number.isRequired,
+      walks: PropTypes.number.isRequired,
+      battingAvg: PropTypes.number.isRequired,
+    }).isRequired,
+  }).isRequired,
 };
 
 export default GameStatsPanel;
