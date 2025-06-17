@@ -2,33 +2,66 @@ import {
   Button,
   FormControl,
   FormLabel,
-  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   NumberInput,
   NumberInputField,
   Select,
-  VStack,
+  Stack,
+  Textarea,
+  useDisclosure,
   useToast
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { formFieldStyles } from '../../styles/formFieldStyles';
+import { dialogStyles } from '../../styles/dialogStyles';
 
 const PLATFORMS = {
-  X: 'X',
-  FACEBOOK: 'Facebook',
-  INSTAGRAM: 'Instagram',
-  YOUTUBE: 'YouTube',
-  TIKTOK: 'TikTok'
+  X: 'X'
 };
 
-const SocialEmbedEditor = ({ teamId, isDisabled }) => {
+const SocialEmbedEditor = ({ teamId, isDisabled, buttonProps }) => {
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     platform: PLATFORMS.X,
     embedCode: '',
     displayOrder: 1
   });
+
+  // Add the customFormFieldStyles
+  const customFormFieldStyles = {
+    bg: "brand.surface.input",
+    color: "black",
+    borderColor: "brand.border",
+    _hover: { borderColor: 'brand.primary.hover' },
+    _focus: { 
+      borderColor: 'brand.primary.hover',
+      boxShadow: 'none'
+    },
+    _placeholder: {
+      color: 'black'  // Change placeholder color to black
+    },
+    sx: {
+      '& option': {
+        bg: 'brand.surface.base',
+        color: 'black'
+      },
+      '&::placeholder': {
+        color: 'black !important'  // Additional CSS for placeholder
+      }
+    }
+  };
+
+  // Disable the form if no teamId is provided
+  const isFormDisabled = isDisabled || !teamId;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,8 +71,8 @@ const SocialEmbedEditor = ({ teamId, isDisabled }) => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    setIsLoading(true);
     
     try {
       const { error } = await supabase
@@ -53,12 +86,13 @@ const SocialEmbedEditor = ({ teamId, isDisabled }) => {
 
       if (error) throw error;
 
-      // Reset form
       setFormData({
         platform: PLATFORMS.X,
         embedCode: '',
         displayOrder: 1
       });
+
+      onClose();
 
       toast({
         title: "Success",
@@ -75,94 +109,116 @@ const SocialEmbedEditor = ({ teamId, isDisabled }) => {
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <VStack 
-      as="form" 
-      onSubmit={handleSubmit} 
-      spacing={4} 
-      align="stretch"
-      opacity={isDisabled ? 0.6 : 1}
-    >
-      <FormControl>
-        <FormLabel color="brand.text.primary">Platform</FormLabel>
-        <Select
-          {...formFieldStyles}
-          name="platform"
-          value={formData.platform}
-          onChange={handleChange}
-          bg="brand.primary.base"
-          color="brand.text.primary"
-          borderColor="brand.border"
-          _hover={{ borderColor: 'brand.primary.hover' }}
-          isDisabled={isDisabled}
-        >
-          <option value={PLATFORMS.X}>{PLATFORMS.X}</option>
-          <option value={PLATFORMS.FACEBOOK}>{PLATFORMS.FACEBOOK}</option>
-          <option value={PLATFORMS.INSTAGRAM}>{PLATFORMS.INSTAGRAM}</option>
-          <option value={PLATFORMS.YOUTUBE}>{PLATFORMS.YOUTUBE}</option>
-          <option value={PLATFORMS.TIKTOK}>{PLATFORMS.TIKTOK}</option>
-        </Select>
-      </FormControl>
-
-      <FormControl>
-        <FormLabel color="brand.text.primary">Embed Code</FormLabel>
-        <Input
-          {...formFieldStyles}
-          name="embedCode"
-          value={formData.embedCode}
-          onChange={handleChange}
-          bg="brand.primary.base"
-          color="brand.text.primary"
-          borderColor="brand.border"
-          _hover={{ borderColor: 'brand.primary.hover' }}
-          isDisabled={isDisabled}
-          placeholder={`Enter ${formData.platform} embed code`}
-        />
-      </FormControl>
-
-      <FormControl>
-        <FormLabel color="brand.text.primary">Display Order</FormLabel>
-        <NumberInput
-          name="displayOrder"
-          value={formData.displayOrder}
-          onChange={(valueString) => handleChange({
-            target: { name: 'displayOrder', value: valueString }
-          })}
-          min={1}
-          isDisabled={isDisabled}
-        >
-          <NumberInputField
-            bg="brand.primary.base"
-            color="brand.text.primary"
-            borderColor="brand.border"
-            _hover={{ borderColor: 'brand.primary.hover' }}
-          />
-        </NumberInput>
-      </FormControl>
-
+    <>
       <Button
-        type="submit"
-        // Remove the hardcoded gradient
-        // bgGradient="linear(to-r, #111613, #1b2c14, #111613)"
-        // color="brand.text.primary"
-        // _hover={{ opacity: 0.9 }}
+        {...buttonProps?.primary}
+        onClick={onOpen}
         isDisabled={isDisabled}
+        mb={4}
       >
-        Save Embed
+        Add Embed
       </Button>
-    </VStack>
+
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay {...dialogStyles.overlay} />
+        <ModalContent {...dialogStyles.content}>
+          <ModalHeader {...dialogStyles.header}>
+            Add Social Embed
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody {...dialogStyles.body}>
+            <Stack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel color="brand.text.primary">Platform</FormLabel>
+                <Select
+                  {...customFormFieldStyles}
+                  name="platform"
+                  value={formData.platform}
+                  onChange={handleChange}
+                >
+                  {Object.values(PLATFORMS).map(platform => (
+                    <option key={platform} value={platform}>{platform}</option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl mt={4} isRequired>
+                <FormLabel color="brand.text.primary">Embed Code</FormLabel>
+                <Textarea
+                  {...customFormFieldStyles}
+                  name="embedCode"
+                  value={formData.embedCode}
+                  onChange={handleChange}
+                  placeholder="Paste embed code here"
+                  minHeight="150px"
+                />
+              </FormControl>
+              <FormControl mt={4}>
+                <FormLabel color="brand.text.primary">Display Order</FormLabel>
+                <NumberInput
+                  min={1}
+                  max={10}
+                  value={formData.displayOrder}
+                  onChange={(valueString) => handleChange({ target: { name: 'displayOrder', value: valueString } })}
+                >
+                  <NumberInputField {...customFormFieldStyles} />
+                </NumberInput>
+              </FormControl>
+            </Stack>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="primary"
+              {...buttonProps.primary}
+              mr="auto"
+              onClick={handleSubmit}
+              isLoading={isLoading}
+              isDisabled={!formData.platform || !formData.embedCode}
+            >
+              Add Embed
+            </Button>
+            <Button variant="cancel" onClick={onClose}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 
 SocialEmbedEditor.propTypes = {
   teamId: PropTypes.string,
-  isDisabled: PropTypes.bool
+  isDisabled: PropTypes.bool,
+  buttonProps: PropTypes.shape({
+    primary: PropTypes.object,
+    secondary: PropTypes.object
+  })
 };
 
 export default SocialEmbedEditor;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,25 +1,30 @@
-// React and PropTypes
-import PropTypes from 'prop-types';
-import { useEffect, useState } from 'react';
-
-// Chakra UI components
 import {
   Box,
   Button,
+  Flex,
   FormControl,
   FormLabel,
-  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Select,
+  Tag,
+  TagCloseButton,
+  TagLabel,
   Textarea,
   useToast,
   VStack
 } from '@chakra-ui/react';
-
-// Services and utilities
+import PropTypes from 'prop-types';
+import { useEffect, useState } from 'react';
 import { useTeam } from '../../hooks/useTeam';
 import { supabase } from '../../lib/supabaseClient';
 import { teamInfoService } from '../../services/teamInfoService';
-import { formFieldStyles, formLabelStyles } from '../../styles/formFieldStyles';
+import { formLabelStyles } from '../../styles/formFieldStyles';
 
 const cardStyles = {
   bg: 'brand.surface.base',
@@ -35,11 +40,15 @@ const labelStyles = {
   fontWeight: 'medium'
 };
 
-const PlayerOfWeekEditor = ({ isDisabled }) => {
+const PlayerOfWeekEditor = ({ isDisabled, buttonProps = {
+  primary: { colorScheme: 'blue' },
+  secondary: { variant: 'ghost' }
+}, isOpen, onClose, onSave }) => {
   const [players, setPlayers] = useState([]);
   const [selectedPlayers, setSelectedPlayers] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(''); // Add this line
+  const [selectedPlayer, setSelectedPlayer] = useState('');
   const [notes, setNotes] = useState('');
+  const [stats, setStats] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { team } = useTeam();
   const toast = useToast();
@@ -72,44 +81,57 @@ const PlayerOfWeekEditor = ({ isDisabled }) => {
     try {
       const { data, error } = await supabase
         .from('player_of_week')
-        .select('player_ids, notes')
+        .select('player_ids, notes, stats')
         .eq('team_id', team.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
-        const selectedPlayersList = players.filter(p => 
-          data.player_ids && data.player_ids.includes(p.id)
-        );
-        setSelectedPlayers(selectedPlayersList);
+        // Make sure we have players loaded before filtering
+        if (players.length > 0) {
+          const validPlayerIds = data.player_ids?.filter(id => 
+            players.some(p => p.id === id)
+          ) || [];
+          
+          setSelectedPlayers(players.filter(p => 
+            validPlayerIds.includes(p.id)
+          ));
+        } else {
+          setSelectedPlayers([]);
+        }
+        
         setNotes(data.notes || '');
+        setStats(data.stats || '');
       } else {
         setSelectedPlayers([]);
         setNotes('');
+        setStats('');
       }
     } catch (error) {
-      console.error('Error fetching current player of week:', error);
+      console.error('Error fetching current player of week:', error.message || error);
       toast({
-        title: 'Error fetching player of week',
-        description: error.message,
+        title: 'Error',
+        description: 'Failed to fetch current player of week',
         status: 'error',
         duration: 5000,
       });
     }
   };
 
-  const handlePlayerSelect = (playerId) => {
-    if (!playerId) return;
+  const handleAddPlayer = () => {
+    if (!selectedPlayer) return;
     
-    const player = players.find(p => p.id === playerId);
-    if (player && !selectedPlayers.find(p => p.id === playerId)) {
-      setSelectedPlayers([...selectedPlayers, player]);
-      setSelectedPlayer(''); // Reset selected player after adding
+    const playerToAdd = players.find(p => p.id === selectedPlayer);
+    if (playerToAdd && !selectedPlayers.some(p => p.id === playerToAdd.id)) {
+      setSelectedPlayers([...selectedPlayers, playerToAdd]);
+      setSelectedPlayer('');
     }
   };
 
-  const removePlayer = (playerId) => {
+  const handleRemovePlayer = (playerId) => {
     setSelectedPlayers(selectedPlayers.filter(p => p.id !== playerId));
   };
 
@@ -118,15 +140,18 @@ const PlayerOfWeekEditor = ({ isDisabled }) => {
 
     setIsLoading(true);
     try {
+      const updateData = {
+        team_id: team.id,
+        player_ids: selectedPlayers.map(p => p.id),
+        notes: notes.trim(),
+        stats: stats.trim(),
+        date: new Date().toISOString().split('T')[0],
+        updated_at: new Date().toISOString()
+      };
+      
       const { error } = await supabase
         .from('player_of_week')
-        .upsert({
-          team_id: team.id,
-          player_ids: selectedPlayers.map(p => p.id),
-          notes: notes.trim(),
-          date: new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString()
-        });
+        .upsert(updateData);
 
       if (error) throw error;
 
@@ -136,6 +161,9 @@ const PlayerOfWeekEditor = ({ isDisabled }) => {
         status: 'success',
         duration: 3000,
       });
+      
+      if (onSave) onSave();
+      onClose(); // Close the modal after successful update
     } catch (error) {
       toast({
         title: 'Error',
@@ -148,80 +176,136 @@ const PlayerOfWeekEditor = ({ isDisabled }) => {
     }
   };
 
+  // Add the customFormFieldStyles
+  const customFormFieldStyles = {
+    bg: "brand.surface.input",
+    color: "black",
+    borderColor: "brand.border",
+    _hover: { borderColor: 'brand.primary.hover' },
+    _focus: { 
+      borderColor: 'brand.primary.hover',
+      boxShadow: 'none'
+    },
+    _placeholder: {
+      color: 'black'  // Change placeholder color to black
+    },
+    sx: {
+      '& option': {
+        bg: 'brand.surface.base',
+        color: 'black'
+      },
+      '&::placeholder': {
+        color: 'black !important'  // Additional CSS for placeholder
+      }
+    }
+  };
+
+  const handlePlayerSelect = (e) => {
+    setSelectedPlayer(e.target.value);
+    if (e.target.value) {
+      handleAddPlayer();
+    }
+  };
+
+  // Filter out players that are already selected
+  const availablePlayers = players.filter(
+    player => !selectedPlayers.some(selected => selected.id === player.id)
+  );
+
   return (
-    <Box>
-      <VStack spacing={4} align="stretch">
-        <FormControl>
-          <FormLabel {...formLabelStyles}>Select Player</FormLabel>
-          <Select
-            {...formFieldStyles}
-            value={selectedPlayer}
-            onChange={(e) => setSelectedPlayer(e.target.value)}
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay bg="brand.overlay" />
+      <ModalContent bg="brand.surface.base" color="brand.text.primary">
+        <ModalHeader borderBottomWidth="1px" borderColor="brand.border">
+          Edit Player of the Week
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <VStack spacing={4} align="stretch">
+            <FormControl mb={4}>
+              <FormLabel color="brand.text.primary">Select Players</FormLabel>
+              <Select
+                {...customFormFieldStyles}
+                placeholder="Select player"
+                onChange={handlePlayerSelect}
+              >
+                {availablePlayers.map(player => (
+                  <option key={player.id} value={player.id}>{player.name}</option>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Box>
+              <FormLabel {...formLabelStyles}>Selected Players</FormLabel>
+              <Flex wrap="wrap" gap={2}>
+                {selectedPlayers.map(player => (
+                  <Tag
+                    key={player.id}
+                    size="md"
+                    borderRadius="full"
+                    variant="solid"
+                    colorScheme="brand"
+                    bg="brand.primary.base"
+                  >
+                    <TagLabel>{player.name}</TagLabel>
+                    <TagCloseButton onClick={() => handleRemovePlayer(player.id)} />
+                  </Tag>
+                ))}
+              </Flex>
+            </Box>
+
+            <FormControl mb={4}>
+              <FormLabel color="brand.text.primary">Notes</FormLabel>
+              <Textarea
+                {...customFormFieldStyles}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Enter notes about the player's achievements"
+              />
+            </FormControl>
+
+            <FormControl mb={4}>
+              <FormLabel color="brand.text.primary">Stats</FormLabel>
+              <Textarea
+                {...customFormFieldStyles}
+                value={stats}
+                onChange={(e) => setStats(e.target.value)}
+                placeholder="Enter key statistics"
+              />
+            </FormControl>
+          </VStack>
+        </ModalBody>
+        <ModalFooter borderTopWidth="1px" borderColor="brand.border">
+          <Button
+            variant="primary"
+            className="app-gradient"
+            color="brand.text.primary"
+            _hover={{ opacity: 0.9 }}
+            mr="auto"
+            onClick={handleUpdate}
+            isLoading={isLoading}
+            isDisabled={selectedPlayers.length === 0}
           >
-            {players.map(player => (
-              <option key={player.id} value={player.id}>
-                {player.name}
-              </option>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl>
-          <FormLabel {...formLabelStyles}>Achievement Description</FormLabel>
-          <Textarea
-            {...formFieldStyles}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Describe the player's outstanding performance..."
-          />
-        </FormControl>
-
-        <FormControl>
-          <FormLabel {...formLabelStyles}>Week Starting</FormLabel>
-          <Input
-            {...formFieldStyles}
-            type="date"
-            value={weekStart}
-            onChange={(e) => setWeekStart(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl>
-          <FormLabel {...formLabelStyles}>Highlight Stats</FormLabel>
-          <Input
-            {...formFieldStyles}
-            value={stats}
-            onChange={(e) => setStats(e.target.value)}
-            placeholder="e.g., 3 HR, .500 BA, 8 RBI"
-          />
-        </FormControl>
-
-        <Button
-          onClick={handleUpdate}
-          isLoading={isLoading}
-          isDisabled={isDisabled || selectedPlayers.length === 0}
-        >
-          Update Players of the Week
-        </Button>
-      </VStack>
-    </Box>
+            Save
+          </Button>
+          <Button variant="cancel" onClick={onClose}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
 
 PlayerOfWeekEditor.propTypes = {
-  isDisabled: PropTypes.bool
+  isDisabled: PropTypes.bool,
+  buttonProps: PropTypes.object,
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func
 };
 
 export default PlayerOfWeekEditor;
-
-
-
-
-
-
-
-
-
 
 
 

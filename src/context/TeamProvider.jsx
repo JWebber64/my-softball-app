@@ -1,112 +1,66 @@
-import PropTypes from 'prop-types';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabaseClient';
 import { TeamContext } from './TeamContext';
 
 export default function TeamProvider({ children }) {
-  const [team, setTeam] = useState(() => {
-    // Initialize team from localStorage on component mount
-    const savedTeam = localStorage.getItem('activeTeam');
-    return savedTeam ? JSON.parse(savedTeam) : null;
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const [team, setTeam] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { user, isAuthenticated } = useAuth();
 
   const fetchTeam = useCallback(async () => {
-    try {
-      console.log('TeamProvider: Fetching team data...');
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('TeamProvider: Session user:', session?.user?.id);
-
-      if (!session?.user) {
-        console.log('TeamProvider: No user session');
-        setTeam(null);
-        localStorage.removeItem('activeTeam');
-        return;
-      }
-
-      // Get active team from localStorage first
-      const savedTeam = localStorage.getItem('activeTeam');
-      let parsedTeam = null;
-      
-      if (savedTeam) {
-        parsedTeam = JSON.parse(savedTeam);
-        console.log('TeamProvider: Found saved team:', parsedTeam);
-      }
-
-      // Verify team access
-      const { data, error } = await supabase
-        .rpc('get_user_teams', {
-          p_user_id: session.user.id
-        });
-
-      if (error) {
-        console.error('TeamProvider: Error fetching teams:', error);
-        throw error;
-      }
-
-      console.log('TeamProvider: Available teams from DB:', data);
-
-      // Verify if saved team exists in DB results
-      if (parsedTeam && data?.length > 0) {
-        const stillHasAccess = data.some(t => t.id === parsedTeam.id);
-        console.log('TeamProvider: Still has access to saved team?', stillHasAccess);
-        
-        if (!stillHasAccess) {
-          console.log('TeamProvider: No longer has access to saved team');
-          setTeam(null);
-          localStorage.removeItem('activeTeam');
-        }
-      }
-    } catch (error) {
-      console.error('TeamProvider: Error in fetchTeam:', error);
+    if (!isAuthenticated || !user?.id) {
       setTeam(null);
-      localStorage.removeItem('activeTeam');
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  // Update localStorage whenever team changes
+    setLoading(true);
+    try {
+      const { data, error: teamError } = await supabase
+        .from('team_members')
+        .select('*, teams!inner(*)')
+        .eq('team_members_user_id', user.id)
+        .maybeSingle();
+
+      if (teamError) throw teamError;
+      
+      // Ensure we have valid team data
+      const validTeam = data?.teams && Object.keys(data.teams).length > 0 ? data.teams : null;
+      console.log('Setting team to:', validTeam); // Add this for debugging
+      setTeam(validTeam);
+      setError(null);
+    } catch (err) {
+      console.error('Team fetch error:', err);
+      setError(err.message);
+      setTeam(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, isAuthenticated]);
+
+  // Reset state when auth changes
   useEffect(() => {
-    if (team) {
-      localStorage.setItem('activeTeam', JSON.stringify(team));
-    } else {
-      localStorage.removeItem('activeTeam');
+    if (!isAuthenticated) {
+      setTeam(null);
+      setError(null);
+      setLoading(false);
     }
-  }, [team]);
+  }, [isAuthenticated]);
 
+  // Fetch team data when auth state changes
   useEffect(() => {
     fetchTeam();
-
-    const subscription = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        setTeam(null);
-        localStorage.removeItem('activeTeam');
-        setIsLoading(false);
-      } else {
-        fetchTeam();
-      }
-    });
-
-    return () => {
-      subscription.data.subscription.unsubscribe();
-    };
   }, [fetchTeam]);
 
-  const value = {
+  const value = useMemo(() => ({
     team,
-    setTeam: (newTeam) => {
-      setTeam(newTeam);
-      if (newTeam) {
-        localStorage.setItem('activeTeam', JSON.stringify(newTeam));
-      } else {
-        localStorage.removeItem('activeTeam');
-      }
-    },
-    isLoading,
-    refreshTeam: async () => {
-      setIsLoading(true);
-      await fetchTeam();
-    }
-  };
+    setTeam,
+    loading,
+    error,
+    refetchTeam: fetchTeam
+  }), [team, loading, error, fetchTeam]);
 
   return (
     <TeamContext.Provider value={value}>
@@ -114,11 +68,5 @@ export default function TeamProvider({ children }) {
     </TeamContext.Provider>
   );
 }
-
-TeamProvider.propTypes = {
-  children: PropTypes.node.isRequired
-};
-
-
 
 

@@ -1,261 +1,206 @@
-import {
-  Box,
-  Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Progress,
-  Text,
-  useToast,
-  VStack
-} from '@chakra-ui/react';
+import { Box, Button, HStack, Text, useToast, VStack } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
-import React, { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Webcam from 'react-webcam';
-import { useAuth } from '../../context/AuthContext';
-import { useTeam } from '../../context/TeamContext';
-import { scoreSheetOperations } from '../../lib/scoreSheetOperations';
 import { OCRService } from '../../services/ocrService';
+import DigitalScoreSheet from './DigitalScoreSheet';
 
-ScoreSheetScanner.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onScanComplete: PropTypes.func,
-  onClose: PropTypes.func.isRequired,
-};
-
-const ScoreSheetScanner = ({ isOpen, onScanComplete, onClose }) => {
+/**
+ * ScoreSheetScanner - Component for scanning physical scoresheets and converting to digital format
+ * Uses DigitalScoreSheetWrapper for displaying the converted data
+ */
+const ScoreSheetScanner = ({ 
+  isOpen, 
+  onClose, 
+  onSave = () => {},
+  useOcr = false 
+}) => {
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [scoreSheetData, setScoreSheetData] = useState(null);
   const webcamRef = useRef(null);
-  const [scanning, setScanning] = useState(false);
-  const [progress] = useState(0);
-  const [cameraReady, setCameraReady] = useState(false);
   const toast = useToast();
   const ocrService = useRef(new OCRService());
-  const { user, isAuthenticated } = useAuth();
-  const { team } = useTeam();
 
-  // Add a callback to detect when the camera is ready
-  const handleUserMedia = useCallback(() => {
-    setCameraReady(true);
-  }, []);
+  // If not open, don't render anything
+  if (!isOpen) return null;
 
-  const handleCancel = () => {
-    if (scanning) {
-      setScanning(false);
-    }
-    onClose();
+  const captureImage = () => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    setCapturedImage(imageSrc);
+    processImage(imageSrc);
   };
 
-  const processScoreSheet = async (img) => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to process score sheets",
-        status: "error",
-        duration: 3000,
-      });
-      return;
-    }
-
+  const processImage = async (imageSrc) => {
+    setIsProcessing(true);
     try {
-      // Log team context data
-      console.log('Team context:', team);
+      let processedData;
       
-      if (!team?.id) {
-        throw new Error('No active team selected');
-      }
-
-      // Verify team ID format
-      if (typeof team.id !== 'string' || !team.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        throw new Error('Invalid team ID format');
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-
-      // Process with OCR and get parsed data
-      const { parsed: scoreSheetData } = await ocrService.current.recognizeText(canvas);
-
-      // Add user metadata
-      scoreSheetData.metadata = {
-        uploaded_by: user.id,
-        upload_date: new Date().toISOString(),
-      };
-
-      // Log the data being sent to createScoreSheet
-      console.log('Sending to createScoreSheet:', {
-        scoreSheetData,
-        teamId: team.id
-      });
-
-      // Save to database with team_id
-      const savedSheet = await scoreSheetOperations.createScoreSheet(scoreSheetData, team.id);
-      
-      // Create file from canvas
-      canvas.toBlob(async (blob) => {
-        const file = new File([blob], `scoresheet-${scoreSheetData.gameInfo.gameNumber}.png`, { type: 'image/png' });
+      if (useOcr) {
+        // Use OCR processing
+        toast({
+          title: "Processing with OCR",
+          description: "Analyzing scoresheet with optical character recognition...",
+          status: "info",
+          duration: 3000,
+          isClosable: true,
+        });
         
-        // Upload the image
-        await scoreSheetOperations.uploadImage(savedSheet.game_number, file);
-      });
-
-      if (onScanComplete) {
-        onScanComplete(scoreSheetData);
+        // Initialize OCR service if needed
+        if (!ocrService.current.initialized) {
+          await ocrService.current.initialize();
+        }
+        
+        // Process the image with OCR
+        const ocrResult = await ocrService.current.recognizeText(imageSrc);
+        
+        // Convert OCR result to scoresheet data structure
+        processedData = {
+          gameInfo: {
+            date: new Date().toISOString().split('T')[0],
+            opponent: ocrResult.parsed?.opponentName || '',
+            location: ocrResult.parsed?.location || '',
+            isHome: true,
+          },
+          players: Array(9).fill().map((_, index) => ({
+            id: `player-${index}`,
+            name: ocrResult.parsed?.players?.[index]?.name || '',
+            position: ocrResult.parsed?.players?.[index]?.position || '',
+            number: ocrResult.parsed?.players?.[index]?.number || '',
+            innings: Array(7).fill().map(() => ({
+              diamond: { bases: [false, false, false], scored: false },
+              events: { primary: '', out: '', note: '' },
+            })),
+            substitutedInning: null,
+          })),
+          inningTotals: Array(7).fill(0),
+          totalRuns: 0,
+        };
+      } else {
+        // Create empty scoresheet data structure (no OCR)
+        processedData = {
+          gameInfo: {
+            date: new Date().toISOString().split('T')[0],
+            opponent: '',
+            location: '',
+            isHome: true,
+          },
+          players: Array(9).fill().map((_, index) => ({
+            id: `player-${index}`,
+            name: '',
+            position: '',
+            number: '',
+            innings: Array(7).fill().map(() => ({
+              diamond: { bases: [false, false, false], scored: false },
+              events: { primary: '', out: '', note: '' },
+            })),
+            substitutedInning: null,
+          })),
+          inningTotals: Array(7).fill(0),
+          totalRuns: 0,
+        };
       }
-
-      toast({
-        title: 'Scan Complete',
-        description: 'Score sheet has been successfully processed and saved.',
-        status: 'success',
-        duration: 5000,
-      });
-    } catch (error) {
-      console.error('Score sheet processing error:', error);
-      toast({
-        title: 'Error',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-      });
-    }
-  };
-
-  const handleCapture = async () => {
-    if (!webcamRef.current) return;
-
-    try {
-      setScanning(true);
-      const imageSrc = webcamRef.current.getScreenshot();
       
-      // Create an Image object
-      const img = new Image();
-      img.src = imageSrc;
-      await new Promise((resolve) => { img.onload = resolve; });
-
-      processScoreSheet(img);
-    } catch (error) {
-      console.error('Capture error:', error);
+      setScoreSheetData(processedData);
       toast({
-        title: 'Scan Error',
-        description: error.message,
-        status: 'error',
+        title: useOcr ? "OCR processing complete" : "Scoresheet processed",
+        description: "Please review and edit the digital scoresheet.",
+        status: "success",
         duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: useOcr ? "OCR processing failed" : "Processing failed",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
       });
     } finally {
-      setScanning(false);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDataChange = (newData) => {
+    setScoreSheetData(newData);
+  };
+
+  const handleSave = () => {
+    if (scoreSheetData) {
+      onSave(scoreSheetData, capturedImage);
     }
   };
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={handleCancel} 
-      size="xl"
-      closeOnEsc={true}
-      closeOnOverlayClick={!scanning}
-    >
-      <ModalOverlay />
-      <ModalContent bg="#545e46">
-        <Box textAlign="center" width="100%">
-          <ModalHeader color="white" textAlign="center">Scan Score Sheet</ModalHeader>
-        </Box>
-        <ModalCloseButton 
-          color="white"
-          isDisabled={scanning}
-        />
-        <ModalBody>
-          <VStack spacing={4} align="center">
-            <Box
-              width="100%"
-              height="400px"
-              position="relative"
-              borderRadius="md"
-              overflow="hidden"
-            >
-              <Webcam
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                onUserMedia={handleUserMedia}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-              {scanning && (
-                <Box
-                  position="absolute"
-                  top={0}
-                  left={0}
-                  right={0}
-                  bottom={0}
-                  bg="blackAlpha.50"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <VStack>
-                    <Text color="white" fontWeight="bold">Processing...</Text>
-                    <Progress
-                      value={progress}
-                      size="sm"
-                      width="200px"
-                      colorScheme="green"
-                    />
-                  </VStack>
-                </Box>
-              )}
-            </Box>
-            <Text fontSize="sm" color="white" textAlign="center" fontWeight="medium" maxW="80%" mx="auto">
-              Position the score sheet within the frame and ensure good lighting
-            </Text>
-          </VStack>
-        </ModalBody>
-        <ModalFooter
-          display="flex"
-          justifyContent="center"
-          gap={3}
-          bg="#7C866B"
-          position="sticky"
-          bottom="0"
-          p={4}
-          borderTop="1px solid"
-          borderColor="rgba(255,255,255,0.1)"
-        >
-          <Button
-            bg="#545E46"
-            color="#EFF7EC"
-            _hover={{ bg: "#6b7660" }}
-            onClick={handleCapture}
-            size="lg"
-            borderRadius="1rem"
-            isDisabled={!cameraReady}
-          >
-            Capture
-          </Button>
+    <VStack spacing={4} align="stretch">
+      {!capturedImage ? (
+        <Box>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            width="100%"
+            height="auto"
+          />
           <Button 
-            bg="#545E46"
-            color="#EFF7EC"
-            _hover={{ bg: "#6b7660" }}
-            onClick={onClose}
-            size="lg"
-            borderRadius="1rem"
+            onClick={captureImage} 
+            mt={2} 
+            colorScheme="blue"
+            isLoading={isProcessing}
           >
-            Cancel
+            Capture Scoresheet
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </Box>
+      ) : (
+        <VStack spacing={4} align="stretch">
+          <HStack>
+            <Button onClick={() => setCapturedImage(null)}>
+              Take New Photo
+            </Button>
+            <Button 
+              colorScheme="blue" 
+              onClick={handleSave}
+              isDisabled={!scoreSheetData}
+            >
+              Save Digital Scoresheet
+            </Button>
+          </HStack>
+          
+          <Box>
+            <Text fontWeight="bold" mb={2}>Captured Image:</Text>
+            <img src={capturedImage} alt="Captured scoresheet" style={{ maxWidth: '100%' }} />
+          </Box>
+          
+          {scoreSheetData && (
+            <Box>
+              <Text fontWeight="bold" mb={2}>Digital Scoresheet:</Text>
+              <DigitalScoreSheet
+                data={scoreSheetData}
+                onDataChange={handleDataChange}
+                viewMode="edit"
+                canEdit={true}
+                showInningTotals={true}
+              />
+            </Box>
+          )}
+        </VStack>
+      )}
+    </VStack>
   );
 };
 
+ScoreSheetScanner.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func,
+  useOcr: PropTypes.bool
+};
+
 export default ScoreSheetScanner;
+
+
+
 
 
 

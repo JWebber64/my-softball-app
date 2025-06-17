@@ -1,11 +1,7 @@
-import * as tf from '@tensorflow/tfjs';
-import { createWorker } from 'tesseract.js';
-import { PLAY_MAPPINGS } from '../utils/scoresheetParser';
+// Simplified OCRService without TensorFlow and Tesseract dependencies
 
-class OCRService {
+export class OCRService {
   constructor() {
-    this.worker = null;
-    this.model = null;
     this.initialized = false;
   }
 
@@ -13,12 +9,8 @@ class OCRService {
     if (this.initialized) return;
     
     try {
-      this.worker = await createWorker();
-      await this.worker.loadLanguage('eng');
-      await this.worker.initialize('eng');
-      
-      // Load TensorFlow model
-      this.model = await tf.loadLayersModel('/models/image_quality/model.json');
+      // Mock initialization
+      console.log('OCR Service initialized');
       this.initialized = true;
     } catch (error) {
       console.error('OCR initialization error:', error);
@@ -26,77 +18,56 @@ class OCRService {
     }
   }
 
-  async processImage(imageData) {
-    if (!this.initialized) await this.initialize();
-
-    try {
-      const result = await this.worker.recognize(imageData);
-      return result.data.text;
-    } catch (error) {
-      console.error('OCR processing error:', error);
-      throw new Error('Failed to process image');
+  async recognizeText(imageData) {
+    if (!this.initialized) {
+      await this.initialize();
     }
-  }
 
-  parsePlay(text) {
-    const cleanedText = this.cleanText(text).toUpperCase();
+    console.log('Processing image data:', imageData);
     
-    if (!cleanedText) {
-      return { event: '', type: 'empty', value: '' };
-    }
-
-    for (const [pattern, mapping] of Object.entries(PLAY_MAPPINGS)) {
-      if (cleanedText.match(new RegExp(pattern))) {
-        return { ...mapping, value: cleanedText };
-      }
-    }
-
+    // Mock OCR result
     return {
-      event: cleanedText,
-      type: 'unknown',
-      value: cleanedText
+      raw: "Game #123\nDate: 06/15/2023\nTeam: Wildcats\nOpponent: Tigers\nScore: 5-3",
+      parsed: this.parseScoreSheet("Game #123\nDate: 06/15/2023\nTeam: Wildcats\nOpponent: Tigers\nScore: 5-3"),
+      confidence: 0.85
     };
   }
 
-  async checkImageQuality(imageData) {
-    if (!imageData) throw new Error('No image data provided');
-
-    // Validate dimensions
-    if (imageData.width < 800 || imageData.height < 600) {
-      throw new Error('Image resolution too low. Minimum 800x600 required.');
-    }
-
-    const tensor = this.preprocessImage(imageData);
-    const qualityScore = await this.assessQuality(tensor);
-    tensor.dispose();
-
+  parseScoreSheet(text) {
+    // Basic parsing implementation
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    // Extract game info
+    const gameNumberMatch = text.match(/Game\s*#?\s*(\d+)/i);
+    const dateMatch = text.match(/Date:\s*([\d\/]+)/i);
+    
+    // Extract team names
+    const teamMatch = text.match(/Team:\s*([A-Za-z0-9\s]+)/i);
+    const opponentMatch = text.match(/Opponent:\s*([A-Za-z0-9\s]+)/i);
+    
+    // Extract score
+    const scoreMatch = text.match(/Score:\s*(\d+)\s*-\s*(\d+)/i);
+    
     return {
-      score: qualityScore,
-      isAcceptable: qualityScore > 0.7,
-      details: this.getQualityDetails(qualityScore)
+      gameInfo: {
+        gameNumber: gameNumberMatch ? parseInt(gameNumberMatch[1]) : null,
+        date: dateMatch ? dateMatch[1] : null,
+      },
+      teamInfo: {
+        team: teamMatch ? teamMatch[1].trim() : null,
+        opponent: opponentMatch ? opponentMatch[1].trim() : null,
+      },
+      scoreInfo: {
+        teamScore: scoreMatch ? parseInt(scoreMatch[1]) : null,
+        opponentScore: scoreMatch ? parseInt(scoreMatch[2]) : null,
+      },
+      // Add more structured data as needed
     };
   }
 
-  preprocessImage(imageData) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
-    ctx.drawImage(imageData, 0, 0);
-
-    return tf.tidy(() => {
-      const imageTensor = tf.browser.fromPixels(canvas)
-        .resizeBilinear([224, 224])
-        .toFloat()
-        .div(255.0)
-        .expandDims();
-      return imageTensor;
-    });
-  }
-
-  async assessQuality(tensor) {
-    const prediction = await this.model.predict(tensor).data();
-    return prediction[0];
+  assessQuality() {
+    // Mock quality assessment
+    return 0.85;
   }
 
   getQualityDetails(score) {
@@ -105,22 +76,6 @@ class OCRService {
     if (score > 0.5) return 'Fair image quality - consider retaking';
     return 'Poor image quality - please retake';
   }
-
-  cleanText(text) {
-    return text.replace(/[^\w\s\-/|]|_/g, '').trim();
-  }
-
-  async terminate() {
-    if (this.worker) {
-      await this.worker.terminate();
-      this.worker = null;
-    }
-    if (this.model) {
-      this.model.dispose();
-      this.model = null;
-    }
-    this.initialized = false;
-  }
 }
 
-export const ocrService = new OCRService();
+

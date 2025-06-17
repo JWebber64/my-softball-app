@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React, { createContext, useContext, useState } from 'react';
 
-const NotificationContext = createContext();
+// Export the context
+export const NotificationContext = createContext();
 
 export const useNotification = () => {
   const context = useContext(NotificationContext);
@@ -11,12 +12,13 @@ export const useNotification = () => {
   return context;
 };
 
-export const NotificationProvider = ({ children }) => {
+// Export the provider as default
+export default function NotificationProvider({ children }) {
   const [notification, setNotification] = useState(null);
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 5000); // Hide after 5 seconds
+    setTimeout(() => setNotification(null), 5000);
   };
 
   return (
@@ -24,8 +26,10 @@ export const NotificationProvider = ({ children }) => {
       {children}
     </NotificationContext.Provider>
   );
-};
+}
 
 NotificationProvider.propTypes = {
-  children: PropTypes.node.isRequired,
+  children: PropTypes.node.isRequired
 };
+
+

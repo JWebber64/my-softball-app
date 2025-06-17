@@ -1,5 +1,24 @@
 const WEATHER_API_BASE = 'https://api.open-meteo.com/v1';
 
+// Add timeout to prevent infinite loading
+const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
+
+// Make sure the export is correct
 export const weatherService = {
   async getGameDayForecast(location, date) {
     if (!location) {
@@ -49,12 +68,51 @@ export const weatherService = {
       console.error('Weather service error:', error);
       throw new Error('Failed to fetch weather data');
     }
+  },
+  
+  async getCurrentWeather(location) {
+    if (!location || !location.lat || !location.lng) {
+      console.error('Invalid location data:', location);
+      throw new Error('Valid location coordinates are required');
+    }
+    
+    try {
+      console.log('Getting current weather for location:', location);
+      
+      // Build the URL with the correct parameters for Open-Meteo
+      const url = new URL(`${WEATHER_API_BASE}/forecast`);
+      url.searchParams.append('latitude', location.lat);
+      url.searchParams.append('longitude', location.lng);
+      url.searchParams.append('current_weather', 'true');
+      url.searchParams.append('daily', 'precipitation_probability_max');
+      url.searchParams.append('timezone', 'auto');
+      
+      console.log('Weather API URL:', url.toString());
+      
+      const response = await fetchWithTimeout(url);
+      if (!response.ok) {
+        throw new Error('Weather service request failed');
+      }
+
+      const data = await response.json();
+      console.log('Weather API response:', data);
+      
+      return {
+        temperature: data.current_weather.temperature,
+        windSpeed: data.current_weather.windspeed,
+        conditions: getWeatherCondition(data.current_weather.weathercode),
+        precipitation: data.daily.precipitation_probability_max[0]
+      };
+    } catch (error) {
+      console.error('Weather service error:', error);
+      throw new Error('Failed to fetch weather data');
+    }
   }
 };
 
-// Helper function to convert weather codes to readable conditions
+// Helper function to convert weather codes to human-readable conditions
 function getWeatherCondition(code) {
-  const conditions = {
+  const weatherCodes = {
     0: 'Clear sky',
     1: 'Mainly clear',
     2: 'Partly cloudy',
@@ -70,7 +128,13 @@ function getWeatherCondition(code) {
     71: 'Slight snow',
     73: 'Moderate snow',
     75: 'Heavy snow',
-    95: 'Thunderstorm',
+    95: 'Thunderstorm'
   };
-  return conditions[code] || 'Unknown';
+  
+  return weatherCodes[code] || 'Unknown';
 }
+
+
+
+
+

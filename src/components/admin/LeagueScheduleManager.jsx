@@ -31,7 +31,8 @@ const LeagueScheduleManager = ({ leagueId }) => {
     awayTeamId: '',
     date: '',
     time: '',
-    location: ''
+    location: '',
+    leagueId: leagueId // Default to the current league
   });
 
   useEffect(() => {
@@ -81,21 +82,23 @@ const LeagueScheduleManager = ({ leagueId }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-
+  const createGame = async () => {
     try {
-      const { error } = await supabase
+      setIsLoading(true);
+      const { data, error } = await supabase
         .from('games')
-        .insert([{
-          league_id: leagueId,
-          home_team_id: formData.homeTeamId,
-          away_team_id: formData.awayTeamId,
-          date: formData.date,
-          time: formData.time,
-          location: formData.location
-        }]);
+        .insert([
+          {
+            home_team_id: formData.homeTeamId,
+            away_team_id: formData.awayTeamId,
+            date: formData.date,
+            time: formData.time,
+            location: formData.location,
+            league_id: formData.leagueId,
+            status: 'scheduled'
+          }
+        ])
+        .select();
 
       if (error) throw error;
 
@@ -129,7 +132,7 @@ const LeagueScheduleManager = ({ leagueId }) => {
     <CardContainer>
       <SectionCard title="League Schedule">
         <VStack spacing={4} align="stretch">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={createGame}>
             <VStack spacing={4} align="stretch">
               <HStack spacing={4}>
                 <FormControl>
@@ -239,3 +242,4 @@ const LeagueScheduleManager = ({ leagueId }) => {
 };
 
 export default LeagueScheduleManager;
+

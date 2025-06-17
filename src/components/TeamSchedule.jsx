@@ -9,6 +9,7 @@ import {
 import PropTypes from 'prop-types';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { teamInfoService } from '../services/teamInfoService';
+import { formFieldStyles } from '../styles/formFieldStyles';
 import GameCard from './GameCard';
 
 const filterOptions = {
@@ -80,20 +81,23 @@ const TeamSchedule = ({ teamId }) => {
   }
 
   return (
-    <VStack spacing={6} width="100%" align="stretch">
-      <HStack 
-        spacing={4} 
-        justify="center"
-        width="100%"
-      >
+    <VStack spacing={4} width="100%" align="center">
+      <HStack spacing={4} width="100%" justifyContent="center" mb={2}>
         <Select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
           aria-label="Filter by game type"
           width={{ base: "full", sm: "200px" }}
-          bg="brand.primary.dark"
-          borderColor="brand.border"
           maxW="200px"
+          {...formFieldStyles}
+          color="black"
+          sx={{
+            ...formFieldStyles.sx,
+            '& option': {
+              bg: 'brand.surface.base',
+              color: 'black'
+            }
+          }}
         >
           {filterOptions.types.map(option => (
             <option key={option.value} value={option.value}>
@@ -107,9 +111,16 @@ const TeamSchedule = ({ teamId }) => {
           onChange={(e) => setFilterStatus(e.target.value)}
           aria-label="Filter by game status"
           width={{ base: "full", sm: "200px" }}
-          bg="brand.primary.dark"
-          borderColor="brand.border"
           maxW="200px"
+          {...formFieldStyles}
+          color="black"
+          sx={{
+            ...formFieldStyles.sx,
+            '& option': {
+              bg: 'brand.surface.base',
+              color: 'black'
+            }
+          }}
         >
           {filterOptions.statuses.map(option => (
             <option key={option.value} value={option.value}>
@@ -123,6 +134,7 @@ const TeamSchedule = ({ teamId }) => {
         columns={{ base: 1, md: 2, lg: 3 }}
         spacing={6}
         width="100%"
+        justifyItems="center"
       >
         {filteredGames.map((game) => (
           <GameCard
@@ -132,8 +144,9 @@ const TeamSchedule = ({ teamId }) => {
             opponent={game.opponent}
             location={game.location}
             gameType={game.gameType || 'regular'}
-            isHome={game.isHome || false}
+            isHome={game.is_home || false}
             status={game.status}
+            leagueId={game.league_id}
           />
         ))}
       </SimpleGrid>
@@ -146,6 +159,13 @@ TeamSchedule.propTypes = {
 };
 
 export default memo(TeamSchedule);
+
+
+
+
+
+
+
 
 
 

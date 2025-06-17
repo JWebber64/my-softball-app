@@ -4,18 +4,18 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const SocialMediaEmbed = ({ teamId }) => {
-  const [embeds, setEmbeds] = useState([]);
+  const [embedConfig, setEmbedConfig] = useState(null);
 
   useEffect(() => {
     const fetchEmbeds = async () => {
       const { data, error } = await supabase
-        .from('social_embeds')
-        .select('*')
+        .from('team_social_config')
+        .select('embed_code')
         .eq('team_id', teamId)
-        .order('display_order', { ascending: true });
+        .maybeSingle();
 
       if (!error && data) {
-        setEmbeds(data);
+        setEmbedConfig(data);
       }
     };
 
@@ -24,15 +24,14 @@ const SocialMediaEmbed = ({ teamId }) => {
     }
   }, [teamId]);
 
+  if (!embedConfig?.embed_code) return null;
+
   return (
     <VStack spacing={4} width="100%" align="stretch">
-      {embeds.map((embed) => (
-        <Box 
-          key={embed.id}
-          dangerouslySetInnerHTML={{ __html: embed.embed_code }}
-          className="social-embed"
-        />
-      ))}
+      <Box 
+        dangerouslySetInnerHTML={{ __html: embedConfig.embed_code }}
+        className="social-embed"
+      />
     </VStack>
   );
 };
@@ -42,5 +41,6 @@ SocialMediaEmbed.propTypes = {
 };
 
 export default SocialMediaEmbed;
+
 
 

@@ -4,20 +4,20 @@ import PropTypes from 'prop-types';
 const Text = ({ variant = 'body', children, ...props }) => {
   const variants = {
     body: {
-      color: 'var(--app-text)'
+      color: 'brand.text.primary'
     },
     caption: {
-      color: 'var(--app-text)',
+      color: 'brand.text.primary',
       opacity: 0.8
     },
     error: {
-      color: 'var(--app-error)'
+      color: 'brand.status.error'
     },
     warning: {
-      color: 'var(--app-warning)'
+      color: 'brand.status.warning'
     },
     success: {
-      color: 'var(--app-success)'
+      color: 'brand.status.success'
     }
   };
 
@@ -34,6 +34,7 @@ Text.propTypes = {
 };
 
 export default Text;
+
 
 
 

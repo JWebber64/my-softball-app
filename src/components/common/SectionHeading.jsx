@@ -1,14 +1,13 @@
 import { Heading } from '@chakra-ui/react';
-import PropTypes from 'prop-types';
+import React from 'react';
 
 const SectionHeading = ({ children, ...props }) => {
   return (
-    <Heading
-      size="md"
-      mb={4}
-      width="100%"
-      textAlign="center"
-      color="brand.text.primary"
+    <Heading 
+      size="md" 
+      borderBottom="2px solid"
+      borderColor="gray.200"
+      pb={2}
       {...props}
     >
       {children}
@@ -16,9 +15,6 @@ const SectionHeading = ({ children, ...props }) => {
   );
 };
 
-SectionHeading.propTypes = {
-  children: PropTypes.node.isRequired,
-};
-
 export default SectionHeading;
+
 

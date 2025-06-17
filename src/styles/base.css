@@ -8,17 +8,70 @@
 /* Force the background color everywhere */
 html,
 body,
-#root,
-.page-container,
-[data-testid*="-page"] {
+#root {
   background-color: var(--app-background);
   min-height: 100vh;
   width: 100%;
 }
 
-/* Stop any other elements from setting backgrounds */
-.chakra-container,
-.chakra-box,
-.chakra-stack {
-  background: none;
+/* Layout structure */
+#root {
+  position: relative;
+  z-index: 1;
 }
+
+/* Prevent background overrides except for scoresheets */
+.chakra-container:not(.digital-scoresheet-container),
+.chakra-box:not(.digital-scoresheet),
+.chakra-stack:not(.digital-scoresheet-stack) {
+  background: none !important;
+}
+
+/* Ensure scoresheet components can have backgrounds */
+/* Removed empty ruleset for .digital-scoresheet, .digital-scoresheet-container, and .digital-scoresheet-stack */
+
+/* Admin page specific */
+[data-page="team-admin"] {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Prevent duplicate footers on admin pages */
+[data-page="team-admin"] ~ footer,
+.team-admin-page ~ footer {
+  display: none !important;
+}
+
+/* Ensure modals and overlays are always on top */
+.chakra-modal__overlay {
+  z-index: 9998 !important;
+}
+
+.chakra-modal__content-container {
+  z-index: 9999 !important;
+}
+
+/* Gradient definitions */
+.app-gradient {
+  background: linear-gradient(
+    to right,
+    var(--app-gradient-start),
+    var(--app-gradient-middle),
+    var(--app-gradient-end)
+  ) !important;
+}
+
+.content-gradient {
+  background: linear-gradient(
+    to right,
+    var(--content-gradient-start),
+    var(--content-gradient-middle),
+    var(--content-gradient-end)
+  ) !important;
+}
+
+
+
+
+
+

@@ -1,25 +1,31 @@
-import { AddIcon, EditIcon } from '@chakra-ui/icons';
 import {
-  Box,
   Button,
   FormControl,
   FormLabel,
   Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Select,
+  Stack,
   Table,
   Tbody,
   Td,
   Th,
   Thead,
   Tr,
-  VStack,
+  useDisclosure,
   useToast
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 import { useTeam } from '../../hooks/useTeam';
 import { supabase } from '../../lib/supabaseClient';
-import { formFieldStyles } from '../../styles/formFieldStyles';
+import { dialogStyles } from '../../styles/dialogStyles';
 
 const PLATFORMS = {
   INSTAGRAM: 'Instagram',
@@ -37,7 +43,7 @@ const PLATFORM_PATTERNS = {
   [PLATFORMS.TIKTOK]: /^https:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9_.]+\/?$/
 };
 
-const SocialMediaEditor = ({ teamId, isDisabled }) => {
+const SocialMediaEditor = ({ teamId = '', isDisabled = false, buttonProps = {} }) => {
   const { team } = useTeam();
   const [socialLinks, setSocialLinks] = useState([]);
   const [editingLink, setEditingLink] = useState(null);
@@ -45,7 +51,18 @@ const SocialMediaEditor = ({ teamId, isDisabled }) => {
     platform: PLATFORMS.INSTAGRAM,
     link: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Add the missing handleChange function
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   useEffect(() => {
     if (teamId) {
@@ -54,8 +71,6 @@ const SocialMediaEditor = ({ teamId, isDisabled }) => {
   }, [teamId]);
 
   const fetchSocialLinks = async () => {
-    if (!teamId) return;
-
     try {
       const { data, error } = await supabase
         .from('team_social_config')
@@ -75,16 +90,12 @@ const SocialMediaEditor = ({ teamId, isDisabled }) => {
     }
   };
 
-  const validateLink = (platform, link) => {
-    const pattern = PLATFORM_PATTERNS[platform];
-    if (!pattern.test(link)) {
-      throw new Error(`Invalid ${platform} URL format`);
-    }
-  };
-
   const handleSubmit = async () => {
     try {
-      validateLink(formData.platform, formData.link);
+      const pattern = PLATFORM_PATTERNS[formData.platform];
+      if (!pattern.test(formData.link)) {
+        throw new Error(`Invalid ${formData.platform} URL format`);
+      }
 
       const newLink = {
         id: editingLink?.id || Date.now(),
@@ -92,14 +103,9 @@ const SocialMediaEditor = ({ teamId, isDisabled }) => {
         link: formData.link
       };
 
-      let updatedLinks;
-      if (editingLink) {
-        updatedLinks = socialLinks.map(link => 
-          link.id === editingLink.id ? newLink : link
-        );
-      } else {
-        updatedLinks = [...socialLinks, newLink];
-      }
+      const updatedLinks = editingLink
+        ? socialLinks.map(link => link.id === editingLink.id ? newLink : link)
+        : [...socialLinks, newLink];
 
       const { error } = await supabase
         .from('team_social_config')
@@ -115,6 +121,7 @@ const SocialMediaEditor = ({ teamId, isDisabled }) => {
       setSocialLinks(updatedLinks);
       setFormData({ platform: PLATFORMS.INSTAGRAM, link: '' });
       setEditingLink(null);
+      onClose();
 
       toast({
         title: `Social link ${editingLink ? 'updated' : 'added'} successfully`,
@@ -129,14 +136,6 @@ const SocialMediaEditor = ({ teamId, isDisabled }) => {
         duration: 3000
       });
     }
-  };
-
-  const handleEdit = (link) => {
-    setEditingLink(link);
-    setFormData({
-      platform: link.platform,
-      link: link.link
-    });
   };
 
   const handleDelete = async (id) => {
@@ -170,72 +169,136 @@ const SocialMediaEditor = ({ teamId, isDisabled }) => {
     }
   };
 
+  // Add the customFormFieldStyles
+  const customFormFieldStyles = {
+    bg: "brand.surface.input",
+    color: "black",
+    borderColor: "brand.border",
+    _hover: { borderColor: 'brand.primary.hover' },
+    _focus: { 
+      borderColor: 'brand.primary.hover',
+      boxShadow: 'none'
+    },
+    _placeholder: {
+      color: 'black'  // Change placeholder color to black
+    },
+    sx: {
+      '& option': {
+        bg: 'brand.surface.base',
+        color: 'black'
+      },
+      '&::placeholder': {
+        color: 'black !important'  // Additional CSS for placeholder
+      }
+    }
+  };
+
   return (
-    <Box>
-      <VStack spacing={4} align="stretch">
-        <FormControl>
-          <FormLabel>Platform</FormLabel>
-          <Select
-            {...formFieldStyles}
-            value={formData.platform}
-            onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
-          >
-            {Object.values(PLATFORMS).map(platform => (
-              <option key={platform} value={platform}>
-                {platform}
-              </option>
-            ))}
-          </Select>
-        </FormControl>
+    <>
+      <Button
+        onClick={onOpen}
+        isDisabled={isDisabled}
+        mb={4}
+        {...buttonProps.primary}
+      >
+        Add Social Link
+      </Button>
 
-        <FormControl>
-          <FormLabel>Link</FormLabel>
-          <Input
-            {...formFieldStyles}
-            type="url"
-            value={formData.link}
-            onChange={(e) => setFormData(prev => ({ ...prev, link: e.target.value }))}
-            placeholder={`Enter ${formData.platform} profile URL`}
-          />
-        </FormControl>
+      <Table variant="simple">
+        <Thead>
+          <Tr>
+            <Th>Platform</Th>
+            <Th>Link</Th>
+            <Th>Actions</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {socialLinks.map((link) => (
+            <Tr key={link.id}>
+              <Td>{link.platform}</Td>
+              <Td>{link.link}</Td>
+              <Td>
+                <Button
+                  onClick={() => handleDelete(link.id)}
+                  size="sm"
+                  {...buttonProps.secondary}
+                >
+                  Delete
+                </Button>
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
 
-        <Button
-          leftIcon={editingLink ? <EditIcon /> : <AddIcon />}
-          onClick={handleSubmit}
-          colorScheme="brand"
-        >
-          {editingLink ? 'Update' : 'Add'} Social Link
-        </Button>
-        
-        <Box overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Platform</Th>
-                <Th>Link</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {socialLinks.map((link) => (
-                <Tr key={link.id}>
-                  <Td>{link.platform}</Td>
-                  <Td>{link.link}</Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
-      </VStack>
-    </Box>
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay {...dialogStyles.overlay} />
+        <ModalContent {...dialogStyles.content}>
+          <ModalHeader {...dialogStyles.header}>
+            {editingLink ? 'Edit Social Link' : 'Add Social Link'}
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody {...dialogStyles.body}>
+            <Stack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel color="brand.text.primary">Platform</FormLabel>
+                <Select
+                  {...customFormFieldStyles}
+                  name="platform"
+                  value={formData.platform}
+                  onChange={handleChange}
+                >
+                  {Object.keys(PLATFORM_PATTERNS).map(platform => (
+                    <option key={platform} value={platform}>{platform}</option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl mt={4} isRequired>
+                <FormLabel color="brand.text.primary">Link</FormLabel>
+                <Input
+                  {...customFormFieldStyles}
+                  name="link"
+                  value={formData.link}
+                  onChange={handleChange}
+                  placeholder={`Enter ${formData.platform} URL`}
+                />
+              </FormControl>
+            </Stack>
+          </ModalBody>
+          <ModalFooter {...dialogStyles.footer}>
+            <Button
+              variant="primary"
+              className="app-gradient"
+              color="brand.text.primary"
+              _hover={{ opacity: 0.9 }}
+              mr="auto"
+              onClick={handleSubmit}
+              isLoading={isLoading}
+              isDisabled={!formData.platform || !formData.link}
+            >
+              {editingLink ? 'Update Link' : 'Add Link'}
+            </Button>
+            <Button variant="cancel" onClick={onClose}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 
 SocialMediaEditor.propTypes = {
-  teamId: PropTypes.string.isRequired,
-  isDisabled: PropTypes.bool
+  teamId: PropTypes.string,
+  isDisabled: PropTypes.bool,
+  buttonProps: PropTypes.shape({
+    primary: PropTypes.object,
+    secondary: PropTypes.object
+  })
 };
 
 export default SocialMediaEditor;
+
 
 
 

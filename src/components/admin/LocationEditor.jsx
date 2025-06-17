@@ -8,6 +8,7 @@ import PropTypes from 'prop-types';
 import React, { useState } from 'react';
 import { useTeam } from '../../hooks/useTeam';
 import { supabase } from '../../lib/supabaseClient';
+import { formFieldStyles } from '../../styles/formFieldStyles';
 import InteractiveMap from '../InteractiveMap';
 
 const LocationEditor = ({ 
@@ -16,7 +17,8 @@ const LocationEditor = ({
   onError, 
   onSuccess, 
   buttonOnly = false, 
-  onLocationSelect 
+  onLocationSelect,
+  useFormFieldStyles = false // Add this prop with default value
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -181,6 +183,14 @@ const LocationEditor = ({
     );
   }
 
+  // Add styling for the location input based on formFieldStyles
+  const locationInputStyles = useFormFieldStyles ? {
+    ...formFieldStyles,
+    cursor: 'pointer'
+  } : {
+    cursor: 'pointer'
+  };
+
   return (
     <VStack align="center" spacing={4}>
       <Text fontWeight="medium">Home Field Location</Text>
@@ -203,6 +213,9 @@ const LocationEditor = ({
         <Button
           mt={4}
           colorScheme="blue"
+          className="app-gradient"
+          color="brand.text.primary"
+          _hover={{ opacity: 0.9 }}
           onClick={onOpen}
         >
           {teamId ? 'Update Location' : 'Choose Location'}
@@ -223,5 +236,7 @@ LocationEditor.propTypes = {
 };
 
 export default LocationEditor;
+
+
 
 

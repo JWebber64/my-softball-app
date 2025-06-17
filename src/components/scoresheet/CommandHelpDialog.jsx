@@ -1,67 +1,87 @@
 import {
   Box,
-  Heading,
+  Button,
   Modal,
   ModalBody,
   ModalCloseButton,
   ModalContent,
+  ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Table,
+  Tbody,
+  Td,
   Text,
-  useColorModeValue,
-  VStack,
+  Th,
+  Thead,
+  Tr
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { COMMAND_TYPES, getGroupedCommands } from '../../utils/voiceCommands';
 
 /**
- * Dialog component that displays available voice commands
- * Grouped by command type (navigation, scoring, etc.)
+ * CommandHelpDialog - Displays help information for voice and keyboard commands
+ * Used with UniversalScoreSheet for voice input functionality
  */
 const CommandHelpDialog = ({ isOpen, onClose }) => {
-  const groupedCommands = getGroupedCommands();
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'white');
-  const cardBgColor = useColorModeValue('gray.50', 'gray.700');
-  const descriptionColor = useColorModeValue('gray.600', 'gray.400');
-
-  const typeLabels = {
-    [COMMAND_TYPES.NAVIGATION]: 'Navigation',
-    [COMMAND_TYPES.SCORING]: 'Scoring',
-    [COMMAND_TYPES.IMAGE]: 'Image Controls',
-    [COMMAND_TYPES.SYSTEM]: 'System Commands',
-  };
+  const commands = [
+    { command: "Player [name]", description: "Set player name", example: "Player John Smith" },
+    { command: "Number [#]", description: "Set player number", example: "Number 42" },
+    { command: "Position [pos]", description: "Set player position", example: "Position SS" },
+    { command: "Inning [#]", description: "Select inning", example: "Inning 3" },
+    { command: "Single", description: "Record a single", example: "Single" },
+    { command: "Double", description: "Record a double", example: "Double" },
+    { command: "Triple", description: "Record a triple", example: "Triple" },
+    { command: "Home run", description: "Record a home run", example: "Home run" },
+    { command: "Out [type]", description: "Record an out", example: "Out fly to center" },
+    { command: "Score", description: "Mark player as scored", example: "Score" },
+    { command: "First base", description: "Mark player on first", example: "First base" },
+    { command: "Second base", description: "Mark player on second", example: "Second base" },
+    { command: "Third base", description: "Mark player on third", example: "Third base" },
+    { command: "Note [text]", description: "Add a note", example: "Note great hit" },
+    { command: "Clear", description: "Clear current selection", example: "Clear" },
+    { command: "Next player", description: "Move to next player", example: "Next player" },
+    { command: "Previous player", description: "Move to previous player", example: "Previous player" },
+  ];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
-      <ModalContent bg={bgColor} color={textColor}>
-        <ModalHeader borderBottomWidth="1px">Available Voice Commands</ModalHeader>
+      <ModalContent>
+        <ModalHeader>Voice & Keyboard Commands</ModalHeader>
         <ModalCloseButton />
-        <ModalBody py={4}>
-          {Object.entries(groupedCommands).map(([type, commands]) => (
-            <Box key={type} mb={6}>
-              <Heading size="sm" mb={2} color="brand.primary">
-                {typeLabels[type] || type}
-              </Heading>
-              <VStack align="stretch" spacing={2}>
-                {commands.map((command) => (
-                  <Box 
-                    key={command.phrase} 
-                    p={3} 
-                    borderRadius="md" 
-                    bg={cardBgColor}
-                    boxShadow="sm"
-                  >
-                    <Text fontWeight="bold">&quot;{command.phrase}&quot;</Text>
-                    <Text fontSize="sm" color={descriptionColor}>{command.description}</Text>
-                  </Box>
+        <ModalBody>
+          <Text mb={4}>
+            Use these commands when using voice input with the Universal Score Sheet.
+            The same patterns can be used for keyboard shortcuts.
+          </Text>
+          
+          <Box overflowY="auto" maxHeight="400px">
+            <Table variant="simple" size="sm">
+              <Thead>
+                <Tr>
+                  <Th>Command</Th>
+                  <Th>Description</Th>
+                  <Th>Example</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {commands.map((cmd, index) => (
+                  <Tr key={index}>
+                    <Td fontWeight="bold">{cmd.command}</Td>
+                    <Td>{cmd.description}</Td>
+                    <Td fontStyle="italic">{cmd.example}</Td>
+                  </Tr>
                 ))}
-              </VStack>
-            </Box>
-          ))}
+              </Tbody>
+            </Table>
+          </Box>
         </ModalBody>
+        <ModalFooter>
+          <Button colorScheme="blue" onClick={onClose}>
+            Close
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );
@@ -73,3 +93,4 @@ CommandHelpDialog.propTypes = {
 };
 
 export default CommandHelpDialog;
+

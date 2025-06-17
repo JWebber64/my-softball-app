@@ -1,11 +1,20 @@
 export const formFieldStyles = {
-  bg: "brand.primary.base",  // Changed from brand.surface.base
+  bg: "brand.surface.input",
   color: "brand.text.primary",
   borderColor: "brand.border",
   _hover: { borderColor: 'brand.primary.hover' },
   _focus: { 
     borderColor: 'brand.primary.hover',
     boxShadow: 'none'
+  },
+  _placeholder: {
+    color: 'brand.text.placeholder'
+  },
+  sx: {
+    '& option': {
+      bg: 'brand.surface.base',
+      color: 'brand.text.primary'
+    }
   }
 };
 
@@ -19,7 +28,7 @@ export const switchStyles = {
       bg: 'brand.text.primary',
     },
     '&[data-checked] .chakra-switch__track': {
-      bg: 'var(--switch-active)',
+      bg: 'var(--form-field-bg)',  // Using the light green color
     },
     '&[data-checked] .chakra-switch__thumb': {
       bg: 'brand.text.primary',
@@ -28,7 +37,8 @@ export const switchStyles = {
 };
 
 export const formLabelStyles = {
-  color: "brand.text.primary"
+  color: "brand.text.primary",
+  fontWeight: "medium"
 };
 
 export const formHelperTextStyles = {
@@ -44,6 +54,12 @@ export const selectOptionStyles = {
   backgroundColor: 'brand.surface.base',
   color: 'brand.text.primary'
 };
+
+
+
+
+
+
 
 
 

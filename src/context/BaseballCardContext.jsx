@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React, { createContext, useState } from 'react';
 
-export const BaseballCardContext = createContext(); // Export the context directly
+export const BaseballCardContext = createContext();
 
-export const BaseballCardProvider = ({ children }) => {
+export default function BaseballCardProvider({ children }) {
   const [frontImage, setFrontImage] = useState(null);
   const [backImage, setBackImage] = useState(null);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -48,13 +48,10 @@ export const BaseballCardProvider = ({ children }) => {
       {children}
     </BaseballCardContext.Provider>
   );
-};
+}
 
 BaseballCardProvider.propTypes = {
   children: PropTypes.node.isRequired
 };
-
-// Export the provider as default
-export default BaseballCardProvider;
 
 

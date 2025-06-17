@@ -24,10 +24,15 @@ const InteractiveMap = ({
     if (!mapContainerRef.current || mapRef.current) return;
 
     // Initialize map with a zoomed out view of the world
-    mapRef.current = L.map(mapContainerRef.current).setView([20, 0], 2);
+    mapRef.current = L.map(mapContainerRef.current, {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([20, 0], 2);
     
     // Add tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapRef.current);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mapRef.current);
 
     // Add click handler for location selection
     const handleMapClick = (e) => {
@@ -41,6 +46,13 @@ const InteractiveMap = ({
     };
 
     mapRef.current.on('click', handleMapClick);
+
+    // Ensure map is properly sized
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 100);
 
     return () => {
       if (mapRef.current) {
@@ -61,11 +73,9 @@ const InteractiveMap = ({
     
     const verticalLine = document.createElement('div');
     verticalLine.className = 'crosshair-vertical';
-    verticalLine.style.height = '100%';
     
     const horizontalLine = document.createElement('div');
     horizontalLine.className = 'crosshair-horizontal';
-    horizontalLine.style.width = '100%';
     
     const centerDot = document.createElement('div');
     centerDot.className = 'crosshair-center';
@@ -105,6 +115,18 @@ const InteractiveMap = ({
       // Check if we need to start/stop panning
       handleAutoPanning(x, y, rect.width, rect.height);
     };
+
+    // Force an initial positioning of the crosshair in the center
+    const rect = mapContainerElement.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    verticalLine.style.left = `${centerX}px`;
+    horizontalLine.style.top = `${centerY}px`;
+    centerDot.style.left = `${centerX}px`;
+    centerDot.style.top = `${centerY}px`;
+    
+    mousePositionRef.current = { x: centerX, y: centerY };
 
     const handleAutoPanning = (x, y, width, height) => {
       const edgeThreshold = 50; // Keep the same threshold
@@ -197,17 +219,25 @@ const InteractiveMap = ({
 
   // Handle markers
   useEffect(() => {
-    if (!mapRef.current) return;
-
-    markersRef.current.forEach(marker => marker.remove());
+    // Clean up previous markers
+    markersRef.current.forEach(marker => {
+      if (mapRef.current) {
+        mapRef.current.removeLayer(marker);
+      }
+    });
     markersRef.current = [];
 
-    defaultMarkers.forEach(marker => {
+    if (!mapRef.current) return;
+
+    // Add new markers
+    defaultMarkers.forEach(markerData => {
+      // Create custom icon with improved positioning
       const customIcon = L.divIcon({
         className: 'custom-marker',
         html: `
           <div class="marker-container">
             <div class="marker-pin"></div>
+            ${markerData.name ? `<div class="marker-tooltip">${markerData.name}</div>` : ''}
           </div>
         `,
         iconSize: [30, 30],
@@ -215,69 +245,43 @@ const InteractiveMap = ({
         popupAnchor: [0, -30]
       });
 
-      const newMarker = L.marker([marker.lat, marker.lng], {
-        icon: customIcon
-      }).addTo(mapRef.current);
-      
-      if (showPopups) {
-        const popup = L.popup({
-          closeButton: false,
-          className: 'custom-popup-container'
-        }).setContent(marker.popupContent || `Location: ${marker.lat}, ${marker.lng}`);
-        
-        newMarker.bindPopup(popup);
-        
-        // Add hover handlers with delay for popup close
-        let closeTimeout;
-        
-        newMarker.on('mouseover', function() {
-          if (closeTimeout) {
-            clearTimeout(closeTimeout);
-          }
-          this.openPopup();
-        });
-        
-        // Handle mouse leaving marker
-        newMarker.on('mouseout', function(e) {
-          // Check if mouse is over the popup
-          const popupElement = document.querySelector('.custom-popup-container');
-          if (popupElement && popupElement.matches(':hover')) {
-            return;
-          }
-          
-          closeTimeout = setTimeout(() => {
-            if (!document.querySelector('.custom-popup-container:hover')) {
-              this.closePopup();
-            }
-          }, 300);
-        });
-        
-        // Add listener for popup element
-        popup.on('add', function() {
-          const popupElement = document.querySelector('.custom-popup-container');
-          if (popupElement) {
-            popupElement.addEventListener('mouseleave', function() {
-              closeTimeout = setTimeout(() => {
-                newMarker.closePopup();
-              }, 300);
-            });
-            
-            popupElement.addEventListener('mouseenter', function() {
-              if (closeTimeout) {
-                clearTimeout(closeTimeout);
-              }
-            });
-          }
-        });
+      // Create marker with custom icon
+      const marker = L.marker([markerData.lat, markerData.lng], { 
+        icon: customIcon,
+        title: markerData.name || 'Location'
+      });
+
+      // Add popup if needed
+      if (showPopups && markerData.name) {
+        marker.bindPopup(`
+          <div class="custom-popup-container">
+            <strong>${markerData.name}</strong>
+          </div>
+        `);
       }
-      
+
+      // Add click handler
       if (onMarkerClick) {
-        newMarker.on('click', () => onMarkerClick(marker.id));
+        marker.on('click', () => {
+          onMarkerClick(markerData);
+        });
       }
-      
-      markersRef.current.push(newMarker);
+
+      // Add to map
+      marker.addTo(mapRef.current);
+      markersRef.current.push(marker);
     });
-  }, [defaultMarkers, showPopups, onMarkerClick]);
+
+    return () => {
+      // Clean up markers
+      markersRef.current.forEach(marker => {
+        if (mapRef.current) {
+          mapRef.current.removeLayer(marker);
+        }
+      });
+      markersRef.current = [];
+    };
+  }, [defaultMarkers, showPopups, onMarkerClick, mapRef.current]);
 
   return (
     <div 
@@ -306,6 +310,16 @@ InteractiveMap.propTypes = {
 };
 
 export default InteractiveMap;
+
+
+
+
+
+
+
+
+
+
 
 
 

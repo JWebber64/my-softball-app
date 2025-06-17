@@ -3,9 +3,11 @@ import {
   Button,
   Container,
   Heading,
+  SimpleGrid,
   Text,
   VStack
 } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
 import {
   FaBaseballBall,
   FaCamera,
@@ -16,24 +18,32 @@ import {
   FaShieldAlt,
   FaUsers
 } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import GradientIcon from '../components/common/GradientIcon';
+import InteractiveMap from '../components/InteractiveMap';
 import { ROUTER_CONFIG } from '../config';
+import { supabase } from '../lib/supabaseClient';
 
 const FeatureCard = ({ icon, title, description }) => (
   <Box
-    bg="var(--app-surface)"
+    bg="brand.surface.base"
     p={6}
     borderRadius="lg"
-    boxShadow="xl"
-    _hover={{ transform: 'translateY(-2px)', transition: '0.2s' }}
+    boxShadow="lg"
+    borderWidth="1px"
+    borderColor="brand.border"
+    _hover={{ 
+      transform: 'translateY(-2px)', 
+      transition: '0.2s',
+      borderColor: 'brand.primary.hover'
+    }}
   >
     <VStack spacing={4} align="center">
       <GradientIcon icon={icon} size="60px" />
-      <Heading size="md" color="var(--app-text)" textAlign="center">
+      <Heading size="md" color="brand.text.primary">
         {title}
       </Heading>
-      <Text color="var(--app-text)" textAlign="center">
+      <Text color="brand.text.primary">
         {description}
       </Text>
     </VStack>
@@ -41,6 +51,50 @@ const FeatureCard = ({ icon, title, description }) => (
 );
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const [teamLocations, setTeamLocations] = useState([]);
+
+  // Fetch team locations for the map
+  useEffect(() => {
+    const fetchTeamLocations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('teams')
+          .select('id, name, location_name, latitude, longitude')
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null);
+          
+        if (error) throw error;
+        
+        // Transform data for the map component
+        const markers = data.map(team => ({
+          id: team.id,
+          lat: team.latitude,
+          lng: team.longitude,
+          popupContent: `<strong>${team.name}</strong><br/>${team.location_name || ''}`,
+          name: team.name
+        }));
+        
+        setTeamLocations(markers);
+      } catch (error) {
+        console.error('Error fetching team locations:', error);
+      }
+    };
+    
+    fetchTeamLocations();
+  }, []);
+
+  const handleGetStarted = () => {
+    // Ensure we're using the correct path from config
+    const signinPath = ROUTER_CONFIG.ROUTES.SIGNIN;
+    navigate(signinPath);
+  };
+
+  const handleMarkerClick = (markerData) => {
+    // Navigate to the team page with the correct format
+    navigate(`/team/${markerData.id}`);
+  };
+
   const features = [
     {
       icon: FaBaseballBall,
@@ -85,46 +139,126 @@ export default function HomePage() {
   ];
 
   return (
-    <Box minH="100vh" bg="brand.background">
-      <Container maxW="container.xl" py={12}>
-        <VStack spacing={12}>
-          <Box
-            bg="brand.surface.base"
-            borderRadius="lg"
-            p={8}
-            width="100%"
-            boxShadow="brand.shadow"
-            border="1px"
-            borderColor="brand.border"
+    <Container maxW="container.xl" py={12} mt="80px">
+      <VStack spacing={12}>
+        <Box
+          bg="brand.surface.base"
+          borderRadius="lg"
+          p={8}
+          width="100%"
+          boxShadow="lg"
+          borderWidth="1px"
+          borderColor="brand.border"
+        >
+          <VStack spacing={6} textAlign="center">
+            <Heading 
+              size="2xl" 
+              color="var(--content-gradient-middle)"
+            >
+              Welcome to Diamond Data
+            </Heading>
+            <Text 
+              fontSize="xl" 
+              color="brand.text.primary"
+              maxW="800px"
+            >
+              Your all-in-one platform for baseball team management, statistics tracking, and player development.
+            </Text>
+            <Button
+              onClick={handleGetStarted}
+              size="lg"
+              className="app-gradient"
+              color="brand.text.primary"
+              _hover={{ opacity: 0.9 }}
+            >
+              Get Started
+            </Button>
+          </VStack>
+        </Box>
+
+        <Box 
+          width="100%" 
+          bg="brand.background"
+        >
+          <SimpleGrid 
+            columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
+            spacing={8}
           >
-            <VStack spacing={6} textAlign="center">
-              <Heading 
-                size="2xl" 
-                color="brand.text.primary"
-              >
-                Welcome to Diamond Data
-              </Heading>
-              <Text 
-                fontSize="xl" 
-                color="brand.text.primary"
-                maxW="800px"
-              >
-                Your all-in-one platform for baseball team management, statistics tracking, and player development. Join thousands of teams already elevating their game with our comprehensive tools.
-              </Text>
-              <Button
-                as={Link}
-                to={ROUTER_CONFIG.ROUTES.SIGNIN}
-                variant="primary"
-              >
-                Get Started
-              </Button>
-            </VStack>
+            {features.map((feature, index) => (
+              <FeatureCard
+                key={index}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+              />
+            ))}
+          </SimpleGrid>
+        </Box>
+
+        {/* Interactive Map Section - Now positioned below the feature cards */}
+        <Box
+          bg="brand.surface.base"
+          borderRadius="lg"
+          p={4}
+          width="100%"
+          boxShadow="lg"
+          borderWidth="1px"
+          borderColor="brand.border"
+          height="400px"
+        >
+          <Heading size="md" mb={4} color="brand.text.primary">
+            Baseball Teams Map
+          </Heading>
+          <Box height="320px" borderRadius="md" overflow="hidden">
+            <InteractiveMap
+              defaultMarkers={teamLocations}
+              showCrosshair={true}
+              showPopups={true}
+              onMarkerClick={handleMarkerClick}
+            />
           </Box>
-        </VStack>
-      </Container>
-    </Box>
+        </Box>
+      </VStack>
+    </Container>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

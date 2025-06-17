@@ -178,6 +178,34 @@ Stats will automatically calculate and display:
 - Recent trends (countable)
 - Recent trends (decimal numbers)
 
+## Score Sheet Workflow
+
+### ⚠️ IMPORTANT: Two-Step Score Sheet Process
+
+The application implements a two-step process for score sheets:
+
+1. **Upload Phase (Image Only)**
+   - Team admins upload a score sheet image
+   - System stores the image in the `scoresheets` bucket
+   - Creates a minimal database record with `is_pending: true`
+   - No stats calculation occurs at this stage
+   - Image displays in the left panel of the score sheet viewer
+
+2. **Digital Entry Phase (Stats & Data)**
+   - Team admins manually enter game data in the digital score sheet (right panel)
+   - Data includes: innings, lineup, final score, opponent, game details
+   - When admin clicks "Save", the system:
+     - Updates the score sheet record with complete data
+     - Sets `is_pending: false` and `is_processed: true`
+     - Triggers automatic stats calculation
+
+This separation ensures data accuracy and provides flexibility for teams to:
+- Maintain a visual record of the original score sheet
+- Enter data at their convenience
+- Verify stats before they impact team/player records
+
+⚠️ CRITICAL: Never modify the `uploadScoreSheet` function to calculate or update stats. Stats updates must only occur during the digital entry save phase.
+
 ## Important Component Export Guidelines
 
 ⚠️ CRITICAL: Fast Refresh Compatibility Requirements
@@ -538,6 +566,39 @@ import TeamDetailsEditor from '../components/admin/TeamDetailsEditor';
 import SocialMediaLinks from '../components/SocialMediaLinks';
 ```
 
+## Container-Component Mapping
+
+⚠️ CRITICAL: Container Component References
+
+Each container in the application uses specific components. Always reference this mapping when making changes:
+
+### Admin Containers
+| Container | Main Component | Path |
+|-----------|---------------|------|
+| Schedule Editor | `ScheduleEditor` | `src/components/admin/ScheduleEditor.jsx` |
+| Photos & Videos | `SocialEmbedEditor` | `src/components/admin/SocialEmbedEditor.jsx` |
+| News Editor | `NewsEditor` | `src/components/admin/NewsEditor.jsx` |
+| Team Details | `TeamDetailsEditor` | `src/components/admin/TeamDetailsEditor.jsx` |
+| Player of Week | `PlayerOfWeekEditor` | `src/components/admin/PlayerOfWeekEditor.jsx` |
+| Score Sheet | `ScoreSheetEditor` | `src/components/admin/ScoreSheetEditor.jsx` |
+| Team Stats | `TeamStatsEditor` | `src/components/admin/TeamStatsEditor.jsx` |
+| Roster | `RosterEditor` | `src/components/admin/RosterEditor.jsx` |
+
+### Public Containers
+| Container | Main Component | Path |
+|-----------|---------------|------|
+| Schedule | `TeamSchedule` | `src/components/TeamSchedule.jsx` |
+| News | `TeamNews` | `src/components/TeamNews.jsx` |
+| Stats | `TeamStats` | `src/components/TeamStats.jsx` |
+| Roster | `TeamRoster` | `src/components/TeamRoster.jsx` |
+| Social Media | `SocialMediaLinks` | `src/components/SocialMediaLinks.jsx` |
+| Weather | `WeatherDisplay` | `src/components/WeatherDisplay.jsx` |
+
+When making style or functionality changes:
+1. Always check this mapping first
+2. Update all related components
+3. Test changes in both admin and public views where applicable
+
 # Chakra UI Guidelines and Theming
 
 ## ⚠️ CRITICAL: Color Management
@@ -581,4 +642,101 @@ colors: {
     }
   }
 }
+
+# Color System
+
+⚠️ CRITICAL: Single Source of Truth for Colors
+
+ALL colors in the application MUST follow this exact pattern:
+1. Colors are ONLY defined in `src/styles/tokens.css` as CSS variables
+2. These variables are mapped to Chakra tokens in `src/theme/theme.js`
+3. Components MUST use these Chakra tokens
+
+Example flow:
+```css
+/* src/styles/tokens.css - DEFINE */
+:root {
+  --app-surface: #0c2d1c;
+  --app-text: #dbefdc;
+}
+```
+```javascript
+// src/theme/theme.js - MAP
+colors: {
+  brand: {
+    surface: 'var(--app-surface)',
+    text: 'var(--app-text)'
+  }
+}
+```
+```jsx
+// Components - USE
+<Box bg="brand.surface" color="brand.text">
+```
+
+❌ NEVER:
+- Use direct color values (#hex, rgb, etc.)
+- Define colors outside of tokens.css
+- Skip the Chakra token mapping
+
+✅ ALWAYS:
+- Define colors in tokens.css
+- Map all variables in theme.js
+- Use Chakra tokens in components
+
+## Score Sheets Implementation Updates
+
+### Recent Updates (May 2024)
+- Consolidated redundant scoresheet components:
+  - Merged ManualEntryModal and ManualInputModal into a single ManualEntryModal
+  - Combined VoiceCommandPanel and VoiceInputModal functionality
+  - Unified ViewControls and NavigationControls
+- Implemented standardized inning cell layout with consistent dimensions:
+  - Left column (5.5rem height):
+    - RBI text at top
+    - Centered diamond (1.5rem)
+    - Equal spacing above/below
+  - Right column:
+    - 3 vertical inputs (w-14)
+    - Event/Out/Note fields
+  - 0.75rem column gap
+- Tagged version v1.0-scoresheet-layout for reference
+- Improved visual consistency across all scoresheet views
+
+### Pending Tasks
+- Standardize data structure for digital scoresheets
+- Add comprehensive documentation for the scoresheet system
+
+### Scoresheet Component Structure
+- **UniversalScoreSheet**: Core component for all scoresheet functionality
+- **DigitalScoreSheet**: Wrapper for UniversalScoreSheet with consistent styling
+- **ViewControls**: Consolidated view and navigation controls
+- **VoiceCommandPanel**: Unified voice command functionality
+- **ManualEntryModal**: Consolidated manual data entry modal
+
+C:\Users\JW\my-softball-app\src\components\scoresheet\CommandHelpDialog.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ComparisonView.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\DigitalScoreSheet.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\GameStatsPanel.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ImageViewer.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\InningCell.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ManualEntryModal.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\MetadataPanel.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\NavigationControls.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\PlayByPlayPanel.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\PlayerCell.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ScoreControls.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ScoreSheetManager.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ScoreSheetScanner.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ScoreSheetUploadModal.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ScoreSheetViewer.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ScoringPanel.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\SubstitutionsModal.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\UniversalScoreSheet.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\ViewControls.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\VoiceCommandHandler.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\VoiceCommandPanel.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\VoiceInputModal.jsx
+C:\Users\JW\my-softball-app\src\components\scoresheet\WarningsDisplay.jsx
+
 

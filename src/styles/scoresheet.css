@@ -1,0 +1,65 @@
+/* Digital Scoresheet Styles */
+.scoresheet-table td {
+  background-color: white !important;
+  color: black !important;
+  border: 1px solid black !important;
+}
+
+/* Add specific styling for input fields in the scoresheet */
+.digital-scoresheet input,
+.digital-scoresheet select,
+.digital-scoresheet textarea,
+.digital-scoresheet-container input,
+.digital-scoresheet-container select,
+.digital-scoresheet-container textarea {
+  background-color: white !important;
+  color: black !important;
+  border-color: black !important;
+}
+
+/* Fix for dropdown text color */
+.digital-scoresheet select option,
+.digital-scoresheet-container select option {
+  background-color: white !important;
+  color: black !important;
+}
+
+/* Fix for select dropdown appearance */
+select.chakra-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  padding-right: 20px !important;
+}
+
+/* Custom dropdown arrow */
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  font-size: 8px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: black;
+}
+
+/* Diamond styling */
+.diamond-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+/* Base paths */
+.base-path {
+  height: 2px;
+  background-color: green;
+}
+
+

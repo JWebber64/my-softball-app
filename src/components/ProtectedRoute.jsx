@@ -1,32 +1,39 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { ROUTER_CONFIG } from '../config';
 import { checkTeamAdminAccess } from '../lib/roles';
 
-const ProtectedRoute = ({ children, requiredRole }) => {
-  const [isAuthorized, setIsAuthorized] = useState(null);
+const ProtectedRoute = ({ requiredRole }) => {
+  const [isAuthorized, setIsAuthorized] = useState(true);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const checkAccess = async () => {
       if (requiredRole === 'team-admin') {
-        const hasAccess = await checkTeamAdminAccess();
-        console.log('Team admin role check:', hasAccess);
-        setIsAuthorized(hasAccess);
+        try {
+          const hasAccess = await checkTeamAdminAccess();
+          setIsAuthorized(hasAccess);
+        } catch (error) {
+          console.error('Access check failed:', error);
+          setIsAuthorized(false);
+        }
       }
-      // Add other role checks as needed
+      setIsChecking(false);
     };
 
     checkAccess();
   }, [requiredRole]);
 
-  if (isAuthorized === null) {
-    return <div>Loading...</div>;
+  if (isChecking) {
+    return <div>Checking access...</div>;
   }
 
-  return isAuthorized ? children : <Navigate to={ROUTER_CONFIG.ROUTES.SIGNIN} />;
+  return isAuthorized ? <Outlet /> : <Navigate to={ROUTER_CONFIG.ROUTES.SIGNIN} />;
 };
 
 export default ProtectedRoute;
+
+
 
 
 

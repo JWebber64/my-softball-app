@@ -7,7 +7,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  storage: {
+    defaultBucket: import.meta.env.VITE_STORAGE_BUCKET || 'scoresheets',
+  },
+});
 
 export const checkSupabaseConnection = async () => {
   try {

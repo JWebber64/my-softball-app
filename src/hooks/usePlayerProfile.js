@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export const usePlayerProfile = (userId) => {
@@ -6,23 +6,20 @@ export const usePlayerProfile = (userId) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
     }
 
     try {
-      console.log('Fetching profile for user:', userId);
       const { data, error: fetchError } = await supabase
         .from('player_profiles')
         .select('*')
         .eq('profile_user_id', userId)
-        .maybeSingle(); // Use maybeSingle() instead of single()
+        .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
-
-      console.log('Fetched profile:', data);
       setProfile(data || null);
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -30,38 +27,56 @@ export const usePlayerProfile = (userId) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
-    fetchProfile();
+    let mounted = true;
+    let channel;
 
-    // Set up real-time subscription
-    const channel = supabase
-      .channel(`profile_changes_${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'player_profiles',
-          filter: `profile_user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('Profile change detected:', payload);
-          if (payload.new) {
-            setProfile(payload.new);
+    const initializeSubscription = async () => {
+      if (!userId) return;
+
+      // Only fetch if component is still mounted
+      if (mounted) {
+        await fetchProfile();
+      }
+
+      channel = supabase
+        .channel(`profile_changes_${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'player_profiles',
+            filter: `profile_user_id=eq.${userId}`
+          },
+          (payload) => {
+            if (mounted && payload.new) {
+              setProfile(payload.new);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    };
+
+    initializeSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      mounted = false;
+      if (channel) {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
+      }
     };
-  }, [userId]);
+  }, [userId, fetchProfile]);
 
   return { profile, loading, error, refetch: fetchProfile };
 };
+
+
+
+
 
 
 

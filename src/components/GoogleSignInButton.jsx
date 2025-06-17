@@ -58,7 +58,9 @@ const GoogleSignInButton = ({ onSuccess, onError, role }) => {
       onClick={handleGoogleSignIn}
       isLoading={isLoading}
       w="full"
-      variant="outline"
+      className="app-gradient"
+      color="brand.text.primary"
+      _hover={{ opacity: 0.9 }}
       leftIcon={
         <Image
           src="/google-icon.svg"
@@ -66,17 +68,6 @@ const GoogleSignInButton = ({ onSuccess, onError, role }) => {
           boxSize="20px"
         />
       }
-      bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
-      color="brand.text.primary"
-      _hover={{
-        bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
-        opacity: 0.9
-      }}
-      _active={{
-        bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
-        opacity: 0.8
-      }}
-      border="none"
     >
       <Text>Continue with Google</Text>
     </Button>
@@ -90,6 +81,8 @@ GoogleSignInButton.propTypes = {
 };
 
 export default GoogleSignInButton;
+
+
 
 
 

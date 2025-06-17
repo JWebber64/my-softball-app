@@ -166,17 +166,9 @@ const LoginForm = ({
         w="100%"
         onClick={handleEmailSignIn}
         isLoading={isLoading}
-        bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
+        className="app-gradient"
         color="brand.text.primary"
-        _hover={{
-          bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
-          opacity: 0.9
-        }}
-        _active={{
-          bgGradient: "linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))",
-          opacity: 0.8
-        }}
-        border="none"
+        _hover={{ opacity: 0.9 }}
       >
         Sign In
       </Button>
@@ -193,6 +185,8 @@ LoginForm.propTypes = {
 };
 
 export default LoginForm;
+
+
 
 
 

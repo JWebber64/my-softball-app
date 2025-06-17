@@ -164,3 +164,21 @@ export class VoiceCommandManager {
     }
   }
 }
+
+export function parseVoiceCommand(transcript) {
+  const command = transcript.toLowerCase().trim();
+  
+  const matchedCommand = Object.entries(VOICE_COMMANDS)
+    .find(([key]) => command.includes(key));
+
+  if (!matchedCommand) return null;
+
+  const [key, commandConfig] = matchedCommand;
+  
+  return {
+    command: key,
+    type: commandConfig.type,
+    handler: commandConfig.handler
+  };
+}
+

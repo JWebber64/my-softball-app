@@ -1,27 +1,16 @@
-import { Container } from '@chakra-ui/react';
-import PropTypes from 'prop-types';
-import React from 'react';
+import { Box } from '@chakra-ui/react';
 
-const PageContainer = ({ children }) => {
-  return (
-    <Container
-      maxW="1800px"
-      py={4}
-      px={4}
-      minH="100vh"
-      bg="brand.background"
-      color="brand.text.primary"
-      borderColor="brand.border"
-    >
-      {children}
-    </Container>
-  );
-};
-
-PageContainer.propTypes = {
-  children: PropTypes.node.isRequired,
-};
+const PageContainer = ({ children }) => (
+  <Box
+    as="main"
+    bg="brand.background"
+    minH="100vh"
+    pt="80px" // Header height
+    pb="60px" // Footer height
+  >
+    {children}
+  </Box>
+);
 
 export default PageContainer;
-
 

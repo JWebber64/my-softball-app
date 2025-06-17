@@ -1,4 +1,6 @@
-import { Box, Button, Divider, IconButton, Text, VStack } from '@chakra-ui/react';
+import { Box, Divider, IconButton, Text, VStack } from '@chakra-ui/react';
+import PropTypes from 'prop-types';
+import { useEffect, useState } from 'react';
 import { HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ROUTER_CONFIG } from '../../config';
@@ -7,11 +9,27 @@ import { useTeam } from '../../hooks/useTeam';
 import { supabase } from '../../lib/supabaseClient';
 import { clearAuthState } from '../../utils/authErrorHandler';
 
-const Sidebar = ({ isCollapsed, onToggle }) => {
+const Sidebar = ({ onWidthChange }) => {
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('sidebarCollapsed') === 'true';
+  });
+
+  useEffect(() => {
+    const width = isCollapsed ? "60px" : "240px";
+    onWidthChange(width);
+    localStorage.setItem('sidebarCollapsed', isCollapsed);
+  }, [isCollapsed, onWidthChange]);
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const { team } = useTeam();
+
+  const onToggle = () => {
+    const newWidth = !isCollapsed ? "60px" : "240px";
+    setIsCollapsed(!isCollapsed);
+    onWidthChange(newWidth);
+  };
 
   const handleSignOut = async () => {
     try {
@@ -67,36 +85,35 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       top={0}
       h="100vh"
       w={isCollapsed ? "60px" : "240px"}
-      bgGradient="linear(to-b, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
+      bg="brand.surface.base"
       borderRight="1px"
-      borderColor="var(--app-border)"
+      borderColor="brand.border"
       transition="width 0.2s"
-      zIndex={1000}
+      zIndex={3}
       display="flex"
       flexDirection="column"
       py={4}
+      willChange="width"
+      sx={{
+        background: "linear-gradient(to bottom, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end)) !important"
+      }}
     >
       <Box width="100%" display="flex" justifyContent="center" mb={4}>
         <IconButton
           icon={isCollapsed ? <HiOutlineChevronRight /> : <HiOutlineChevronLeft />}
           onClick={onToggle}
-          bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
-          color="var(--app-text)"
+          className="app-gradient"
+          color="brand.text.primary"
           size="sm"
+          _hover={{ opacity: 0.9 }}
         />
       </Box>
-      <VStack 
-        spacing={4} 
-        align="stretch" 
-        flex={1} 
-        justify="flex-start"
-        pt={8} // Reduced from 20 to 8 to move buttons up
-      >
+      <VStack spacing={4} align="stretch" flex={1} justify="flex-start" pt={8}>
         {navSections.map((section, idx) => (
           <Box key={idx}>
             {!isCollapsed && (
               <Text
-                color="var(--app-text)"
+                color="brand.text.primary"
                 fontSize="xs"
                 mb={2}
                 textAlign="center"
@@ -107,26 +124,36 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             )}
             <VStack spacing={3} align="center" width="100%">
               {section.items.map((item, itemIdx) => (
-                <Button
+                <Box
                   key={itemIdx}
-                  size="sm"
+                  as="button"
                   height="30px"
-                  fontSize="sm"
-                  variant="solid"
-                  justifyContent="center"
                   width={isCollapsed ? "90%" : "80%"}
                   onClick={() => item.onClick ? item.onClick() : navigate(item.path)}
-                  opacity={location.pathname === item.path ? 1 : 0.8}
+                  color="brand.text.primary"
+                  fontSize="sm"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  transition="all 0.2s"
+                  borderRadius="md"
                   bg="transparent"
-                  color="var(--app-text)"
-                  _hover={{ bg: "var(--app-background)" }}
+                  _hover={{ bg: "#82c785" }}
+                  opacity={location.pathname === item.path ? 1 : 0.8}
                 >
-                  {isCollapsed ? item.label.charAt(0) : item.label}
-                </Button>
+                  {isCollapsed ? (
+                    // Use two-letter abbreviations for menu items when collapsed
+                    item.label.split(' ').length > 1 
+                      ? `${item.label.split(' ')[0][0]}${item.label.split(' ')[1][0]}`
+                      : item.label.substring(0, 2)
+                  ) : (
+                    item.label
+                  )}
+                </Box>
               ))}
             </VStack>
             {idx < navSections.length - 1 && (
-              <Divider my={2} borderColor="var(--app-border)" opacity={0.3} />
+              <Divider my={2} borderColor="brand.border" opacity={0.3} />
             )}
           </Box>
         ))}
@@ -135,6 +162,28 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   );
 };
 
+Sidebar.propTypes = {
+  onWidthChange: PropTypes.func.isRequired
+};
+
 export default Sidebar;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

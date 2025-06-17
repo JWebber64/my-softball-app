@@ -1,22 +1,14 @@
-import { useContext } from 'react';
-import { BaseballCardContext } from '../context/BaseballCardContext';
+import { useState } from 'react';
 
 export const useBaseballCard = () => {
-  const context = useContext(BaseballCardContext);
-  
-  if (!context) {
-    throw new Error('useBaseballCard must be used within a BaseballCardProvider');
-  }
-  
-  const {
-    frontImage,
-    setFrontImage,
-    backImage,
-    setBackImage,
-    isFlipped,
-    handleFlip,
-    isLoading
-  } = context;
+  const [frontImage, setFrontImage] = useState(null);
+  const [backImage, setBackImage] = useState(null);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFlip = () => {
+    setIsFlipped(!isFlipped);
+  };
 
   return {
     frontImage,
@@ -25,6 +17,7 @@ export const useBaseballCard = () => {
     setBackImage,
     isFlipped,
     handleFlip,
-    isLoading
+    isLoading,
+    setIsLoading
   };
 };

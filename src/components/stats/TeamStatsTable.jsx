@@ -3,6 +3,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 const TeamStatsTable = ({ stats }) => {
+  // Default empty stats object if none provided
+  const safeStats = stats || {};
+  
+  // Helper function to safely format values
+  const formatStat = (value, decimals = 3) => {
+    return value !== undefined && value !== null 
+      ? Number(value).toFixed(decimals) 
+      : '0.000';
+  };
+
   return (
     <Box bg="brand.surface.base" p={6} borderRadius="lg" color="brand.text.primary">
       <Heading size="md" mb={4}>Team Stats</Heading>
@@ -29,22 +39,22 @@ const TeamStatsTable = ({ stats }) => {
         </Thead>
         <Tbody>
           <Tr>
-            <Td>{stats.gamesPlayed}</Td>
-            <Td>{stats.plateAppearances}</Td>
-            <Td>{stats.atBats}</Td>
-            <Td>{stats.hits}</Td>
-            <Td>{stats.singles}</Td>
-            <Td>{stats.doubles}</Td>
-            <Td>{stats.triples}</Td>
-            <Td>{stats.homeRuns}</Td>
-            <Td>{stats.rbis}</Td>
-            <Td>{stats.runs}</Td>
-            <Td>{stats.walks}</Td>
-            <Td>{stats.strikeouts}</Td>
-            <Td>{stats.avg.toFixed(3)}</Td>
-            <Td>{stats.obp.toFixed(3)}</Td>
-            <Td>{stats.slg.toFixed(3)}</Td>
-            <Td>{stats.ops.toFixed(3)}</Td>
+            <Td>{safeStats.gamesPlayed || 0}</Td>
+            <Td>{safeStats.plateAppearances || 0}</Td>
+            <Td>{safeStats.atBats || 0}</Td>
+            <Td>{safeStats.hits || 0}</Td>
+            <Td>{safeStats.singles || 0}</Td>
+            <Td>{safeStats.doubles || 0}</Td>
+            <Td>{safeStats.triples || 0}</Td>
+            <Td>{safeStats.homeRuns || 0}</Td>
+            <Td>{safeStats.rbis || 0}</Td>
+            <Td>{safeStats.runs || 0}</Td>
+            <Td>{safeStats.walks || 0}</Td>
+            <Td>{safeStats.strikeouts || 0}</Td>
+            <Td>{formatStat(safeStats.avg)}</Td>
+            <Td>{formatStat(safeStats.obp)}</Td>
+            <Td>{formatStat(safeStats.slg)}</Td>
+            <Td>{formatStat(safeStats.ops)}</Td>
           </Tr>
         </Tbody>
       </Table>
@@ -54,23 +64,31 @@ const TeamStatsTable = ({ stats }) => {
 
 TeamStatsTable.propTypes = {
   stats: PropTypes.shape({
-    gamesPlayed: PropTypes.number.isRequired,
-    plateAppearances: PropTypes.number.isRequired,
-    atBats: PropTypes.number.isRequired,
-    hits: PropTypes.number.isRequired,
-    singles: PropTypes.number.isRequired,
-    doubles: PropTypes.number.isRequired,
-    triples: PropTypes.number.isRequired,
-    homeRuns: PropTypes.number.isRequired,
-    rbis: PropTypes.number.isRequired,
-    runs: PropTypes.number.isRequired,
-    walks: PropTypes.number.isRequired,
-    strikeouts: PropTypes.number.isRequired,
-    avg: PropTypes.number.isRequired,
-    obp: PropTypes.number.isRequired,
-    slg: PropTypes.number.isRequired,
-    ops: PropTypes.number.isRequired
-  }).isRequired
+    gamesPlayed: PropTypes.number,
+    plateAppearances: PropTypes.number,
+    atBats: PropTypes.number,
+    hits: PropTypes.number,
+    singles: PropTypes.number,
+    doubles: PropTypes.number,
+    triples: PropTypes.number,
+    homeRuns: PropTypes.number,
+    rbis: PropTypes.number,
+    runs: PropTypes.number,
+    walks: PropTypes.number,
+    strikeouts: PropTypes.number,
+    avg: PropTypes.number,
+    obp: PropTypes.number,
+    slg: PropTypes.number,
+    ops: PropTypes.number
+  })
+};
+
+// Default props
+TeamStatsTable.defaultProps = {
+  stats: {}
 };
 
 export default TeamStatsTable;
+
+
+

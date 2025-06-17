@@ -132,11 +132,24 @@ const ScoringPanel = ({ onScoreUpdate }) => {
   };
 
   return (
-    <VStack spacing={6} p={4} bg="#2e3726" borderRadius="md" w="100%">
+    <VStack 
+      spacing={6} 
+      p={4} 
+      bg="brand.scoring.background" 
+      borderRadius="md" 
+      w="100%"
+      className="scoring-panel"
+    >
       {/* Inning Selector */}
-      <Box w="100%" bg="#545e46" p={4} borderRadius="md">
+      <Box 
+        w="100%" 
+        bg="brand.scoring.sectionBg" 
+        p={4} 
+        borderRadius="md"
+        className="scoring-panel-section"
+      >
         <HStack justify="space-between" align="center" w="100%">
-          <Text color="#E7F8E8" fontSize="lg" fontWeight="semibold">
+          <Text color="brand.scoring.text" fontSize="lg" fontWeight="semibold">
             Inning
           </Text>
           <NumberInput
@@ -154,22 +167,24 @@ const ScoringPanel = ({ onScoreUpdate }) => {
               fontWeight="bold"
               h="48px"
               px="8px"
+              bg="brand.scoring.inputBg"
+              color="brand.scoring.text"
             />
             <NumberInputStepper 
               borderColor="transparent" 
               w="24px"
             >
               <NumberIncrementStepper 
-                color="#E7F8E8"
+                color="brand.scoring.text"
                 borderColor="transparent"
-                _hover={{ bg: "#3e4736" }}
+                _hover={{ bg: "brand.scoring.hoverBg" }}
                 h="24px"
                 fontSize="lg"
               />
               <NumberDecrementStepper 
-                color="#E7F8E8"
+                color="brand.scoring.text"
                 borderColor="transparent"
-                _hover={{ bg: "#3e4736" }}
+                _hover={{ bg: "brand.scoring.hoverBg" }}
                 h="24px"
                 fontSize="lg"
               />
@@ -183,11 +198,11 @@ const ScoringPanel = ({ onScoreUpdate }) => {
         placeholder="Select player"
         value={selectedPlayer}
         onChange={(e) => setSelectedPlayer(e.target.value)}
-        bg="#545e46"
-        color="#E7F8E8"
+        bg="brand.scoring.inputBg"
+        color="brand.scoring.text"
         border="none"
-        _hover={{ bg: "#3e4736" }}
-        _focus={{ bg: "#3e4736", boxShadow: "none" }}
+        _hover={{ bg: "brand.scoring.hoverBg" }}
+        _focus={{ bg: "brand.scoring.hoverBg", boxShadow: "none" }}
       >
         {players.map(player => (
           <option key={player.id} value={player.id}>
@@ -197,13 +212,13 @@ const ScoringPanel = ({ onScoreUpdate }) => {
       </Select>
 
       {/* Play Selection Tabs */}
-      <Tabs isFitted variant="enclosed" w="100%">
-        <TabList mb="1em">
-          <Tab color="#E7F8E8" _selected={{ bg: "#545e46", color: "#E7F8E8" }}>Hits</Tab>
-          <Tab color="#E7F8E8" _selected={{ bg: "#545e46", color: "#E7F8E8" }}>Outs</Tab>
-          <Tab color="#E7F8E8" _selected={{ bg: "#545e46", color: "#E7F8E8" }}>Other</Tab>
+      <Tabs variant="soft-rounded" colorScheme="green" w="100%">
+        <TabList>
+          <Tab color="brand.scoring.text" _selected={{ bg: "green.500", color: "white" }}>Hits</Tab>
+          <Tab color="brand.scoring.text" _selected={{ bg: "red.500", color: "white" }}>Outs</Tab>
+          <Tab color="brand.scoring.text" _selected={{ bg: "blue.500", color: "white" }}>Other</Tab>
         </TabList>
-
+        
         <TabPanels>
           {/* Hits Panel */}
           <TabPanel>
@@ -358,11 +373,11 @@ const ScoringPanel = ({ onScoreUpdate }) => {
         placeholder="Add notes about the play..."
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
-        bg="#545e46"
-        color="#EFF7EC"
+        bg="brand.scoring.inputBg"
+        color="brand.scoring.text"
         border="none"
-        _hover={{ bg: "#3e4736" }}
-        _focus={{ bg: "#3e4736", boxShadow: "none" }}
+        _hover={{ bg: "brand.scoring.hoverBg" }}
+        _focus={{ bg: "brand.scoring.hoverBg", boxShadow: "none" }}
       />
     </VStack>
   );
@@ -373,4 +388,7 @@ ScoringPanel.propTypes = {
 };
 
 export default ScoringPanel;
+
+
+
 

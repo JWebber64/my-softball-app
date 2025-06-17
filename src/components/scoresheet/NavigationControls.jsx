@@ -1,67 +1,38 @@
-import { Button, Flex, NumberInput, NumberInputField, Text } from '@chakra-ui/react';
-import React, { useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
+import ViewControls from './ViewControls';
 
-const NavigationControls = ({ currentGame, onGameChange, totalGames }) => {
-  const prevGameRef = useRef(currentGame);
-  
-  const handleGameChange = useCallback((newGame) => {
-    if (newGame === prevGameRef.current) return;
-    if (newGame >= 1 && newGame <= totalGames) {
-      prevGameRef.current = newGame;
-      onGameChange(newGame);
-    }
-  }, [onGameChange, totalGames]);
-
+/**
+ * NavigationControls - Wrapper for backward compatibility
+ * 
+ * This component uses the consolidated ViewControls with canNavigate=true
+ */
+const NavigationControls = ({
+  currentGame,
+  totalGames,
+  onGameChange,
+  additionalControls
+}) => {
   return (
-    <Flex
-      bg="brand.surface.base"
-      p={4}
-      borderRadius="md"
-      gap={4}
-      alignItems="center"
-      justifyContent="center"
-      borderWidth="1px"
-      borderColor="brand.border"
-    >
-      <Button
-        variant="secondary"
-        onClick={() => handleGameChange(currentGame - 1)}
-        isDisabled={currentGame <= 1}
-      >
-        Previous
-      </Button>
-
-      <Flex alignItems="center" gap={2}>
-        <Text color="brand.text.primary">Game:</Text>
-        <NumberInput
-          min={1}
-          max={totalGames || 100}
-          value={currentGame}
-          onChange={(_, value) => handleGameChange(value)}
-          sx={{
-            '& input': {
-              bg: 'brand.surface.base',
-              color: 'brand.text.primary',
-              borderColor: 'brand.border',
-              _hover: { borderColor: 'brand.primary.hover' },
-              _focus: { borderColor: 'brand.primary.base' }
-            }
-          }}
-        >
-          <NumberInputField />
-        </NumberInput>
-      </Flex>
-
-      <Button
-        variant="secondary"
-        onClick={() => handleGameChange(currentGame + 1)}
-        isDisabled={totalGames ? currentGame >= totalGames : false}
-      >
-        Next
-      </Button>
-    </Flex>
+    <ViewControls
+      viewMode="digital" // Default view mode
+      onViewModeChange={() => {}} // No-op function
+      canNavigate={true}
+      currentGame={currentGame}
+      totalGames={totalGames}
+      onGameChange={onGameChange}
+      additionalControls={additionalControls}
+    />
   );
 };
 
+NavigationControls.propTypes = {
+  currentGame: PropTypes.number.isRequired,
+  totalGames: PropTypes.number.isRequired,
+  onGameChange: PropTypes.func.isRequired,
+  additionalControls: PropTypes.node
+};
+
 export default NavigationControls;
+
 

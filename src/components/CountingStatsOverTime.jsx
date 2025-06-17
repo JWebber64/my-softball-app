@@ -18,11 +18,11 @@ import {
 } from 'recharts';
 
 const COLORS = [
-  '#2196F3',
-  '#F44336',
-  '#4CAF50',
-  '#9C27B0',
-  '#FF9800',
+  '#2e6930', // Dark green (matches content-gradient-middle)
+  '#0a1f0b', // Very dark green (even darker)
+  '#3d8a40', // Medium green (new distinct shade)
+  '#82c785', // Lighter green (matches form-field-bg)
+  '#a6d7a8', // Lightest green
 ];
 
 const CountingStatsOverTime = ({ playerStats }) => {
@@ -197,6 +197,10 @@ CountingStatsOverTime.propTypes = {
 };
 
 export default CountingStatsOverTime;
+
+
+
+
 
 
 

@@ -1406,3 +1406,59 @@ BEGIN
 END;
 $function$
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+## Score Sheets RLS Policies
+
+The following RLS policies are applied to the `score_sheets` table:
+
+| Policy Name | Permission | Roles | Command | Qualification (USING) | Check Condition (WITH CHECK) |
+|-------------|------------|-------|---------|----------------------|------------------------------|
+| Allow team admin manage access | PERMISSIVE | authenticated | ALL | private.can_manage_score_sheet(auth.uid(), team_id) | null |
+| Allow team member read access | PERMISSIVE | authenticated | SELECT | private.can_access_team(auth.uid(), team_id) | null |
+| Allow team members to create score sheets | PERMISSIVE | authenticated | INSERT | null | private.check_score_sheet_creation(team_id) |
+| Allow team members to read score sheets | PERMISSIVE | authenticated | SELECT | private.check_score_sheet_access(id) | null |
+| Allow team members to update score sheets | PERMISSIVE | authenticated | UPDATE | private.check_score_sheet_access(id) | null |
+| League admins can manage all score sheets | PERMISSIVE | authenticated | ALL | EXISTS (SELECT 1 FROM user_roles WHERE user_roles.role_user_id = auth.uid() AND user_roles.role = 'league-admin') | null |
+| Team admins can manage score sheets | PERMISSIVE | authenticated | ALL | private.is_team_admin(team_id, auth.uid()) OR private.is_league_admin(auth.uid()) | null |
+| Users can manage own score sheets | PERMISSIVE | authenticated | ALL | auth.uid() = scoresheet_creator_id | null |
+| Users can view team score sheets | PERMISSIVE | authenticated | SELECT | EXISTS (SELECT 1 FROM team_members WHERE team_members.team_id = score_sheets.team_id AND team_members.team_members_user_id = auth.uid()) OR private.is_team_admin(team_id, auth.uid()) OR private.is_league_admin(auth.uid()) | null |
+| coaches_view_score_sheets | PERMISSIVE | authenticated | SELECT | private.team_access_ok(team_id, 1) | null |
+| team_admins_manage_score_sheets | PERMISSIVE | authenticated | ALL | private.team_access_ok(team_id, 2) | null |
+
+### Common RLS Issues
+
+1. **Ambiguous Column References**: When multiple tables in a query have columns with the same name (e.g., `team_id`), PostgreSQL raises an "ambiguous column reference" error. To fix:
+   - Use explicit table references in queries: `score_sheets.team_id` instead of just `team_id`
+   - Split complex operations into separate queries (insert first, then select)
+   - Use unique column aliases when joining tables
+
+2. **Insert/Select Combined Operations**: When using `.insert().select()` with RLS policies, column ambiguity often occurs. Solutions:
+   - Perform insert and select as separate operations
+   - Use a unique identifier to fetch the newly created record
+   - Add explicit table prefixes to all column references
+
+3. **Security Definer Functions**: Remember that security definer functions bypass RLS. When modifying these functions:
+   - Always set `search_path` to prevent search path injection
+   - Use the minimum privileges necessary
+   - Validate all input parameters
+
+### SQL to View RLS Policies
+
+```sql
+-- View all RLS policies for a specific table
+SELECT 
+    schemaname,
+    tablename,
+    policyname,
+    permissive,
+    roles,
+    cmd,
+    qual,
+    with_check
+FROM 
+    pg_policies
+WHERE 
+    tablename = 'table_name'
+ORDER BY 
+    policyname;
+```

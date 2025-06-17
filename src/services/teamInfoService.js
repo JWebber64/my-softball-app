@@ -162,6 +162,8 @@ const claimRosterEntry = async ({ team_members_user_id, rosterId, teamId, teamPa
     });
     
   if (profileError) throw profileError;
+  
+  return { success: true };
 };
 
 const getTeamPlayers = async (teamId) => {
@@ -207,7 +209,8 @@ const getSchedule = async (teamId) => {
       opponent,
       location,
       is_home,
-      status
+      status,
+      league_id
     `)
     .eq('team_id', teamId)
     .order('date', { ascending: true });
@@ -333,6 +336,7 @@ const addGameToSchedule = async (teamId, gameData) => {
     location: gameData.location,
     is_home: gameData.isHome || false,
     status: gameData.status || 'scheduled',
+    league_id: gameData.leagueId || null,
     created_at: new Date().toISOString()
   };
 
@@ -382,6 +386,89 @@ const updateRosterPlayer = async (teamId, playerId, { name, number, positions })
   return data;
 };
 
+const updateGame = async (teamId, gameData) => {
+  // Extract only the fields that exist in the games table
+  const gamePayload = {
+    team_id: teamId,
+    date: gameData.date,
+    time: gameData.time,
+    opponent: gameData.opponent,
+    location: gameData.location,
+    is_home: gameData.isHome || false,
+    status: gameData.status || 'scheduled',
+    league_id: gameData.leagueId || null,
+    updated_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from('games')
+    .update(gamePayload)
+    .eq('id', gameData.id)
+    .eq('team_id', teamId)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+const deleteGame = async (teamId, gameId) => {
+  if (!window.confirm('Are you sure you want to delete this game?')) {
+    throw new Error('Game deletion cancelled');
+  }
+  
+  const { error } = await supabase
+    .from('games')
+    .delete()
+    .eq('id', gameId)
+    .eq('team_id', teamId);
+    
+  if (error) throw error;
+  return { success: true };
+};
+
+// Add a function to update baseball card selection
+const updateBaseballCard = async (profileId, baseballCardId) => {
+  const { data, error } = await supabase
+    .from('player_profiles')
+    .update({ baseball_card_id: baseballCardId })
+    .eq('profile_user_id', profileId)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+const connectPlayerToTeam = async ({ userId, teamId, teamPassword }) => {
+  // First verify team password
+  const { data: teamData, error: teamError } = await supabase
+    .from('teams')
+    .select('score_sheet_password') // We're using the same password field for both purposes
+    .eq('id', teamId)
+    .single();
+    
+  if (teamError) throw teamError;
+  
+  if (teamData.score_sheet_password !== teamPassword) {
+    throw new Error('Invalid team password');
+  }
+
+  // If password is correct, connect the player to the team
+  const { error: profileError } = await supabase
+    .from('player_profiles')
+    .upsert({
+      profile_user_id: userId,
+      team_id: teamId,
+      is_public: false,
+      updated_at: new Date().toISOString()
+    });
+    
+  if (profileError) throw profileError;
+  
+  return { success: true };
+};
+
 // Export as a service object
 export const teamInfoService = {
   getTeamRoster,
@@ -401,13 +488,24 @@ export const teamInfoService = {
   getTeamGameScores,
   connectProfileToRoster,
   deleteRosterPlayer,
-  updateRosterPlayer
+  updateRosterPlayer,
+  updateBaseballCard,
+  updateGame,
+  deleteGame,
+  connectPlayerToTeam
 };
 
 export {
   addPlayerToRoster,
   updateRosterEntry
 };
+
+
+
+
+
+
+
 
 
 

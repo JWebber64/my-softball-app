@@ -1,68 +1,130 @@
-import { Box } from '@chakra-ui/react';
+import { Box, Image } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
-const ImageViewer = () => {
-  const [imageDimensions] = useState({ width: 0, height: 0 });
-  const [fileSize] = useState(0);
+import React, { useEffect, useState } from 'react';
+import { STORAGE_BUCKETS } from '../../constants/storage';
+import { supabase } from '../../lib/supabaseClient';
+import LoadingSpinner from '../common/LoadingSpinner';
 
-  // Enhancement controls component will be floating over the image
-  const EnhancementControls = () => (
-    <Box
-      position="absolute"
-      top="10px"
-      right="10px"
-      bg="rgba(0, 0, 0, 0.7)"
-      borderRadius="md"
-      p={2}
-    >
-      {/* Add sliders for brightness, contrast, sharpness */}
-    </Box>
-  );
+const ImageViewer = ({ 
+  scoresheetUrl, 
+  viewMode = 'single', 
+  gameNumber,
+  onLoadError 
+}) => {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchImage = async () => {
+      // Check if we have a URL to use
+      if (!scoresheetUrl) {
+        setError('No scoresheet URL provided');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const { data, error: downloadError } = await supabase.storage
+          .from(STORAGE_BUCKETS.SCORESHEETS)
+          .download(scoresheetUrl);
+
+        if (downloadError) throw downloadError;
+
+        const url = URL.createObjectURL(data);
+        setImageUrl(url);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+        onLoadError?.(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchImage();
+
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [scoresheetUrl, onLoadError]);
+
+  if (isLoading) {
+    return <LoadingSpinner 
+      message="Loading image..." 
+      fullScreen={false}
+      height="100%"
+    />;
+  }
+
+  if (error) {
+    return (
+      <Box
+        height="600px"
+        width="100%"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        bg="var(--app-surface)"
+        color="var(--app-text)"
+        borderRadius="lg"
+      >
+        Error loading scoresheet: {error}
+      </Box>
+    );
+  }
+
+  const viewModeStyles = {
+    single: {
+      width: '100%',
+      height: '600px',
+    },
+    'side-by-side': {
+      width: '50%',
+      height: '600px',
+    },
+    fullscreen: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 1000,
+    },
+  };
 
   return (
-    <Box position="relative" width="100%" height="100%">
-      <Box
-        position="relative"
+    <Box
+      position="relative"
+      {...viewModeStyles[viewMode]}
+      transition="all 0.3s ease"
+    >
+      <Image
+        src={imageUrl}
+        alt={`Game ${gameNumber} Scoresheet`}
+        objectFit="contain"
         width="100%"
-        height="calc(100vh - 200px)"
-        border="1px solid"
-        borderColor="gray.200"
+        height="100%"
         borderRadius="md"
-        overflow="hidden"
-      >
-        {/* Image placeholder */}
-        <Box
-          width="100%"
-          height="100%"
-          bg="gray.100"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          Score Sheet Image Will Display Here
-        </Box>
-
-        <EnhancementControls />
-
-        {/* Image info */}
-        <Box
-          position="absolute"
-          bottom="10px"
-          left="10px"
-          bg="rgba(0, 0, 0, 0.7)"
-          color="white"
-          p={2}
-          borderRadius="md"
-          fontSize="sm"
-        >
-          {`${imageDimensions.width}x${imageDimensions.height}px | ${fileSize}MB`}
-        </Box>
-      </Box>
+        loading="lazy"
+      />
     </Box>
   );
 };
+
 ImageViewer.propTypes = {
-  settings: PropTypes.object,
+  scoresheetUrl: PropTypes.string,
+  viewMode: PropTypes.oneOf(['single', 'side-by-side', 'fullscreen']),
+  gameNumber: PropTypes.number,
+  onLoadError: PropTypes.func,
 };
 
 export default ImageViewer;
+
+
+
+
+

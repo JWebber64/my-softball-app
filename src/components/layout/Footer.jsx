@@ -5,13 +5,14 @@ const Footer = ({ sidebarWidth }) => {
   return (
     <Box
       as="footer"
-      bgGradient="linear(to-r, var(--app-gradient-start), var(--app-gradient-middle), var(--app-gradient-end))"
+      className="app-gradient"
       borderTop="1px"
-      borderColor="var(--app-border)"
+      borderColor="brand.border"
       right={0}
       left={sidebarWidth}
       height="60px"
-      transition="left 0.2s"
+      transition="margin-left 0.2s"
+      zIndex={2}
     >
       <Box
         height="100%"
@@ -23,7 +24,7 @@ const Footer = ({ sidebarWidth }) => {
         justifyContent="center"
       >
         <Text
-          color="white"
+          color="brand.text.primary"
           fontSize="sm"
           textAlign="center"
         >
@@ -39,6 +40,16 @@ Footer.propTypes = {
 };
 
 export default Footer;
+
+
+
+
+
+
+
+
+
+
 
 
 

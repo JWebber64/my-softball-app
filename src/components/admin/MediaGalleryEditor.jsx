@@ -128,10 +128,11 @@ const MediaGalleryEditor = () => {
       <form onSubmit={handleSubmit}>
         <VStack spacing={4}>
           <FormControl isRequired>
-            <FormLabel>Type</FormLabel>
+            <FormLabel>Media Type</FormLabel>
             <Select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              bg="brand.surface.input"
             >
               <option value="photo">Photo</option>
               <option value="video">Video</option>
@@ -152,6 +153,7 @@ const MediaGalleryEditor = () => {
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              bg="brand.surface.input"
             />
           </FormControl>
 
@@ -235,4 +237,5 @@ const MediaGalleryEditor = () => {
 };
 
 export default MediaGalleryEditor;
+
 

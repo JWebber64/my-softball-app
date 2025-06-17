@@ -1,4 +1,7 @@
 import {
+  FormControl,
+  FormLabel,
+  Select,
   Text,
   useToast
 } from '@chakra-ui/react';
@@ -62,7 +65,7 @@ const TeamSelector = ({ onTeamSelect, refreshTrigger }) => {
     try {
       // First update the team context
       setTeam(selectedTeam);
-      console.log('Team context updated');
+      console.log('Team context updated to:', selectedTeam);
 
       // Then call the onTeamSelect callback if provided
       if (onTeamSelect) {
@@ -78,6 +81,9 @@ const TeamSelector = ({ onTeamSelect, refreshTrigger }) => {
         duration: 3000,
         isClosable: true,
       });
+
+      // Force a refresh of components that depend on team context
+      window.dispatchEvent(new Event('team-selected'));
 
     } catch (error) {
       console.error('Error selecting team:', error);
@@ -120,6 +126,9 @@ const TeamSelector = ({ onTeamSelect, refreshTrigger }) => {
 };
 
 export default TeamSelector;
+
+
+
 
 
 

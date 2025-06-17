@@ -1,85 +1,120 @@
 
-import { Box, Text, VStack } from '@chakra-ui/react';
+import { Box, Button, Flex, Heading, Table, Tbody, Td, Text, Th, Thead, Tr, useDisclosure, VStack } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { useRole } from '../hooks/useRole';
 import { useTeam } from '../hooks/useTeam';
 import { supabase } from '../lib/supabaseClient';
+import PlayerOfWeekEditor from './admin/PlayerOfWeekEditor';
+import ActionButtons from './common/ActionButtons';
 
-const PlayerOfWeek = () => {
+const PlayerOfWeek = ({ onDelete, showButtons = true, hideAddButton = false, useSimpleView = false, onSave }) => {
   const [playerOfWeek, setPlayerOfWeek] = useState(null);
   const [loading, setLoading] = useState(true);
   const { role } = useRole();
   const { team } = useTeam();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const isAdmin = role === 'team-admin' && showButtons;
 
-  useEffect(() => {
-    const fetchPlayerOfWeek = async () => {
-      if (!team?.id) return;
-
-      try {
-        // First fetch player of week record
-        const { data: powData, error: powError } = await supabase
+  // Function to delete player of the week
+  const handleDelete = async () => {
+    try {
+      if (onDelete) {
+        // Use the parent component's delete function if provided
+        await onDelete();
+      } else {
+        // Fallback to direct deletion if no callback provided
+        const { error } = await supabase
           .from('player_of_week')
-          .select('*')
-          .eq('team_id', team.id)
-          .order('updated_at', { ascending: false })
-          .order('id', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .delete()
+          .eq('team_id', team.id);
+          
+        if (error) throw error;
+      }
+      
+      // Refresh data after deletion
+      fetchPlayerOfWeek();
+    } catch (error) {
+      console.error('Error deleting player of week:', error);
+      alert('Failed to delete Player of the Week');
+    }
+  };
 
-        if (powError) throw powError;
-        if (!powData || !powData.player_ids?.length) {
-          setPlayerOfWeek(null);
-          return;
-        }
+  const fetchPlayerOfWeek = async () => {
+    if (!team?.id) return;
+    
+    setLoading(true);
+    try {
+      // First, get the player of week record
+      const { data, error } = await supabase
+        .from('player_of_week')
+        .select(`
+          id,
+          team_id,
+          player_ids,
+          notes,
+          date,
+          stats
+        `)
+        .eq('team_id', team.id)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
+      if (error) throw error;
+      
+      if (data && data.player_ids && data.player_ids.length > 0) {
         // Then fetch the player details from team_roster table
         const { data: playerData, error: playerError } = await supabase
-          .from('team_roster')  // Changed from team_players to team_roster
-          .select(`
-            id,
-            name,
-            number,
-            positions
-          `)
-          .eq('id', powData.player_ids[0])
-          .eq('team_id', team.id)  // Added team_id check for security
-          .maybeSingle();
-
-        if (playerError && playerError.code !== 'PGRST116') throw playerError;
-
+          .from('team_roster')
+          .select('id, name, number, positions')
+          .in('id', data.player_ids);
+          
+        if (playerError) throw playerError;
+        
+        // Combine the data
         setPlayerOfWeek({
-          ...powData,
-          players: playerData ? {
-            first_name: playerData.name.split(' ')[0],
-            last_name: playerData.name.split(' ').slice(1).join(' '),
-            jersey_number: playerData.number,
-            positions: playerData.positions
-          } : null
+          ...data,
+          players: playerData[0] || null // Assuming we're only showing one player
         });
-      } catch (error) {
-        console.error('Error fetching player of week:', error);
-      } finally {
-        setLoading(false);
+      } else {
+        setPlayerOfWeek(data);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching player of week:', error.message || error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Custom onClose handler to refresh data
+  const handleClose = () => {
+    onClose();
     fetchPlayerOfWeek();
+    if (onSave) onSave();
+  };
 
+  useEffect(() => {
+    fetchPlayerOfWeek();
+    
+    // Only set up subscription if we have a team ID
+    if (!team?.id) return;
+    
+    // Set up subscription for real-time updates
     const subscription = supabase
-      .channel('player_of_week_changes')
+      .channel(`player_of_week_changes_${team.id}`)
       .on('postgres_changes', 
-        {
-          event: '*',
-          schema: 'public',
+        { 
+          event: '*', 
+          schema: 'public', 
           table: 'player_of_week',
-          filter: `team_id=eq.${team?.id}`
-        },
+          filter: `team_id=eq.${team.id}`
+        }, 
         () => {
           fetchPlayerOfWeek();
         }
       )
       .subscribe();
-
+      
     return () => {
       subscription.unsubscribe();
     };
@@ -93,55 +128,134 @@ const PlayerOfWeek = () => {
     return (
       <VStack spacing={4} align="stretch">
         <Text>No player of the week selected</Text>
+        {isAdmin && !hideAddButton && (
+          <Flex justify="center">
+            <Button
+              size="sm"
+              className="app-gradient"
+              color="brand.text.primary"
+              _hover={{ opacity: 0.9 }}
+              onClick={onOpen}
+            >
+              Add Player of the Week
+            </Button>
+          </Flex>
+        )}
+        {isOpen && <PlayerOfWeekEditor isOpen={isOpen} onClose={handleClose} onSave={fetchPlayerOfWeek} />}
       </VStack>
     );
   }
 
-  if (!playerOfWeek.players) {
+  // Simple text content view for TeamInfoPage
+  if (useSimpleView) {
     return (
-      <VStack spacing={4} align="stretch">
-        <Text color="red.500">
-          Selected player is no longer available on the team roster
-        </Text>
+      <VStack spacing={4} align="center" p={4}>
+        <VStack spacing={2} align="center">
+          <Heading size="md" color="brand.text.primary">
+            {playerOfWeek.players ? 
+              playerOfWeek.players.name : 
+              "Player no longer on roster"}
+          </Heading>
+          
+          <Text fontWeight="bold" color="brand.text.primary">
+            #{playerOfWeek.players?.number || '-'} • {playerOfWeek.players?.positions?.join(', ') || '-'}
+          </Text>
+        </VStack>
+        
         {playerOfWeek.notes && (
-          <Text mt={2} color="gray.500" fontStyle="italic">
-            {playerOfWeek.notes}
+          <Text fontSize="md" color="brand.text.secondary" fontStyle="italic" textAlign="center">
+            "{playerOfWeek.notes}"
+          </Text>
+        )}
+        
+        {/* Add stats display if available */}
+        {playerOfWeek.stats && (
+          <Text fontSize="md" color="brand.text.primary" textAlign="center">
+            {playerOfWeek.stats}
           </Text>
         )}
       </VStack>
     );
   }
 
+  // Table view for admin page
   return (
     <VStack spacing={4} align="stretch">
-      <Box>
-        <Text fontSize="lg" fontWeight="bold">
-          {playerOfWeek.players.first_name} {playerOfWeek.players.last_name}
-          {playerOfWeek.players.jersey_number && (
-            <Text as="span" ml={2} color="gray.500">
-              #{playerOfWeek.players.jersey_number}
-            </Text>
-          )}
-        </Text>
-        {playerOfWeek.players.positions && playerOfWeek.players.positions.length > 0 && (
-          <Text color="gray.600" fontSize="sm">
-            {playerOfWeek.players.positions.join(', ')}
-          </Text>
-        )}
-        {playerOfWeek.notes && (
-          <Text mt={2}>{playerOfWeek.notes}</Text>
-        )}
-        {role === 'team-admin' && (
-          <Box mt={2}>
-            {/* Admin controls here */}
-          </Box>
-        )}
+      <Box overflowX="auto" width="100%">
+        <Table variant="simple" size="sm">
+          <Thead>
+            <Tr>
+              <Th color="brand.text.primary">Player</Th>
+              <Th color="brand.text.primary">Number</Th>
+              <Th color="brand.text.primary">Position</Th>
+              <Th color="brand.text.primary">Notes</Th>
+              {isAdmin && <Th color="brand.text.primary">Actions</Th>}
+            </Tr>
+          </Thead>
+          <Tbody>
+            <Tr>
+              <Td color="brand.text.primary">
+                {playerOfWeek.players ? 
+                  playerOfWeek.players.name : 
+                  <Text color="red.500">Player no longer on roster</Text>
+                }
+              </Td>
+              <Td color="brand.text.primary">
+                {playerOfWeek.players?.number || '-'}
+              </Td>
+              <Td color="brand.text.primary">
+                {playerOfWeek.players?.positions?.join(', ') || '-'}
+              </Td>
+              <Td color="brand.text.primary">
+                {playerOfWeek.notes || '-'}
+              </Td>
+              {isAdmin && (
+                <Td>
+                  <ActionButtons 
+                    onEdit={onOpen} 
+                    onDelete={handleDelete}
+                    editLabel="Edit player of week"
+                    deleteLabel="Delete player of week"
+                    skipDeleteConfirmation={true}
+                  />
+                </Td>
+              )}
+            </Tr>
+          </Tbody>
+        </Table>
       </Box>
+      {isOpen && <PlayerOfWeekEditor isOpen={isOpen} onClose={handleClose} onSave={fetchPlayerOfWeek} />}
     </VStack>
   );
 };
 
 export default PlayerOfWeek;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

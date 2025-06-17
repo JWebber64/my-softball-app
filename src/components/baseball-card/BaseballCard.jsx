@@ -7,11 +7,11 @@ import { STAT_DISPLAY_CONFIG } from '../../config/baseballCardPresets';
 // Utility functions defined before the component
 const getBorderColor = (color) => {
   const colors = {
-    gold: 'var(--app-card-gold)',
-    silver: 'var(--app-card-silver)',
-    bronze: 'var(--app-card-bronze)',
-    platinum: 'var(--app-card-platinum)',
-    default: 'var(--app-card-default)'
+    gold: 'brand.card.gold',
+    silver: 'brand.card.silver',
+    bronze: 'brand.card.bronze',
+    platinum: 'brand.card.platinum',
+    default: 'brand.border'
   };
   return colors[color] || colors.default;
 };
@@ -153,7 +153,7 @@ const BaseballCard = ({
     },
     statItem: {
       textAlign: "center",
-      borderBottom: statsLayout.showDividers ? "1px solid var(--app-text)" : "none",
+      borderBottom: statsLayout.showDividers ? "1px solid brand.text.primary" : "none",  // ✅ Changed from var(--app-text)
       padding: "5px",
       transition: "transform 0.2s ease",
       _hover: {
@@ -230,7 +230,12 @@ const BaseballCard = ({
             <Image
               src={frontImage}
               alt="Player"
-              sx={cardStyles.image}
+              sx={{
+                ...cardStyles.image,
+                objectFit: "cover", // This ensures the image covers the entire container
+                width: "100%",
+                height: "auto",
+              }}
             />
           )}
 
@@ -267,7 +272,12 @@ const BaseballCard = ({
             <Image
               src={backImage}
               alt="Card Back"
-              sx={cardStyles.image}
+              sx={{
+                ...cardStyles.image,
+                objectFit: "cover",
+                width: "100%",
+                height: "auto",
+              }}
             />
           )}
         </Box>
@@ -295,6 +305,9 @@ BaseballCard.propTypes = {
 };
 
 export default BaseballCard;
+
+
+
 
 
 

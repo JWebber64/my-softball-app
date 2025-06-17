@@ -1,3 +1,4 @@
+
 import {
   Box,
   Button,
@@ -21,19 +22,25 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { MEDIA_CONFIG } from '../../config';
 import { CARD_STYLE_PRESETS } from '../../config/baseballCardPresets';
 import { STORAGE_BUCKETS } from '../../constants/storage';
+import { useAuth } from '../../hooks/useAuth';
 import { useBaseballCard } from '../../hooks/useBaseballCard';
 import { supabase } from '../../lib/supabaseClient';
 import BaseballCard from './BaseballCard';
 import CardStyleControls from './CardStyleControls';
 
 const BaseballCardGenerator = () => {
+  const { user } = useAuth();
+  const userId = user?.id;
+
   const {
     frontImage,
     backImage,
+    setFrontImage,
+    setBackImage,
     isFlipped,
     handleFlip,
     isLoading
-  } = useBaseballCard();
+  } = useBaseballCard(userId);
   
   const [selectedPreset, setSelectedPreset] = useState('MODERN');
   const [customStyle, setCustomStyle] = useState(CARD_STYLE_PRESETS.MODERN);
@@ -61,16 +68,14 @@ const BaseballCardGenerator = () => {
 
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
-    const cropWidth = Math.min(width, height);
-    const x = (width - cropWidth) / 2;
-    const y = (height - cropWidth) / 2;
-
+    
+    // Set an initial crop that's centered but doesn't enforce aspect ratio
     setCrop({
       unit: 'px',
-      x,
-      y,
-      width: cropWidth,
-      height: cropWidth,
+      x: width * 0.1,
+      y: height * 0.1,
+      width: width * 0.8,
+      height: height * 0.8,
     });
   };
 
@@ -105,7 +110,7 @@ const BaseballCardGenerator = () => {
     reader.addEventListener('load', () => {
       setImgSrc(reader.result.toString());
       setIsModalOpen(true);
-      setCrop(null);
+      setCrop(null); // Reset crop when new image is selected
       setCompletedCrop(null);
     });
     reader.readAsDataURL(file);
@@ -333,7 +338,7 @@ const BaseballCardGenerator = () => {
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1}
+                // Remove the aspect={1} prop to allow free-form cropping
               >
                 <img
                   ref={imgRef}
@@ -373,4 +378,11 @@ const BaseballCardGenerator = () => {
 };
 
 export default BaseballCardGenerator;
+
+
+
+
+
+
+
 

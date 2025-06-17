@@ -1,8 +1,13 @@
 import {
   Box,
+  Button,
   Container,
+  Flex,
   Heading,
-  SimpleGrid
+  HStack,
+  SimpleGrid,
+  useDisclosure,
+  useToast
 } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,149 +20,428 @@ import SocialMediaEditor from '../components/admin/SocialMediaEditor';
 import TeamDetailsEditor from '../components/admin/TeamDetailsEditor';
 import TeamFinancesEditor from '../components/admin/TeamFinancesEditor';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import PlayerOfWeek from '../components/PlayerOfWeek';
 import { ROUTER_CONFIG } from '../config';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../hooks/useTeam';
 import { checkTeamAdminAccess } from '../lib/roles';
-
-const containerStyles = {
-  bg: 'brand.surface.base',
-  p: 6,
-  borderRadius: 'lg',
-  boxShadow: 'brand.shadow'
-};
-
-const headerStyles = {
-  size: 'md',
-  mb: 4,
-  color: 'brand.text.primary'
-};
-
-const buttonStyles = {
-  bg: 'brand.surface.base',
-  color: "brand.text.primary",
-  _hover: {
-    opacity: 0.8,
-    transform: 'translateY(-2px)',
-    boxShadow: 'lg',
-  },
-  _active: {
-    opacity: 0.9,
-    transform: 'translateY(0)',
-  }
-};
+import { supabase } from '../lib/supabaseClient';
+import { deleteTeam } from '../utils/teamUtils';
 
 const TeamAdminPage = () => {
-  const { user } = useAuth();
-  const { team } = useTeam();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, authLoading, user } = useAuth();
+  const { team, loading: teamLoading, setTeam } = useTeam(); // Added setTeam here
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const navigate = useNavigate();
+  const toast = useToast();
+  
+  // Add disclosures for the popups
+  const teamDetailsDisclosure = useDisclosure();
+  const playerOfWeekDisclosure = useDisclosure();
+  const createTeamDisclosure = useDisclosure();
+
+  // Remove these state variables
+  // const [teamPassword, setTeamPassword] = useState('');
+  // const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const containerStyles = {
+    bg: 'brand.surface.base',
+    borderColor: 'brand.border',
+    borderWidth: '1px',
+    borderRadius: 'md',
+    p: 4,
+    mb: 4,
+    textAlign: 'center' // Center all text in containers
+  };
+
+  const headerStyles = {
+    size: "md",
+    color: "brand.text.primary",
+    mb: 4,
+    textAlign: 'center' // Ensure headers are centered
+  };
+
+  const buttonStyles = {
+    className: "app-gradient",
+    color: "brand.text.primary",
+    _hover: { opacity: 0.9 },
+    mb: 4
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!team) return;
+    
+    if (!window.confirm('Are you sure you want to delete this team? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      await deleteTeam(team.id);
+      toast({
+        title: 'Team deleted successfully',
+        status: 'success',
+        duration: 3000,
+      });
+      // Reset team state after deletion
+      setTeam(null);
+    } catch (error) {
+      toast({
+        title: 'Error deleting team',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
+  const handleDeletePlayerOfWeek = async () => {
+    if (!team) return;
+    
+    if (!window.confirm('Are you sure you want to delete the Player of the Week?')) {
+      return;
+    }
+    
+    try {
+      // Simple direct deletion approach
+      const { error } = await supabase
+        .from('player_of_week')
+        .delete()
+        .eq('team_id', team.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Player of the Week deleted successfully',
+        status: 'success',
+        duration: 3000,
+      });
+      
+      // Refresh team data after deletion
+      await refreshTeam();
+      
+    } catch (error) {
+      toast({
+        title: 'Error deleting Player of the Week',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
+  // Add this function to refresh team data after changes
+  const refreshTeam = async () => {
+    if (!team?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*, player_of_week(*)')
+        .eq('id', team.id)
+        .single();
+        
+      if (error) throw error;
+      
+      setTeam({
+        ...data,
+        playerOfWeek: data.player_of_week
+      });
+      
+    } catch (error) {
+      console.error('Error refreshing team data:', error);
+    }
+  };
 
   useEffect(() => {
+    let mounted = true;
+
     const checkAccess = async () => {
-      setIsLoading(true);
+      if (authLoading || teamLoading) return;
+      
+      if (!isAuthenticated) {
+        navigate(ROUTER_CONFIG.ROUTES.SIGNIN);
+        return;
+      }
+
       try {
-        if (!user) {
-          navigate(ROUTER_CONFIG.ROUTES.SIGNIN);
-          return;
-        }
-        
         const hasAccess = await checkTeamAdminAccess();
+        if (mounted) {
+          setIsAuthorized(hasAccess);
+          // Only open modal if we have both authorization and team data
+          // setIsModalOpen(hasAccess && !!team);
+        }
         if (!hasAccess) {
           navigate(ROUTER_CONFIG.ROUTES.HOME);
-          return;
         }
-        
-        setIsAuthorized(true);
       } catch (error) {
-        console.error('Access check failed:', error);
+        console.error('TeamAdminPage: Access check failed:', error);
         navigate(ROUTER_CONFIG.ROUTES.HOME);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsCheckingAccess(false);
+        }
       }
     };
 
     checkAccess();
-  }, [user, navigate]);
+    return () => { 
+      mounted = false;
+      // Ensure modal is closed when component unmounts
+      // setIsModalOpen(false);
+    };
+  }, [isAuthenticated, authLoading, teamLoading, navigate, user, team]);
 
-  if (isLoading) {
-    return <LoadingSpinner />;
+  // Show loading spinner while checking auth, team data, or access
+  if (authLoading || teamLoading || isCheckingAccess) {
+    return <LoadingSpinner message="Loading..." />;
   }
 
-  if (!isAuthorized) {
+  // Don't render anything if not authorized
+  if (!isAuthorized || !team) {
     return null;
   }
 
+  // Remove the handleSaveTeamPassword function
+  // const handleSaveTeamPassword = async () => { ... };
+
   return (
-    <Container maxW="1800px" py={6} bg="brand.background">
+    <Container maxW="1800px" py={6} px={4} mt="80px">
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-        {/* 1. Team Details */}
+        {/* Team Details */}
         <Box {...containerStyles}>
           <Heading {...headerStyles}>Team Details</Heading>
+          
+          {/* Center the buttons */}
+          <Flex justify="center" mb={4}>
+            <HStack spacing={4}>
+              <Button 
+                className="app-gradient"
+                color="brand.text.primary"
+                _hover={{ opacity: 0.9 }}
+                onClick={createTeamDisclosure.onOpen}
+              >
+                Create Team
+              </Button>
+              
+              <Button 
+                className="app-gradient"
+                color="brand.text.primary"
+                _hover={{ opacity: 0.9 }}
+                onClick={teamDetailsDisclosure.onOpen}
+                isDisabled={!team}
+              >
+                Edit Team Details
+              </Button>
+              
+              <Button 
+                variant="danger"
+                onClick={handleDeleteTeam}
+                isDisabled={!team}
+              >
+                Delete Team
+              </Button>
+            </HStack>
+          </Flex>
+          
+          {/* Simple Team Info Display */}
+          {team ? (
+            <Box mt={4}>
+              <Heading size="sm" mb={2}>Team Name: {team.name}</Heading>
+              <Heading size="sm" mb={2}>Location: {team.location_name || 'Not set'}</Heading>
+            </Box>
+          ) : (
+            <Box mt={4}>
+              <Heading size="sm" mb={2}>No team selected</Heading>
+            </Box>
+          )}
+          
+          {/* Team Details Editor Modal */}
           <TeamDetailsEditor 
-            isDisabled={!team} 
+            isOpen={teamDetailsDisclosure.isOpen} 
+            onClose={teamDetailsDisclosure.onClose}
+          />
+          
+          {/* Create Team Modal */}
+          <TeamDetailsEditor 
+            isOpen={createTeamDisclosure.isOpen} 
+            onClose={createTeamDisclosure.onClose}
+            isCreateMode={true}
           />
         </Box>
 
-        {/* 2. Player of the Week */}
+        {/* Player of the Week */}
         <Box {...containerStyles}>
           <Heading {...headerStyles}>Player of the Week</Heading>
+          <Flex justify="center" mb={4}>
+            <Button 
+              className="app-gradient"
+              color="brand.text.primary"
+              _hover={{ opacity: 0.9 }}
+              onClick={playerOfWeekDisclosure.onOpen}
+              isDisabled={!team}
+            >
+              Add Player of the Week
+            </Button>
+          </Flex>
+          
+          <PlayerOfWeek 
+            onDelete={handleDeletePlayerOfWeek} 
+            hideAddButton={true} 
+            onSave={refreshTeam}
+          />
+          
           <PlayerOfWeekEditor 
-            isDisabled={!team} 
+            isOpen={playerOfWeekDisclosure.isOpen} 
+            onClose={playerOfWeekDisclosure.onClose}
+            onSave={refreshTeam}
           />
         </Box>
 
-        {/* 3. Team Schedule */}
+        {/* Team Schedule */}
         <Box {...containerStyles}>
           <Heading {...headerStyles}>Team Schedule</Heading>
-          <ScheduleEditor 
-            teamId={team?.id}
-            isDisabled={!team} 
-          />
+          <Flex justify="center" mb={4}>
+            <ScheduleEditor 
+              teamId={team?.id} 
+              isDisabled={!team}
+              buttonProps={{
+                primary: {
+                  className: "app-gradient",
+                  color: "brand.text.primary",
+                  _hover: { opacity: 0.9 }
+                },
+                secondary: {
+                  variant: "outline",
+                  borderColor: "brand.border",
+                  color: "brand.text.primary",
+                  _hover: { bg: "brand.primary.hover", opacity: 0.9 }
+                }
+              }}
+            />
+          </Flex>
         </Box>
 
-        {/* 4. Team News */}
+        {/* Team News */}
         <Box {...containerStyles}>
           <Heading {...headerStyles}>Team News</Heading>
-          <NewsEditor 
-            teamId={team?.id} 
-            isDisabled={!team} 
-          />
+          <Flex justify="center" mb={4}>
+            <NewsEditor 
+              teamId={team?.id} 
+              isDisabled={!team}
+              buttonProps={{
+                primary: {
+                  className: "app-gradient",
+                  color: "brand.text.primary",
+                  _hover: { opacity: 0.9 }
+                },
+                secondary: {
+                  variant: "outline",
+                  borderColor: "brand.border",
+                  color: "brand.text.primary",
+                  _hover: { bg: "brand.primary.hover", opacity: 0.9 }
+                }
+              }}
+            />
+          </Flex>
         </Box>
 
-        {/* 5. Team Roster */}
+        {/* Team Roster */}
         <Box {...containerStyles}>
           <Heading {...headerStyles}>Team Roster</Heading>
-          <RosterEditor isDisabled={!team} />
+          <Flex justify="center" mb={4}>
+            <RosterEditor 
+              isDisabled={!team}
+              buttonProps={{
+                primary: {
+                  className: "app-gradient",
+                  color: "brand.text.primary",
+                  _hover: { opacity: 0.9 }
+                },
+                secondary: {
+                  variant: "outline",
+                  borderColor: "brand.border",
+                  color: "brand.text.primary",
+                  _hover: { bg: "brand.primary.hover", opacity: 0.9 }
+                }
+              }}
+            />
+          </Flex>
         </Box>
 
-        {/* 6. Team Finances */}
+        {/* Team Finances */}
         <Box {...containerStyles}>
           <Heading {...headerStyles}>Team Finances</Heading>
-          <TeamFinancesEditor 
-            teamId={team?.id || ''} 
-            isDisabled={!team} 
-          />
+          <Flex justify="center" mb={4}>
+            <TeamFinancesEditor 
+              teamId={team?.id || ''} 
+              isDisabled={!team}
+              buttonProps={{
+                primary: {
+                  className: "app-gradient",
+                  color: "brand.text.primary",
+                  _hover: { opacity: 0.9 }
+                },
+                secondary: {
+                  variant: "outline",
+                  borderColor: "brand.border",
+                  color: "brand.text.primary",
+                  _hover: { bg: "brand.primary.hover", opacity: 0.9 }
+                }
+              }}
+            />
+          </Flex>
         </Box>
 
-        {/* 7. Embedded Photos/Videos */}
+        {/* Social Media Embeds */}
         <Box {...containerStyles}>
-          <Heading {...headerStyles}>Photos & Videos</Heading>
-          <SocialEmbedEditor 
-            teamId={team?.id} 
-            isDisabled={!team}
-          />
+          <Heading {...headerStyles}>Social Media Embeds</Heading>
+          <Flex justify="center" mb={4}>
+            <SocialEmbedEditor 
+              teamId={team?.id || ''} 
+              isDisabled={!team}
+              buttonProps={{
+                primary: {
+                  className: "app-gradient",
+                  color: "brand.text.primary",
+                  _hover: { opacity: 0.9 }
+                },
+                secondary: {
+                  variant: "outline",
+                  borderColor: "brand.border",
+                  color: "brand.text.primary",
+                  _hover: { bg: "brand.primary.hover", opacity: 0.9 }
+                }
+              }}
+            />
+          </Flex>
         </Box>
 
-        {/* 8. Social Media Links */}
+        {/* Social Media Links */}
         <Box {...containerStyles}>
           <Heading {...headerStyles}>Social Media Links</Heading>
-          <SocialMediaEditor 
-            teamId={team?.id || ''} // Add empty string fallback
-            isDisabled={!team}
-          />
+          <Box width="100%">
+            <SocialMediaEditor 
+              teamId={team?.id || ''} 
+              isDisabled={!team}
+              buttonProps={{
+                primary: {
+                  className: "app-gradient",
+                  color: "brand.text.primary",
+                  _hover: { opacity: 0.9 }
+                },
+                secondary: {
+                  variant: "outline",
+                  borderColor: "brand.border",
+                  color: "brand.text.primary",
+                  _hover: { bg: "brand.primary.hover", opacity: 0.9 }
+                }
+              }}
+            />
+          </Box>
         </Box>
+
+        {/* Team Password Box removed */}
       </SimpleGrid>
     </Container>
   );

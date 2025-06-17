@@ -1,17 +1,18 @@
 import { Box } from '@chakra-ui/react';
-import PropTypes from 'prop-types';
+import React from 'react';
 
 const CardContainer = ({ children, ...props }) => {
   return (
-    <Box
-      bg="brand.primary.base"  // Correct usage
-      p={6}
-      borderRadius="lg"
-      boxShadow="md"
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      width="100%"
+    <Box 
+      p={5} 
+      borderWidth="1px" 
+      borderRadius="lg" 
+      bg="brand.surface.base" 
+      color="brand.text.primary"
+      borderColor="brand.border"
+      mb={6}
+      boxShadow="sm"
+      className="content-gradient"
       {...props}
     >
       {children}
@@ -19,12 +20,6 @@ const CardContainer = ({ children, ...props }) => {
   );
 };
 
-CardContainer.propTypes = {
-  children: PropTypes.node.isRequired,
-};
-
 export default CardContainer;
-
-
 
 

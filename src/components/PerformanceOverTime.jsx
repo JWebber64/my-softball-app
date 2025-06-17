@@ -17,6 +17,15 @@ import {
   YAxis,
 } from 'recharts';
 
+// Add or update the COLORS array with green shades
+const COLORS = [
+  '#2e6930', // Dark green (matches content-gradient-middle)
+  '#0a1f0b', // Very dark green (even darker)
+  '#3d8a40', // Medium green (new distinct shade)
+  '#82c785', // Lighter green (matches form-field-bg)
+  '#a6d7a8', // Lightest green
+];
+
 const PerformanceOverTime = ({ playerStats }) => {
   const [gameRange, setGameRange] = useState(10);
   const [statType, setStatType] = useState('avg');
@@ -162,7 +171,7 @@ const PerformanceOverTime = ({ playerStats }) => {
                     key={player.name}
                     type="monotone"
                     dataKey={player.name}
-                    stroke={`hsl(${index * 60}, 70%, 50%)`}
+                    stroke={COLORS[index]}
                     strokeWidth={2}
                     dot={true}
                   />
@@ -209,6 +218,11 @@ PerformanceOverTime.propTypes = {
 };
 
 export default PerformanceOverTime;
+
+
+
+
+
 
 
 

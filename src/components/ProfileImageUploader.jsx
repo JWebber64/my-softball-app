@@ -221,13 +221,14 @@ const ProfileImageUploader = ({ userId, currentImageUrl, onImageUpdate }) => {
         />
         <Button
           onClick={() => fileInputRef.current?.click()}
-          w="full"
+          w={{ base: "80%", md: "200px" }}  // Narrower width, responsive
           size="sm"
-          bgGradient="linear(to-r, brand.header.start, brand.header.middle, brand.header.end)"
+          bgGradient="linear(to-r, brand.gradient.start, brand.gradient.middle, brand.gradient.end)"
           color="brand.text.primary"
           _hover={{
             opacity: 0.9
           }}
+          mx="auto"  // Center the button
         >
           {currentImageUrl ? 'Change Profile Picture' : 'Upload Profile Picture'}
         </Button>
@@ -298,6 +299,8 @@ ProfileImageUploader.propTypes = {
 };
 
 export default ProfileImageUploader;
+
+
 
 
 

@@ -1,78 +1,64 @@
-import { Box, useDisclosure } from '@chakra-ui/react';
+import { Box } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { ROUTER_CONFIG } from '../../config';
 import { useAuth } from '../../hooks/useAuth';
-import Footer from './Footer';
+import { useTeam } from '../../hooks/useTeam';
+import LoadingSpinner from '../common/LoadingSpinner';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-const Layout = () => {
-  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: false });
-  const { user } = useAuth();
+const Layout = ({ isPublic = false }) => {
+  const { loading: teamLoading } = useTeam();
+  const { isAuthenticated } = useAuth();
+  const [sidebarWidth, setSidebarWidth] = useState("240px");
+  const [isInitialized, setIsInitialized] = useState(false);
   const location = useLocation();
-  const sidebarWidth = isOpen ? '240px' : '60px';
 
-  // Check if we should show sidebar
-  const shouldShowSidebar = () => {
-    if (!user && (
-      location.pathname === ROUTER_CONFIG.ROUTES.HOME || 
-      location.pathname === ROUTER_CONFIG.ROUTES.SIGNIN
-    )) {
-      return false;
-    }
-    return true;
-  };
+  // Check if current route is admin page
+  const isAdminPage = location.pathname.includes('/team/admin');
+  const isSignInPage = location.pathname === '/signin';
+  
+  // Check if current route is team info or stats page
+  const isTeamPage = location.pathname.includes('/team/') || 
+                     location.pathname.includes('/team-stats');
+  
+  // Determine if sidebar should be shown
+  const showSidebar = isAuthenticated || isTeamPage;
 
-  const showSidebar = shouldShowSidebar();
+  useEffect(() => {
+    const savedWidth = localStorage.getItem('sidebarWidth') || "240px";
+    setSidebarWidth(savedWidth);
+    setIsInitialized(true);
+  }, []);
 
+  if (!isInitialized || (!isPublic && teamLoading && !isAdminPage && !isTeamPage)) {
+    return <LoadingSpinner message="Loading..." />;
+  }
+  
   return (
-    <Box display="flex">
+    <Box minH="100vh" bg="brand.background">
+      {/* Show sidebar for authenticated users or team pages */}
       {showSidebar && (
         <Sidebar 
-          isCollapsed={!isOpen} 
-          onToggle={onToggle}
+          width={sidebarWidth} 
+          onWidthChange={setSidebarWidth}
         />
       )}
+      
       <Box
-        flex="1"
-        marginLeft={showSidebar ? sidebarWidth : "0"}
-        transition="all 0.2s"
-        minHeight="100vh"
-        position="relative"
-        display="flex"
-        flexDirection="column"
+        ml={showSidebar ? sidebarWidth : "0"}
+        transition="margin-left 0.3s"
       >
         <Header sidebarWidth={showSidebar ? sidebarWidth : "0"} />
-        <Box 
-          as="main"
-          pt="80px"
-          flex="1"
-          px={4}
-        >
+        <Box as="main" p={4}>
           <Outlet />
         </Box>
-        <Footer sidebarWidth="0" />
       </Box>
     </Box>
   );
 };
 
 export default Layout;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

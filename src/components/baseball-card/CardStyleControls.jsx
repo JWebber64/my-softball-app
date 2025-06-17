@@ -39,7 +39,7 @@ const CardStyleControls = ({
     <VStack spacing={6} align="stretch" w="100%">
       {/* Preset Selector */}
       <Box>
-        <Heading size="sm" mb={2} color="var(--app-text)">Card Style Preset</Heading>
+        <Heading size="sm" mb={2} color="brand.text.primary">Card Style Preset</Heading>
         <Select
           value={selectedPreset}
           onChange={(e) => onPresetChange(e.target.value)}
@@ -50,8 +50,8 @@ const CardStyleControls = ({
               key={key} 
               value={key}
               style={{ 
-                backgroundColor: 'var(--app-surface)',
-                color: 'var(--app-text)'
+                backgroundColor: 'brand.surface.base',
+                color: 'brand.text.primary'
               }}
             >
               {preset.name}
@@ -111,5 +111,6 @@ const CardStyleControls = ({
 };
 
 export default CardStyleControls;
+
 
 

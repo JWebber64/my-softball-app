@@ -1,246 +1,215 @@
-import { Container, SimpleGrid, useToast } from '@chakra-ui/react';
-import PropTypes from 'prop-types';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import CardContainer from '../components/common/CardContainer';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import SectionHeading from '../components/common/SectionHeading';
-import TeamStandings from '../components/league/TeamStandings';
-import PlayerOfWeek from '../components/PlayerOfWeek';
+import {
+  Box,
+  Center,
+  Container, Heading, SimpleGrid, Spinner,
+  Text
+} from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import PlayerOfWeek from "../components/PlayerOfWeek";
 import SocialMediaEmbed from '../components/SocialMediaEmbed';
 import SocialMediaLinks from '../components/SocialMediaLinks';
 import TeamPlayerCards from '../components/team/TeamPlayerCards';
+import TeamRoster from '../components/team/TeamRoster';
 import TeamNews from '../components/TeamNews';
-import TeamSchedule from '../components/TeamSchedule';
+import TeamSchedule from "../components/TeamSchedule";
 import WeatherDisplay from '../components/WeatherDisplay';
 import { useTeam } from '../hooks/useTeam';
+import { useTeamData } from '../hooks/useTeamData';
 import { supabase } from '../lib/supabaseClient';
-import { weatherService } from '../services/weatherService';
 
 const TeamInfoPage = () => {
-  const params = useParams();
-  const navigate = useNavigate();
-  const { team: activeTeam } = useTeam();
-  const [team, setTeam] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentWeather, setCurrentWeather] = useState(null);
-  const [nextGameWeather, setNextGameWeather] = useState(null);
-  const [nextGameDate, setNextGameDate] = useState(null);
-  const toast = useToast(); // Add toast for user feedback
-
+  const { id } = useParams(); // Get team ID from URL
+  const { team: currentTeam } = useTeam();
+  const [teamData, setTeamData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Get the effective team ID (from URL or context)
+  const effectiveTeamId = id || (currentTeam?.id || null);
+  
+  // Use the useTeamData hook to get weather data
+  const { weatherData, weatherLoading } = useTeamData(effectiveTeamId);
+  
   useEffect(() => {
-    const fetchTeam = async () => {
+    const fetchTeamData = async () => {
+      setLoading(true);
+      
       try {
-        let teamId;
+        // If we have an ID from URL, use that, otherwise use current team
+        const teamId = id || (currentTeam?.id || null);
         
-        // If we're on /team/:id route, use the URL parameter
-        if (params.id) {
-          teamId = params.id;
-        } 
-        // If we're on /team-info route, use the active team from context
-        else if (activeTeam?.id) {
-          teamId = activeTeam.id;
-        } 
-        // No team ID available
-        else {
-          toast({
-            title: "No Team Selected",
-            description: "Please select a team first",
-            status: "warning",
-            duration: 3000,
-            isClosable: true,
-          });
-          navigate('/'); // Redirect to home page
+        if (!teamId) {
+          console.log('No team ID available');
+          setLoading(false);
           return;
         }
-
+        
         const { data, error } = await supabase
           .from('teams')
-          .select('id, name, location_name, logo_url, is_public, latitude, longitude')
-          .match({ id: teamId, is_public: true })
+          .select('*')
+          .eq('id', teamId)
           .single();
-
-        if (error) {
-          throw error;
-        }
-
-        if (!data) {
-          toast({
-            title: "Team Not Found",
-            description: "The requested team could not be found or is private",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-          });
-          navigate('/');
-          return;
-        }
-
-        setTeam(data);
+          
+        if (error) throw error;
+        setTeamData(data);
       } catch (error) {
-        console.error('Error fetching team:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load team information",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        navigate('/');
+        console.error('Error fetching team data:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
-    fetchTeam();
-  }, [params.id, activeTeam?.id, navigate, toast]);
-
+    
+    fetchTeamData();
+  }, [id, currentTeam]);
+  
+  // For debugging
   useEffect(() => {
-    const fetchWeatherData = async () => {
-      if (!team?.latitude || !team?.longitude) return;
+    console.log('TeamInfoPage - teamId from params:', id);
+    console.log('TeamInfoPage - team from context:', currentTeam);
+    console.log('TeamInfoPage - effectiveTeamId:', effectiveTeamId);
+    console.log('TeamInfoPage - teamData:', teamData);
+  }, [id, currentTeam, effectiveTeamId, teamData]);
 
-      try {
-        // Get current weather
-        const currentWeatherData = await weatherService.getGameDayForecast({
-          lat: team.latitude,
-          lng: team.longitude
-        }, new Date());
-        setCurrentWeather(currentWeatherData);
+  // Add debugging to see what's happening with the weather data
+  useEffect(() => {
+    console.log('TeamInfoPage - weatherData:', weatherData);
+    console.log('TeamInfoPage - weatherLoading:', weatherLoading);
+  }, [weatherData, weatherLoading]);
 
-        // Get next game date from schedule
-        const { data: games } = await supabase
-          .from('games')
-          .select('date')
-          .eq('team_id', team.id)
-          .gt('date', new Date().toISOString())
-          .order('date', { ascending: true })
-          .limit(1)
-          .single();
+  // Find the next game
+  const nextGame = teamData?.schedule?.find(game => 
+    new Date(game.date) > new Date() && 
+    game.status.toLowerCase() !== 'cancelled'
+  );
 
-        if (games?.date) {
-          setNextGameDate(games.date);
-          // Get weather for next game
-          const nextGameWeatherData = await weatherService.getGameDayForecast({
-            lat: team.latitude,
-            lng: team.longitude
-          }, new Date(games.date));
-          setNextGameWeather(nextGameWeatherData);
-        }
-      } catch (error) {
-        console.error('Error fetching weather:', error);
-      }
-    };
+  // Define consistent container styles
+  const containerStyles = {
+    bg: 'brand.surface.base',
+    borderColor: 'brand.border',
+    borderWidth: '1px',
+    borderRadius: 'md',
+    p: 4,
+    mb: 4,
+    textAlign: 'center'
+  };
 
-    fetchWeatherData();
-  }, [team]);
+  const headerStyles = {
+    size: "md",
+    color: "brand.text.primary",
+    mb: 4,
+    textAlign: 'center'
+  };
 
-  if (isLoading) {
-    return <LoadingSpinner />;
+  // Show loading state
+  if (loading) {
+    return (
+      <Center h="100vh">
+        <Spinner size="xl" />
+      </Center>
+    );
   }
 
-  if (!team) {
-    return null;
+  // Show message if no team ID is available
+  if (!effectiveTeamId) {
+    return (
+      <Center h="100vh">
+        <Text>No team selected. Please select a team.</Text>
+      </Center>
+    );
   }
 
   return (
-    <Container maxW="1800px" py={6} bg="var(--app-background)">
+    <Container maxW="1800px" py={6} px={4} mt="80px">
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-        {/* 1. Standings */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Team Standings</SectionHeading>
-          <TeamStandings />
-        </CardContainer>
-
-        {/* 2. Player of the Week */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Player of the Week</SectionHeading>
-          <PlayerOfWeek teamId={team.id} />
-        </CardContainer>
-
-        {/* 3. Schedule */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Team Schedule</SectionHeading>
-          <TeamSchedule teamId={team.id} />
-        </CardContainer>
-
-        {/* 4. Player Profiles */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Player Profiles</SectionHeading>
-          <TeamPlayerCards teamId={team.id} />
-        </CardContainer>
-
-        {/* 5. News */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Team News</SectionHeading>
-          <TeamNews teamId={team.id} />
-        </CardContainer>
-
-        {/* 6. Weather */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Weather</SectionHeading>
-          <WeatherDisplay 
-            currentWeather={currentWeather}
-            nextGameWeather={nextGameWeather}
-            nextGameDate={nextGameDate}
-          />
-        </CardContainer>
-
-        {/* 7. Embedded photos/videos */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Media Feed</SectionHeading>
-          <SocialMediaEmbed teamId={team.id} />
-        </CardContainer>
-
-        {/* 8. Social Media Links */}
-        <CardContainer 
-          bg="var(--app-surface)"
-          borderColor="var(--app-border)"
-          boxShadow="var(--app-shadow)"
-        >
-          <SectionHeading color="var(--app-text)">Social Media</SectionHeading>
-          <SocialMediaLinks teamId={team.id} />
-        </CardContainer>
+        {/* Upcoming Schedule - Now in top left position */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Upcoming Schedule</Heading>
+          {effectiveTeamId ? (
+            <TeamSchedule teamId={effectiveTeamId} />
+          ) : (
+            <Text>No team selected</Text>
+          )}
+        </Box>
+        
+        {/* Player of the Week */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Player of the Week</Heading>
+          <PlayerOfWeek showButtons={false} useSimpleView={true} />
+        </Box>
+        
+        {/* Team Roster */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Team Roster</Heading>
+          {effectiveTeamId ? (
+            <TeamRoster teamId={effectiveTeamId} />
+          ) : (
+            <Text>No team selected</Text>
+          )}
+        </Box>
+        
+        {/* Player Profiles */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Player Profiles</Heading>
+          <TeamPlayerCards teamData={teamData} />
+        </Box>
+        
+        {/* Team News */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Team News</Heading>
+          {effectiveTeamId ? (
+            <TeamNews teamId={effectiveTeamId} news={teamData?.news || []} />
+          ) : (
+            <Text>No team selected</Text>
+          )}
+        </Box>
+        
+        {/* Weather */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Weather</Heading>
+          <Box display="flex" justifyContent="center" width="100%">
+            {/* Add this debugging code before rendering the WeatherDisplay */}
+            {console.log('TeamInfoPage weather props:', {
+              nextGame: nextGame,
+              nextGameDate: nextGame?.date,
+              nextGameOpponent: nextGame?.opponent,
+              weatherData: weatherData
+            })}
+            
+            
+            <WeatherDisplay 
+              currentWeather={weatherData?.current}
+              nextGameWeather={weatherData?.nextGame}
+              nextGameDate={nextGame?.date}
+              nextGameOpponent={nextGame?.opponent}
+              location={teamData?.location_name} 
+              isLoading={weatherLoading}
+            />
+            
+          </Box>
+        </Box>
+        
+        {/* Social Media Embeds */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Social Media</Heading>
+          {effectiveTeamId ? (
+            <SocialMediaEmbed teamId={effectiveTeamId} />
+          ) : (
+            <Text>No team selected</Text>
+          )}
+        </Box>
+        
+        {/* Social Media Links */}
+        <Box {...containerStyles}>
+          <Heading {...headerStyles}>Connect With Us</Heading>
+          {effectiveTeamId ? (
+            <SocialMediaLinks teamId={effectiveTeamId} />
+          ) : (
+            <Text>No team selected</Text>
+          )}
+        </Box>
       </SimpleGrid>
     </Container>
   );
-};
-
-TeamInfoPage.propTypes = {
-  team: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    location_name: PropTypes.string.isRequired,
-    logo_url: PropTypes.string,
-    is_public: PropTypes.bool.isRequired,
-  }),
 };
 
 export default TeamInfoPage;

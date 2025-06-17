@@ -10,12 +10,13 @@ const SocialMediaLinks = ({ teamId }) => {
   useEffect(() => {
     const fetchLinks = async () => {
       const { data, error } = await supabase
-        .from('social_media_links')
-        .select('*')
-        .eq('team_id', teamId);
+        .from('team_social_config')
+        .select('social_links')
+        .eq('team_id', teamId)
+        .maybeSingle();
 
       if (!error && data) {
-        setLinks(data);
+        setLinks(data.social_links || []);
       }
     };
 
@@ -52,5 +53,6 @@ SocialMediaLinks.propTypes = {
 };
 
 export default SocialMediaLinks;
+
 
 

@@ -4,10 +4,9 @@ import {
   Table,
   Tbody,
   Td,
-  Text,
   Th,
   Thead,
-  Tr,
+  Tr
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -21,8 +20,19 @@ const PlayByPlayPanel = ({ scoreSheet }) => {
       case 'homerun':
         return 'green';
       case 'out':
+      case 'strikeout':
+      case 'flyout':
+      case 'groundout':
+      case 'lineout':
+      case 'popout':
+      case 'doubleplay':
         return 'red';
       case 'walk':
+      case 'hitbypitch':
+      case 'sacrifice':
+      case 'sacrificefly':
+      case 'fielderschoice':
+      case 'error':
         return 'blue';
       default:
         return 'gray';
@@ -52,38 +62,30 @@ const PlayByPlayPanel = ({ scoreSheet }) => {
 
   return (
     <Box 
-      w="100%" 
-      bg="#2e3726" 
+      p={4} 
+      bg="brand.scoresheet.background" 
       borderRadius="md" 
-      p={4}
-      maxH="400px"
-      overflowY="auto"
+      border="1px solid" 
+      borderColor="brand.scoresheet.border"
     >
-      <Text color="#E7F8E8" fontSize="lg" mb={4}>
-        Play by Play
-      </Text>
-      
-      <Table variant="simple" size="sm">
-        <Thead>
-          <Tr>
-            <Th color="#E7F8E8">Inning</Th>
-            <Th color="#E7F8E8">Play</Th>
-            <Th color="#E7F8E8">Time</Th>
-            <Th color="#E7F8E8">Notes</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {scoreSheet?.innings?.map((inning, index) => 
-            renderInningPlays(inning, index + 1)
-          )}
-        </Tbody>
-      </Table>
-
-      {(!scoreSheet?.innings || scoreSheet.innings.length === 0) && (
-        <Text color="#E7F8E8" textAlign="center" mt={4}>
-          No plays recorded yet
-        </Text>
-      )}
+      <Heading size="md" mb={4} color="brand.scoresheet.title">Play by Play</Heading>
+      <Box overflowX="auto">
+        <Table variant="simple" size="sm">
+          <Thead bg="brand.scoresheet.headerBg">
+            <Tr>
+              <Th color="brand.scoresheet.text">Inning</Th>
+              <Th color="brand.scoresheet.text">Play</Th>
+              <Th color="brand.scoresheet.text">Time</Th>
+              <Th color="brand.scoresheet.text">Notes</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {scoreSheet?.innings?.map((inning, index) => 
+              renderInningPlays(inning, index + 1)
+            )}
+          </Tbody>
+        </Table>
+      </Box>
     </Box>
   );
 };
@@ -93,3 +95,7 @@ PlayByPlayPanel.propTypes = {
 };
 
 export default PlayByPlayPanel;
+
+
+
+
